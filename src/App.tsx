@@ -33,11 +33,15 @@ export default function App({ registry: injected }: AppProps = {}) {
   const [origin, setOrigin] = useOrigin(DEFAULT_PREFERENCES.originId);
   const [settings, updateSettings, resetSettings] = usePreferences();
 
-  // Give the traffic proxy's free-tier cold start a head start against the
-  // user's own dwell time on the homepage, rather than against the 15s
-  // timeout on the real request. See lib/warmup.ts.
+  // A separately hosted proxy on a free tier can be asleep; give its cold
+  // start a head start against the user's dwell time on the homepage. A
+  // same-origin proxy (serverless functions beside this page) wakes in
+  // milliseconds and needs no ping. See lib/warmup.ts.
   useEffect(() => {
-    warmUpTrafficService(resolveEnvironment().trafficApiBaseUrl);
+    const environment = resolveEnvironment();
+    if (environment.proxyConfigured && environment.trafficApiBaseUrl) {
+      warmUpTrafficService(environment.trafficApiBaseUrl);
+    }
   }, []);
 
   const preferences = useMemo(

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { localToUtcIso, planDepartureMinutes } from '../../server/index.mjs';
+import { localToUtcIso, planDepartureMinutes, readBody } from '../../server/index.mjs';
+import type { IncomingMessage } from 'node:http';
+import { Readable } from 'node:stream';
 
 /**
  * The proxy's pure helpers, tested from the same suite as everything else.
@@ -52,5 +54,19 @@ describe('planDepartureMinutes — never asks Google about a departure already b
     const plan = planDepartureMinutes(OUTBOUND, '2026-01-17', denver('2026-01-17', 4, 59), TZ);
     expect(plan[0]?.departureIso).toBeNull();
     expect(plan[1]?.minute).toBe(330);
+  });
+});
+
+describe('readBody — the same router serves a stream (node:http) and a pre-parsed body (Vercel)', () => {
+  it('reads a raw stream', async () => {
+    const req = Readable.from([Buffer.from('{"a":1}')]) as unknown as IncomingMessage;
+    expect(await readBody(req)).toBe('{"a":1}');
+  });
+
+  it('accepts a body a serverless runtime already parsed, as an object or a string', async () => {
+    const parsed = { body: { a: 1 } } as unknown as IncomingMessage & { body?: unknown };
+    expect(await readBody(parsed)).toBe('{"a":1}');
+    const raw = { body: '{"b":2}' } as unknown as IncomingMessage & { body?: unknown };
+    expect(await readBody(raw)).toBe('{"b":2}');
   });
 });

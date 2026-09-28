@@ -38,7 +38,7 @@ export class UnavailableTrafficProvider implements TrafficProvider {
     _direction: 'outbound' | 'return',
     _context: ProviderContext,
   ): Promise<Availability<TravelCurve>> {
-    return unavailable(this.id, 'No traffic server configured (VITE_API_BASE_URL is unset).');
+    return unavailable(this.id, 'No data proxy configured (VITE_API_BASE_URL is unset), so traffic cannot be routed.');
   }
 }
 

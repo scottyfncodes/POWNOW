@@ -17,7 +17,20 @@
  * Deliberately dependency-free (no Express): a plain `node:http` router is
  * easier to audit for "does this leak a key anywhere" than a framework.
  *
- * Run: GOOGLE_ROUTES_API_KEY=... COTRIP_API_KEY=... node server/index.mjs
+ * It runs two ways from the same file:
+ *   - as a long-lived process: `node server/index.mjs` (Render, a VPS, local dev)
+ *   - as a Vercel serverless function: `api/[...path].mjs` imports
+ *     `handleRequest` and hands it Vercel's request/response, which are the
+ *     same Node objects. Deployed next to the static frontend, the proxy is
+ *     same-origin and needs no CORS configuration at all.
+ *
+ * Caching in the serverless case: each warm instance keeps its own
+ * in-memory cache, and when `KV_REST_API_URL` / `KV_REST_API_TOKEN` are set
+ * (Vercel KV / Upstash Redis, REST) the cache is also written through to a
+ * shared store so a cold instance starts warm. GET endpoints additionally
+ * send `Cache-Control: s-maxage` so a CDN in front (Vercel's) serves repeats
+ * without invoking the function at all.
+ *
  * See .env.example for every variable this reads.
  */
 import { createServer } from 'node:http';
@@ -65,21 +78,64 @@ const RETURN_MINUTES = [630, 660, 690, 780, 810, 840, 870, 900, 960, 1020, 1080]
 
 /* ------------------------------------------------------------------ cache */
 
-/** In-memory TTL cache. A multi-instance deployment needs a shared cache (Redis/KV) here instead. */
+/** Tier 1: in-memory, per process/instance. */
 const cache = new Map();
 
-function cacheGet(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (entry.expiresAt <= Date.now()) {
-    cache.delete(key);
+/**
+ * Tier 2 (optional): a shared Redis-compatible REST store — Vercel KV and
+ * Upstash both speak this protocol — so serverless instances share one cache.
+ * Spoken directly over fetch to stay dependency-free. Absent the env vars,
+ * this tier is simply skipped.
+ */
+const KV_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL ?? '';
+const KV_TOKEN = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN ?? '';
+const KV_PREFIX = process.env.KV_PREFIX ?? 'snownow:';
+
+async function kvCommand(command) {
+  if (!KV_URL || !KV_TOKEN) return null;
+  try {
+    const response = await fetchWithTimeout(
+      KV_URL,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(command),
+      },
+      1500,
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data && typeof data === 'object' && 'result' in data ? data.result : null;
+  } catch {
+    // A cache is never allowed to take a request down.
     return null;
   }
-  return entry.value;
 }
 
-function cacheSet(key, value, ttlMs = CACHE_TTL_MS) {
-  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+async function cacheGet(key) {
+  const entry = cache.get(key);
+  if (entry) {
+    if (entry.expiresAt > Date.now()) return entry.value;
+    cache.delete(key);
+  }
+  const raw = await kvCommand(['GET', KV_PREFIX + key]);
+  if (typeof raw !== 'string') return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && parsed.expiresAt > Date.now()) {
+      cache.set(key, parsed);
+      return parsed.value;
+    }
+  } catch {
+    // Unreadable entry: treat as a miss.
+  }
+  return null;
+}
+
+async function cacheSet(key, value, ttlMs = CACHE_TTL_MS) {
+  const entry = { value, expiresAt: Date.now() + ttlMs };
+  cache.set(key, entry);
+  await kvCommand(['SET', KV_PREFIX + key, JSON.stringify(entry), 'PX', String(ttlMs)]);
 }
 
 /**
@@ -91,14 +147,14 @@ function cacheSet(key, value, ttlMs = CACHE_TTL_MS) {
 const inFlight = new Map();
 
 async function cachedOrCompute(key, ttlMs, compute) {
-  const hit = cacheGet(key);
+  const hit = await cacheGet(key);
   if (hit) return hit;
   const pending = inFlight.get(key);
   if (pending) return pending;
   const promise = (async () => {
     try {
       const value = await compute();
-      if (value !== null && value !== undefined) cacheSet(key, value, ttlMs);
+      if (value !== null && value !== undefined) await cacheSet(key, value, ttlMs);
       return value;
     } finally {
       inFlight.delete(key);
@@ -527,17 +583,32 @@ function originForbidden(req) {
   return !ALLOWED_ORIGINS.includes(origin);
 }
 
-function sendJson(req, res, status, body) {
+function sendJson(req, res, status, body, extraHeaders = {}) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Content-Length': Buffer.byteLength(payload),
+    'Cache-Control': 'no-store',
     ...corsHeadersFor(req),
+    ...extraHeaders,
   });
   res.end(payload);
 }
 
-function readBody(req) {
+/** Lets a CDN in front (Vercel's edge) serve repeats of a GET for `seconds` without invoking us. */
+const cdnCache = (seconds) => ({
+  'Cache-Control': `public, s-maxage=${seconds}, stale-while-revalidate=${Math.round(seconds / 4)}`,
+});
+
+/**
+ * The raw request body as a string. Serverless runtimes (Vercel's Node
+ * functions among them) often consume the stream and hand the parsed body
+ * over as `req.body` instead; both shapes are accepted here.
+ */
+export function readBody(req) {
+  if (req.body !== undefined && req.body !== null) {
+    return Promise.resolve(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+  }
   return new Promise((resolve, reject) => {
     let data = '';
     req.on('data', (chunk) => {
@@ -551,6 +622,20 @@ function readBody(req) {
 
 function isPoint(value) {
   return value && typeof value.lat === 'number' && typeof value.lon === 'number';
+}
+
+/**
+ * The router. Exported so a serverless adapter (see `api/[...path].mjs`)
+ * can serve exactly the same endpoints as the standalone process.
+ */
+export async function handleRequest(req, res) {
+  try {
+    await handle(req, res);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    if (!res.headersSent) sendJson(req, res, 500, { error: 'Unexpected server error.' });
+  }
 }
 
 async function handle(req, res) {
@@ -577,6 +662,7 @@ async function handle(req, res) {
       ok: true,
       hasApiKey: API_KEY.length > 0,
       hasCotripKey: COTRIP_API_KEY.length > 0,
+      sharedCache: Boolean(KV_URL && KV_TOKEN),
       cacheSize: cache.size,
     });
     return;
@@ -703,7 +789,7 @@ async function handle(req, res) {
       sendJson(req, res, 502, { error: 'CDOT returned a response this proxy does not recognize.' });
       return;
     }
-    sendJson(req, res, 200, events);
+    sendJson(req, res, 200, events, cdnCache(Math.round(ROAD_CACHE_TTL_MS / 1000)));
     return;
   }
 
@@ -725,7 +811,7 @@ async function handle(req, res) {
       sendJson(req, res, 502, { error: 'SNOTEL returned no readings this proxy recognizes for that station.' });
       return;
     }
-    sendJson(req, res, 200, reading);
+    sendJson(req, res, 200, reading, cdnCache(Math.round(SNOTEL_CACHE_TTL_MS / 1000)));
     return;
   }
 
@@ -733,23 +819,18 @@ async function handle(req, res) {
 }
 
 export function createSnownowServer() {
-  return createServer((req, res) => {
-    handle(req, res).catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error(error);
-      if (!res.headersSent) sendJson(req, res, 500, { error: 'Unexpected server error.' });
-    });
-  });
+  return createServer(handleRequest);
 }
 
-// Only listen when run directly; tests import the pure helpers above.
+// Only listen when run directly; the Vercel adapter and the tests import instead.
 const isMain = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (isMain) {
   createSnownowServer().listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(
       `SNOWNOW proxy on :${PORT} — Google Routes key ${API_KEY ? 'present' : 'MISSING (traffic will 503)'}; ` +
-        `CDOT key ${COTRIP_API_KEY ? 'present' : 'missing (roads will 503)'}; origins: ${ALLOWED_ORIGINS.join(', ')}`,
+        `CDOT key ${COTRIP_API_KEY ? 'present' : 'missing (roads will 503)'}; ` +
+        `shared cache ${KV_URL && KV_TOKEN ? 'on' : 'off'}; origins: ${ALLOWED_ORIGINS.join(', ')}`,
     );
   });
 }

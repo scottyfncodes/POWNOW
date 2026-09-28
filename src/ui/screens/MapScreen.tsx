@@ -37,13 +37,14 @@ export interface MapScreenProps {
 export function MapScreen({ registry, clock, origin, onBack }: MapScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedMountain = selectedId ? (findMountain(selectedId) ?? null) : null;
-  const apiBaseUrl = resolveEnvironment().trafficApiBaseUrl;
+  const environment = resolveEnvironment();
+  const apiBaseUrl = environment.trafficApiBaseUrl;
   // Only the dedicated single-call preview endpoint gets used in real live
   // mode — reusing the full day-curve pipeline here would cost up to 9 extra
   // Google Routes calls per tap for samples the map never shows. Demo mode
   // (and live mode with no traffic server configured) falls back to the
   // registry, which already handles both honestly and for free.
-  const useLivePreview = !registry.usingDemoData && Boolean(apiBaseUrl);
+  const useLivePreview = !registry.usingDemoData && environment.proxyConfigured;
 
   const routeState = useAsync(
     async (): Promise<RouteResult | null> => {

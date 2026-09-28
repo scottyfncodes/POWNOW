@@ -1,3 +1,4 @@
+import { resolveEnvironment } from '@/config/env';
 import type { Origin } from '@/domain/mountain';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
@@ -36,6 +37,9 @@ export function HomeScreen({
   onMap,
   usingDemoData,
 }: HomeScreenProps) {
+  const environment = resolveEnvironment();
+  // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
+  const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
   return (
     <main className="home">
       <Snowfall density={38} />
@@ -74,12 +78,12 @@ export function HomeScreen({
                 simulated — and labelled as such.
               </span>
             </p>
-          ) : (
+          ) : remoteProxy ? (
             <p className="home-note">
               First traffic check in a while? It can take up to 15 seconds to wake up — that's
               normal, not a bug. Give it a moment or check again if it says unavailable.
             </p>
-          )}
+          ) : null}
         </footer>
       </div>
     </main>

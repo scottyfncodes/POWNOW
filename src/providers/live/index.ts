@@ -27,8 +27,9 @@ export interface LiveRegistryOptions {
   /**
    * Base URL of the data proxy (see `server/index.mjs`). It carries traffic
    * (Google Routes), road conditions (CDOT) and measured snowpack (SNOTEL) —
-   * everything a browser can't fetch itself. Unset means all three report
-   * `unavailable`.
+   * everything a browser can't fetch itself. `''` means same-origin (the
+   * proxy is deployed under `/api` beside the frontend); `undefined` means
+   * no proxy, and all three report `unavailable`.
    */
   trafficApiBaseUrl?: string;
   /** CDOT/COtrip road conditions — on by default, see `config/env.ts`. */
@@ -62,7 +63,8 @@ export interface LiveRegistryOptions {
  */
 export function createLiveRegistry(options: LiveRegistryOptions = {}): ProviderRegistry {
   const apiBaseUrl = options.trafficApiBaseUrl;
-  const hasProxy = Boolean(apiBaseUrl);
+  // `''` is same-origin (the Vercel layout); only `undefined` means no proxy.
+  const hasProxy = apiBaseUrl !== undefined;
   const roadConditionsEnabled = options.enableRoadConditions ?? true;
 
   return {

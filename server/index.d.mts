@@ -12,3 +12,8 @@ export function planDepartureMinutes(
   timeZone: string,
 ): PlannedDeparture[];
 export function createSnownowServer(): import('node:http').Server;
+export function handleRequest(
+  req: import('node:http').IncomingMessage & { body?: unknown },
+  res: import('node:http').ServerResponse,
+): Promise<void>;
+export function readBody(req: import('node:http').IncomingMessage & { body?: unknown }): Promise<string>;

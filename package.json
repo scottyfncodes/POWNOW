@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "SNOWNOW — a decision engine for ski days.",
+  "description": "SNOWNOW \u2014 a decision engine for ski days.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

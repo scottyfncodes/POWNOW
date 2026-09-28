@@ -45,6 +45,10 @@ npm run preview    # serve the built app
 npm run server     # the data proxy (server/index.mjs) — needed for traffic, roads and snowpack
 ```
 
+To run the full live stack locally: `npm run server` in one terminal with the
+keys from `.env.example` in its environment, and `VITE_DATA_MODE=live
+VITE_API_BASE_URL=http://localhost:8787 npm run dev` in another.
+
 Node 20+ required. **With no environment variables set, the app runs entirely
 in demo mode** — no API keys, no services, no network calls beyond loading the
 page. See "Going live" below for what each optional variable turns on.
@@ -139,13 +143,38 @@ read at runtime — switching modes means rebuilding, which is also what keeps
 demo mode the safe, can't-happen-by-accident default: there is no runtime
 toggle to flip on live data without a deliberate build.
 
+### Deploying
+
+**Vercel is the intended host, and one deploy carries everything.** The
+frontend builds as static output; the proxy runs as a serverless function
+under `/api` on the same origin (`api/[...path].mjs` hands every request to
+the router in `server/index.mjs`). `vercel.json` sets the build to live mode
+with `VITE_API_BASE_URL=/`, which means "same origin", so no CORS allowlist
+is needed and the app never has to apologise for a sleeping proxy.
+
+1. Import the repository in Vercel. Framework: Vite (detected).
+2. Project → Settings → Environment Variables: `GOOGLE_ROUTES_API_KEY`,
+   `COTRIP_API_KEY`. Optionally add Vercel KV from the Storage tab, which
+   sets `KV_REST_API_URL` / `KV_REST_API_TOKEN` and turns on the shared
+   cache tier described below.
+3. Deploy. `GET /api/health` on the deployment reports which keys and cache
+   tiers are live.
+
+The proxy also still runs as a plain long-lived process (`npm run server`) on
+anything that runs Node, with the frontend built separately and
+`VITE_API_BASE_URL` pointing at it. GitHub Pages can host the frontend but
+not the proxy; the old Pages workflow was retired when the app moved to
+Vercel, so disable Pages in the repository settings or it will keep serving
+its last build.
+
 ### The proxy
 
 `server/index.mjs` is the one server-side thing this project needs, and it
 exists for three reasons a browser can't cover: hold secrets (Google Routes,
 CDOT), reach hosts that don't serve CORS (SNOTEL, CDOT), and share a cache
 across visitors. It is dependency-free `node:http` so "does this leak a key
-anywhere" is a five-minute read. Endpoints:
+anywhere" is a five-minute read, and the same file serves as the Vercel
+function. Endpoints:
 
 | Endpoint | Upstream | Cache |
 |---|---|---|
@@ -155,17 +184,20 @@ anywhere" is a five-minute read. Endpoints:
 | `GET /api/snotel?station=842:CO:SNTL` | NRCS AWDB daily depth + SWE, plus station metadata | 30 min |
 | `GET /api/health`, `GET /api/test-drive` | — | — |
 
-Guard rails: an origin allowlist (`CORS_ORIGIN`), a per-IP rate limit
-(`RATE_LIMIT_PER_MINUTE`), and in-flight de-duplication so thirteen mountains
-asking for the same corridor in the same second produce one Google call. A
-same-day traffic request no longer loses every past departure time: Google
-refuses a `departureTime` in the past, so the proxy drops those grid points
-and anchors the curve at "now" instead of reporting the whole day
-unavailable.
+Guard rails: an origin allowlist (`CORS_ORIGIN`, moot when same-origin), a
+per-IP rate limit (`RATE_LIMIT_PER_MINUTE`), and in-flight de-duplication so
+thirteen mountains asking for the same corridor in the same second produce
+one Google call. A same-day traffic request no longer loses every past
+departure time: Google refuses a `departureTime` in the past, so the proxy
+drops those grid points and anchors the curve at "now" instead of reporting
+the whole day unavailable.
 
-Deploy it anywhere Node runs (it is on Render today). GitHub Pages cannot host
-it — Pages serves static files and has nowhere to hold a secret. Every
-variable is documented in `.env.example`.
+Caching has three tiers. In-memory per instance, always. A shared
+Redis-compatible REST store (Vercel KV / Upstash) when `KV_REST_API_URL` and
+`KV_REST_API_TOKEN` are set, so serverless instances share one cache and one
+Google budget. And `Cache-Control: s-maxage` on the GET endpoints (roads,
+SNOTEL), so Vercel's CDN answers repeats without invoking the function at
+all. Every variable is documented in `.env.example`.
 
 ### GPS-based routing
 
@@ -499,9 +531,10 @@ per candidate departure time.
   the cache was read. Weather 10 min, alerts and roads 5, Liftie 10, SNOTEL
   30, travel curves 5.
 - **Server-side**: travel curves 15 min, the CDOT feed 5, SNOTEL 30 — all
-  shared across every visitor. The in-memory cache doesn't survive a restart
-  or scale past one instance; a multi-instance deployment needs Redis or a KV
-  store behind the same `cacheGet`/`cacheSet` shape.
+  shared across every visitor. On a long-lived host that is one process's
+  memory. On Vercel each warm function instance has its own memory, so add
+  Vercel KV to share it (the proxy writes through automatically when the KV
+  env vars exist); the GET endpoints are also CDN-cached regardless.
 
 **API calls for one NOW request** (one mountain, one origin, cache cold):
 
@@ -517,11 +550,16 @@ per candidate departure time.
 A full NOW screen multiplies Open-Meteo, Liftie, SNOTEL and Google Routes by
 the number of reachable mountains (8–13). Google Routes is the only billed
 call; at personal-use volume with the shared 15-minute cache it sits inside
-the free tier. A public multi-user deployment should budget for it, set
-`CORS_ORIGIN` to the real frontend, and keep the rate limit on.
+the free tier. A public multi-user deployment should budget for it, turn on the KV tier so
+cold instances don't each pay the cold-cache cost, and keep the rate limit on.
 
 ## Known limitations
 
+- **The Vercel layout has not been deployed from this sandbox.** The adapter
+  is exercised by the same tests as the standalone server (request bodies
+  arrive pre-parsed on Vercel, and `readBody` accepts both shapes), but the
+  first real deploy should check `GET /api/health` and one
+  `POST /api/travel-curve` by hand.
 - **Only Google Routes has been smoke-tested against its real endpoint.**
   This sandbox's network policy blocks `api.open-meteo.com`,
   `api.weather.gov`, `liftie.info`, `data.cotrip.org` and

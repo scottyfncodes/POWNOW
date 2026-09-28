@@ -118,6 +118,24 @@ describe('createLiveRegistry — every slot, every configuration', () => {
   });
 });
 
+describe('createLiveRegistry — a same-origin proxy', () => {
+  it('treats an empty base URL as a configured proxy at /api, not as "no proxy"', async () => {
+    const registry = createLiveRegistry({ trafficApiBaseUrl: '' });
+    expect(registry.label).toBe('Live data');
+    // The traffic slot is a real live provider that will call `/api/travel-curve` on this origin.
+    expect(registry.traffic.id).toBe('google-routes');
+    expect(registry.snowpack.id).toBe('snotel');
+    expect(registry.roads.id).toBe('cotrip');
+  });
+
+  it('the dispatcher passes same-origin through and still treats unset as unavailable', () => {
+    const sameOrigin = createProviderRegistry({ dataMode: 'live', trafficApiBaseUrl: '', proxyConfigured: true, enableRoadConditions: true });
+    expect(sameOrigin.traffic.id).toBe('google-routes');
+    const none = createProviderRegistry({ dataMode: 'live', trafficApiBaseUrl: '', proxyConfigured: false, enableRoadConditions: true });
+    expect(none.traffic.id).toBe('traffic-unconfigured');
+  });
+});
+
 describe('createProviderRegistry — the dispatcher', () => {
   it('missing environment configuration does not activate demo mode when dataMode is live', () => {
     // Every optional knob left at its type default (empty/false) — the one
@@ -125,6 +143,7 @@ describe('createProviderRegistry — the dispatcher', () => {
     const registry = createProviderRegistry({
       dataMode: 'live',
       trafficApiBaseUrl: '',
+      proxyConfigured: false,
       enableRoadConditions: false,
     });
     expectNoDemoInstances(registry);
@@ -135,6 +154,7 @@ describe('createProviderRegistry — the dispatcher', () => {
     const registry = createProviderRegistry({
       dataMode: 'demo',
       trafficApiBaseUrl: '',
+      proxyConfigured: false,
       enableRoadConditions: false,
     });
     expect(registry.weather).toBeInstanceOf(DemoWeatherProvider);
