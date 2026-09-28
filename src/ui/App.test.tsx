@@ -446,3 +446,73 @@ describe('remembering where you start from', () => {
     expect((screen.getByLabelText(/starting from/i) as HTMLSelectElement).value).toBe('denver');
   });
 });
+
+describe('your ride — the rider settings', () => {
+  it('is collapsed on the homepage with a one-line summary of what the engine believes about you', () => {
+    render(<App />);
+    const toggle = screen.getByRole('button', { name: /your ride/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle.textContent).toMatch(/No pass · balanced · up to 5 hours · home by 7:00 PM/i);
+  });
+
+  it('remembers a pass between visits and shows it on the recommendation instead of a ticket price', async () => {
+    const first = render(<App />);
+    await user().click(screen.getByRole('button', { name: /your ride/i }));
+    await user().click(screen.getByRole('button', { name: 'Epic Pass' }));
+    expect(screen.getByRole('button', { name: /your ride/i }).textContent).toMatch(/Epic Pass/);
+    first.unmount();
+
+    // A fresh mount reads the stored choice back.
+    render(<App />);
+    expect(screen.getByRole('button', { name: /your ride/i }).textContent).toMatch(/Epic Pass/);
+    await user().click(screen.getByRole('button', { name: /your ride/i }));
+    await user().click(screen.getByRole('checkbox', { name: /only show mountains on my pass/i }));
+    await user().click(screen.getByRole('button', { name: /^NOW/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument(), { timeout: 12_000 });
+
+    // Every mountain on screen is now an Epic mountain, and the winner's ticket reads as covered.
+    expect(screen.getByText(/On your Epic Pass/)).toBeInTheDocument();
+    expect(screen.queryByText(/Lift ticket.*\$/)).not.toBeInTheDocument();
+  });
+
+  it('resets to defaults from the panel and clears storage', async () => {
+    render(<App />);
+    await user().click(screen.getByRole('button', { name: /your ride/i }));
+    await user().click(screen.getByRole('button', { name: 'Ikon Pass' }));
+    expect(window.localStorage.getItem('snownow.preferences')).toContain('ikon');
+    await user().click(screen.getByRole('button', { name: /reset to defaults/i }));
+    expect(window.localStorage.getItem('snownow.preferences')).toBeNull();
+    expect(screen.getByRole('button', { name: /your ride/i }).textContent).toMatch(/No pass/);
+  });
+
+  it('ignores a poisoned stored value rather than crashing', () => {
+    window.localStorage.setItem('snownow.preferences', '{"sleepVsSend":"banana","passes":["gold"]}');
+    render(<App />);
+    expect(screen.getByRole('button', { name: /your ride/i }).textContent).toMatch(/No pass · balanced/i);
+  });
+});
+
+describe('what you do with the answer', () => {
+  it('offers share, calendar and refresh on the NOW card, and reports the plan\'s age', async () => {
+    await tapNow();
+    expect(screen.getByRole('button', { name: /share plan/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add to calendar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^refresh$/i })).toBeInTheDocument();
+    expect(screen.getByText(/Updated just now/)).toBeInTheDocument();
+  });
+
+  it('copies the plan to the clipboard when the share sheet is not available', async () => {
+    await tapNow();
+    // user-event installs its own clipboard stub at setup; stub after the
+    // navigation is done and click without it so the app sees ours.
+    const writeText = vi.fn(async (_text: string) => {});
+    vi.stubGlobal('navigator', { ...navigator, share: undefined, clipboard: { writeText } });
+    fireEvent.click(screen.getByRole('button', { name: /share plan/i }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const text = String(writeText.mock.calls[0]![0]);
+    expect(text).toMatch(/Leave Denver/);
+    expect(text).toMatch(/\(demo data\)/);
+    expect(screen.getByText('Copied to clipboard.')).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+});

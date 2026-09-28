@@ -53,7 +53,9 @@ export const AlternativeList = forwardRef<HTMLElement, AlternativeListProps>(
                       Leave {formatClock(plan.departure.departure)} ·{' '}
                       {formatDuration(plan.departure.driveMinutes)} up ·{' '}
                       {formatDuration(plan.return.mountainMinutes)} on snow
-                      {plan.ticket && ` · ${formatPrice(plan.ticket.adultDay, plan.ticket.currency)}`}
+                      {plan.passCoverage
+                        ? ' · on your pass'
+                        : plan.ticket && ` · ${formatPrice(plan.ticket.adultDay, plan.ticket.currency)}`}
                     </>
                   ) : (
                     <>Too far to time from here</>

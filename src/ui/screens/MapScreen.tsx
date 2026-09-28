@@ -82,7 +82,9 @@ export function MapScreen({ registry, clock, origin, onBack }: MapScreenProps) {
         },
       };
     },
-    [selectedMountain?.id, origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, clock.now, useLivePreview],
+    // `clock.now` is read inside but deliberately not a dependency: the
+    // preview should not re-fetch a Google route every minute the tab is open.
+    [selectedMountain?.id, origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, useLivePreview],
     { enabled: selectedMountain !== null },
   );
 

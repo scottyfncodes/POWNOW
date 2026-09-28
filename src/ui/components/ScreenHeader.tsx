@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import { Wordmark } from './Wordmark';
 
 export interface ScreenHeaderProps {
   onBack: () => void;
   title: string;
-  right?: React.ReactNode;
+  right?: ReactNode;
 }
 
 export function ScreenHeader({ onBack, title, right }: ScreenHeaderProps) {

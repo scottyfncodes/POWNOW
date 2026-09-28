@@ -6,6 +6,7 @@ import { createProviderRegistry } from '@/providers';
 import type { ProviderRegistry } from '@/providers/types';
 import { useClock } from '@/ui/hooks/useClock';
 import { useOrigin } from '@/ui/hooks/useOrigin';
+import { usePreferences } from '@/ui/hooks/usePreferences';
 import { useScreen } from '@/ui/hooks/useScreen';
 import { HomeScreen } from '@/ui/screens/HomeScreen';
 import { LaterScreen } from '@/ui/screens/LaterScreen';
@@ -30,6 +31,7 @@ export default function App({ registry: injected }: AppProps = {}) {
   const clock = useClock();
   const [mode, setMode] = useScreen();
   const [origin, setOrigin] = useOrigin(DEFAULT_PREFERENCES.originId);
+  const [settings, updateSettings, resetSettings] = usePreferences();
 
   // Give the traffic proxy's free-tier cold start a head start against the
   // user's own dwell time on the homepage, rather than against the 15s
@@ -39,8 +41,8 @@ export default function App({ registry: injected }: AppProps = {}) {
   }, []);
 
   const preferences = useMemo(
-    () => ({ ...DEFAULT_PREFERENCES, originId: origin.id }),
-    [origin.id],
+    () => ({ ...DEFAULT_PREFERENCES, ...settings, originId: origin.id }),
+    [origin.id, settings],
   );
 
   if (mode === 'now') {
@@ -75,6 +77,9 @@ export default function App({ registry: injected }: AppProps = {}) {
     <HomeScreen
       origin={origin}
       onOriginChange={setOrigin}
+      settings={settings}
+      onSettingsChange={updateSettings}
+      onSettingsReset={resetSettings}
       onNow={() => setMode('now')}
       onLater={() => setMode('later')}
       onMap={() => setMode('map')}

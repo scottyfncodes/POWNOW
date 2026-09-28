@@ -1,7 +1,7 @@
 import type { WeatherAlert } from './alerts';
 import type { ElevationConditions, SnowHistory } from './conditions';
 import type { DateKey } from './dates';
-import type { Mountain, Origin } from './mountain';
+import type { Mountain, Origin, PassAffiliation } from './mountain';
 import type { MountainOperationalState, OffSeasonMessage } from './mountainStatus';
 import type { TicketPrice } from './pricing';
 import type { ConfidenceLevel, DisplayStatus, Provenance } from './provenance';
@@ -226,6 +226,8 @@ export interface SkiDayPlan {
    * the resort is known regardless of whether the live price call succeeded.
    */
   ticketPurchaseUrl?: string;
+  /** The rider's pass that covers this mountain, when they told us they hold one. */
+  passCoverage: PassAffiliation | null;
   /** Active official alerts, supplementary only — scoring never reads this. */
   alerts: WeatherAlert[];
   /** Per-feed honesty, for the "data sources" disclosure. */

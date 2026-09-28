@@ -17,13 +17,15 @@ export interface PlanViewProps {
   recommendation: Recommendation;
   now?: MinuteOfDay | null;
   projected?: boolean;
+  /** Present for NOW: re-runs the recommendation. */
+  onRefresh?: () => void;
 }
 
 /**
  * One full ski-day answer, whether it came from NOW or LATER. Both modes ask
  * the same question, so they get the same anatomy.
  */
-export function PlanView({ recommendation, now, projected = false }: PlanViewProps) {
+export function PlanView({ recommendation, now, projected = false, onRefresh }: PlanViewProps) {
   const [selectedId, setSelectedId] = useState(recommendation.best.mountain.id);
   const [showFactors, setShowFactors] = useState(false);
   const [showSources, setShowSources] = useState(false);
@@ -65,6 +67,9 @@ export function PlanView({ recommendation, now, projected = false }: PlanViewPro
             : `${recommendation.best.mountain.shortName} is still the better overall day.`
         }
         onCompare={others.length > 0 ? scrollToAlternatives : undefined}
+        generatedAt={recommendation.generatedAt}
+        onRefresh={onRefresh}
+        nowTick={now ?? undefined}
       />
 
       <SnowClockPanel

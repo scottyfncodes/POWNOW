@@ -2,10 +2,15 @@ import type { Origin } from '@/domain/mountain';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
 import { OriginPicker } from '@/ui/components/OriginPicker';
+import { RiderSettingsPanel } from '@/ui/components/RiderSettings';
+import type { RiderSettings } from '@/ui/hooks/usePreferences';
 
 export interface HomeScreenProps {
   origin: Origin;
   onOriginChange: (origin: Origin) => void;
+  settings: RiderSettings;
+  onSettingsChange: (patch: Partial<RiderSettings>) => void;
+  onSettingsReset: () => void;
   onNow: () => void;
   onLater: () => void;
   onMap: () => void;
@@ -23,6 +28,9 @@ export interface HomeScreenProps {
 export function HomeScreen({
   origin,
   onOriginChange,
+  settings,
+  onSettingsChange,
+  onSettingsReset,
   onNow,
   onLater,
   onMap,
@@ -57,11 +65,12 @@ export function HomeScreen({
 
         <footer className="home-foot">
           <OriginPicker origin={origin} onChange={onOriginChange} />
+          <RiderSettingsPanel settings={settings} onChange={onSettingsChange} onReset={onSettingsReset} />
           {usingDemoData ? (
             <p className="home-demo">
               <span className="chip chip-demo">DEMO DATA</span>
               <span>
-                No live weather, traffic or lift feeds are connected. Every number below is
+                No live weather, traffic or lift feeds are connected. Every number in the app is
                 simulated — and labelled as such.
               </span>
             </p>

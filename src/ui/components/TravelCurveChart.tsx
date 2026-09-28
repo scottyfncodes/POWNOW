@@ -9,7 +9,6 @@ const PAD = { top: 14, right: 12, bottom: 24, left: 12 };
 export interface TravelPoint {
   departure: MinuteOfDay;
   driveMinutes: number;
-  recommended?: boolean;
 }
 
 export interface TravelCurveChartProps {

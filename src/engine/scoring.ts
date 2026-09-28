@@ -10,6 +10,7 @@ import type {
   SnowClock,
 } from '@/domain/plan';
 import { type ConfidenceLevel, weakestConfidence } from '@/domain/provenance';
+import { PASS_LABELS, passCovering } from '@/domain/mountain';
 import { formatPrice, savingsVsWindow } from '@/domain/pricing';
 import { clamp, formatDuration, type MinuteOfDay } from '@/domain/time';
 import { sampleCurve, saturate, scoreBetween } from '@/lib/curve';
@@ -81,7 +82,7 @@ export function scoreDay(input: ScoreInput): DayScore {
     roads: roadsFactor(inputs),
     crowds: crowdsFactor(crowds, skiWindow, preferences),
     usableTime: usableTimeFactor(departure, ret),
-    ticket: ticketFactor(inputs),
+    ticket: ticketFactor(inputs, preferences),
   };
 
   const factors: ScoreFactor[] = (Object.keys(raw) as ScoreFactorKey[]).map((key) => {
@@ -488,7 +489,14 @@ function crowdsFactor(
 const EXPENSIVE_TICKET = 320;
 const CHEAP_TICKET = 80;
 
-function ticketFactor(inputs: DayInputs): RawFactor {
+/** A pass-covered day scores like the cheapest ticket on the market — because for this rider it is. */
+const PASS_COVERED_VALUE = 96;
+
+function ticketFactor(inputs: DayInputs, preferences: RiderPreferences): RawFactor {
+  const pass = passCovering(inputs.mountain, preferences.passes);
+  if (pass) {
+    return { value: PASS_COVERED_VALUE, note: `Covered by your ${PASS_LABELS[pass]}.` };
+  }
   if (inputs.ticket.status !== 'ok') {
     return { value: NEUTRAL, note: 'No ticket pricing available.', imputed: true };
   }

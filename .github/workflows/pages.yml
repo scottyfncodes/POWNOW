@@ -43,10 +43,10 @@ jobs:
           # Project sites live under /<repo>/ — see vite.config.ts.
           VITE_BASE_PATH: /SNOWNOW/
           # Live mode: real Open-Meteo weather + NWS alerts (keyless, called
-          # directly from the browser) and real traffic via the deployed
-          # proxy in server/. Road conditions use CDOT/COtrip, best-effort —
-          # anything it doesn't recognize reports UNAVAILABLE, never demo
-          # data (see .env.example). None of this is a secret.
+          # directly from the browser); traffic (Google Routes), road
+          # conditions (CDOT) and measured snowpack (SNOTEL) via the deployed
+          # proxy in server/. The proxy's own env (keys, CORS_ORIGIN) is set
+          # on Render, not here — see .env.example. None of this is a secret.
           VITE_DATA_MODE: live
           VITE_API_BASE_URL: https://snownow-traffic-proxy.onrender.com
 
