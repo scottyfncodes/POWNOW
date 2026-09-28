@@ -7,6 +7,7 @@ import {
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
+  DemoSnowpackProvider,
   DemoTrafficProvider,
   DemoWeatherProvider,
 } from '@/providers/demo';
@@ -31,6 +32,7 @@ const DEMO_CLASSES = [
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
+  DemoSnowpackProvider,
   DemoTrafficProvider,
   DemoWeatherProvider,
 ] as const;
@@ -44,6 +46,7 @@ function expectNoDemoInstances(registry: ReturnType<typeof createLiveRegistry>) 
     registry.places,
     registry.alerts,
     registry.roads,
+    registry.snowpack,
   ];
   for (const provider of slots) {
     for (const DemoClass of DEMO_CLASSES) {
@@ -66,6 +69,14 @@ describe('createLiveRegistry — no configuration', () => {
   it('traffic is unavailable, not a synthesized number, when no server is configured', async () => {
     const route = testMountain().accessRoutes[0]!;
     const result = await registry.traffic.getTravelCurve(route, 'outbound', makeContext('2026-01-17', '2026-01-17', at(5)));
+    expect(result.status).toBe('unavailable');
+  });
+});
+
+describe('createLiveRegistry — snowpack', () => {
+  it('is unavailable, never demo, when no proxy is configured to reach SNOTEL', async () => {
+    const registry = createLiveRegistry();
+    const result = await registry.snowpack.getSnowpack(testMountain({ id: 'vail' }), makeContext('2026-01-17', '2026-01-17', at(5)));
     expect(result.status).toBe('unavailable');
   });
 });

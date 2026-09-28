@@ -4,6 +4,7 @@ import { DemoMountainProvider, type DemoMountainOptions } from './mountain';
 import { DemoPlacesProvider } from './places';
 import { DemoPricingProvider, type DemoPricingOptions } from './pricing';
 import { DemoRoadConditionProvider } from './road';
+import { DemoSnowpackProvider } from './snowpack';
 import { DemoTrafficProvider, type DemoTrafficOptions } from './traffic';
 import { DemoWeatherProvider, type DemoWeatherOptions } from './weather';
 
@@ -14,6 +15,7 @@ export {
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
+  DemoSnowpackProvider,
   DemoTrafficProvider,
   DemoWeatherProvider,
 };
@@ -38,6 +40,7 @@ export function createDemoRegistry(options: DemoRegistryOptions = {}): ProviderR
     places: new DemoPlacesProvider(),
     alerts: new DemoAlertsProvider(),
     roads: new DemoRoadConditionProvider(),
+    snowpack: new DemoSnowpackProvider(),
     usingDemoData: true,
     label: 'Demo data',
   };

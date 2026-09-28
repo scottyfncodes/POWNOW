@@ -2,12 +2,14 @@ import type { TravelCurve } from '@/domain/conditions';
 import type { AccessRoute, Mountain, Origin } from '@/domain/mountain';
 import { type Availability, unavailable } from '@/domain/provenance';
 import type { RoadStatus } from '@/domain/road';
+import type { SnowpackObservation } from '@/domain/snowpack';
 import type {
   Place,
   PlaceKind,
   PlacesProvider,
   ProviderContext,
   RoadConditionProvider,
+  SnowpackProvider,
   TrafficProvider,
 } from '@/providers/types';
 
@@ -44,7 +46,15 @@ export class UnavailableRoadConditionProvider implements RoadConditionProvider {
   readonly id = 'roads-disabled';
 
   async getCorridorStatus(_corridorId: string, _context: ProviderContext): Promise<Availability<RoadStatus>> {
-    return unavailable(this.id, 'Road-condition reporting is disabled (VITE_ENABLE_ROAD_CONDITIONS is unset).');
+    return unavailable(this.id, 'Road-condition reporting is off (VITE_ENABLE_ROAD_CONDITIONS=false or no proxy configured).');
+  }
+}
+
+export class UnavailableSnowpackProvider implements SnowpackProvider {
+  readonly id = 'snowpack-unconfigured';
+
+  async getSnowpack(_mountain: Mountain, _context: ProviderContext): Promise<Availability<SnowpackObservation>> {
+    return unavailable(this.id, 'No data proxy configured (VITE_API_BASE_URL is unset), so SNOTEL cannot be reached.');
   }
 }
 

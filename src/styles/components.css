@@ -663,6 +663,85 @@
   color: var(--ink-faint);
 }
 
+/* ============================================================= snowpack */
+
+.snowpack {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #080d15;
+}
+
+.snowpack-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.snowpack-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.snowpack-chip {
+  font-size: 9px;
+  padding: 2px 6px;
+}
+
+.snowpack-station {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.snowpack-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.snowpack-grid dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.snowpack-grid dd {
+  margin-top: 2px;
+  font-size: clamp(16px, 4.6vw, 20px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.snowpack-grid dd.is-up {
+  color: var(--ice);
+}
+
+.snowpack-note,
+.snowpack-model {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.snowpack-model .numeral {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
 /* ======================================================== snow timeline */
 
 .snowtimeline {

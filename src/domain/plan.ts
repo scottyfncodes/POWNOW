@@ -5,6 +5,7 @@ import type { Mountain, Origin } from './mountain';
 import type { MountainOperationalState, OffSeasonMessage } from './mountainStatus';
 import type { TicketPrice } from './pricing';
 import type { ConfidenceLevel, DisplayStatus, Provenance } from './provenance';
+import type { SnowpackObservation } from './snowpack';
 import type { MinuteOfDay, Minutes } from './time';
 
 /**
@@ -208,6 +209,10 @@ export interface SkiDayPlan {
   peakConditions: ElevationConditions | null;
   /** Five-day-back / five-day-forward snowfall, when a real source covers it. */
   snowHistory: SnowHistory | null;
+  /** The weather model's own snow depth at the forecast point — an estimate, labeled as one. */
+  modelSnowDepthIn: number | null;
+  /** A measured snowpack reading at the nearest station, when one exists. Never derived from the model. */
+  snowpack: SnowpackObservation | null;
   /** Real-world operational state, distinct from "the feed is unavailable." */
   operationalState: MountainOperationalState;
   /** Set only in the non-skiable states (see `NON_SKIABLE_STATES`) — a personality-forward line plus the real data behind it. */

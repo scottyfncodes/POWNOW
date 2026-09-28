@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { buildPlan } from '@/engine/plan';
-import { testInputs, testOperations, testWeather } from '@/test/fixtures';
+import { testInputs, testOperations, testSnowpack, testWeather } from '@/test/fixtures';
 import { RecommendationCard } from './RecommendationCard';
 
 describe('RecommendationCard — base/peak and snow timeline', () => {
-  it('shows base and peak temperature, wind and depth on the front page, with peak marked unavailable rather than copied from base', () => {
+  it('shows base and peak temperature and wind on the front page, with peak marked unavailable rather than copied from base', () => {
     const plan = buildPlan(
       testInputs({
         weather: testWeather({
@@ -21,9 +21,33 @@ describe('RecommendationCard — base/peak and snow timeline', () => {
     expect(screen.getByText('Base')).toBeInTheDocument();
     expect(screen.getByText('Peak')).toBeInTheDocument();
     expect(screen.getByText('22°F')).toBeInTheDocument();
-    expect(screen.getByText('55" depth')).toBeInTheDocument();
     // Peak is null on this fixture — it must read as unavailable, not a copy of base.
     expect(screen.getByText('Unavailable')).toBeInTheDocument();
+  });
+
+  it('shows a model depth once, as an estimate at the forecast point, never attributed to base or peak', () => {
+    const plan = buildPlan(testInputs({ weather: testWeather({ baseSnowDepthIn: 55 }) }));
+    render(<RecommendationCard plan={plan} />);
+    expect(screen.getByRole('group', { name: /modeled snow depth/i })).toBeInTheDocument();
+    expect(screen.getByText('~55"')).toBeInTheDocument();
+    expect(screen.getByText(/from the weather model/)).toBeInTheDocument();
+    expect(screen.queryByText(/55" depth/)).not.toBeInTheDocument();
+  });
+
+  it('shows a measured SNOTEL reading with its station, elevation and distance, labeled MEASURED', () => {
+    const plan = buildPlan(
+      testInputs({
+        weather: testWeather({ baseSnowDepthIn: 55 }),
+        snowpack: testSnowpack({ stationName: 'Vail Mountain', stationElevationFt: 10300, distanceMiles: 4.2, snowDepthIn: 61 }),
+        usingDemoData: false,
+      }),
+    );
+    render(<RecommendationCard plan={plan} />);
+    expect(screen.getByRole('group', { name: /measured snowpack/i })).toBeInTheDocument();
+    expect(screen.getByText(/Vail Mountain SNOTEL · 10,300 ft · 4 mi away/)).toBeInTheDocument();
+    expect(screen.getByText('61"')).toBeInTheDocument();
+    // The station reading wins; the model number is not shown alongside it.
+    expect(screen.queryByRole('group', { name: /modeled snow depth/i })).not.toBeInTheDocument();
   });
 
   it('renders the 5-day snow timeline with distinct observed and forecast totals', () => {

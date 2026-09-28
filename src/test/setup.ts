@@ -1,5 +1,6 @@
 import { afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import { clearProviderCaches } from '@/providers/live/fetchCache';
 
 /*
  * Deterministic, low-motion environment for component tests. jsdom ships a
@@ -32,5 +33,8 @@ import '@testing-library/jest-dom/vitest';
   afterEach(() => {
     window.history.replaceState(null, '', '/');
     window.localStorage.clear();
+    // Live providers share a fetch cache; a stubbed response must never
+    // outlive the test that stubbed it.
+    clearProviderCaches();
   });
 }

@@ -5,6 +5,7 @@ import { formatClock, formatDuration, formatWindowLabel } from '@/domain/time';
 import { BasePeakConditions } from './BasePeakConditions';
 import { ConfidencePill, DataBadge } from './DataBadge';
 import { ScoreDial } from './ScoreDial';
+import { SnowpackPanel } from './SnowpackPanel';
 import { SnowTimeline } from './SnowTimeline';
 
 export interface RecommendationCardProps {
@@ -96,6 +97,11 @@ export function RecommendationCard({ plan, why, projected = false, onCompare }: 
       )}
 
       <BasePeakConditions base={plan.baseConditions} peak={plan.peakConditions} />
+      <SnowpackPanel
+        snowpack={plan.snowpack}
+        modelSnowDepthIn={plan.modelSnowDepthIn}
+        demo={plan.provenance.source === 'demo'}
+      />
       <SnowTimeline history={plan.snowHistory} />
 
       {offSeason ? null : departure && ret ? (

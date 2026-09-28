@@ -7,6 +7,7 @@ import { type AccessRoute, type Mountain, type Origin } from '@/domain/mountain'
 import type { TicketPrice } from '@/domain/pricing';
 import { type Availability, unavailable } from '@/domain/provenance';
 import { isImpassable, type RoadStatus } from '@/domain/road';
+import type { SnowpackObservation } from '@/domain/snowpack';
 import type { MinuteOfDay } from '@/domain/time';
 import type { ProviderContext, ProviderRegistry } from '@/providers/types';
 import { resolveAccessRoutes } from './routing';
@@ -24,6 +25,8 @@ export interface DayInputs {
   horizonDays: number;
   isToday: boolean;
   weather: Availability<MountainWeather>;
+  /** Measured snowpack at the nearest station — a separate witness from the weather model. */
+  snowpack: Availability<SnowpackObservation>;
   operations: Availability<OperationsReport>;
   crowds: Availability<CrowdCurve>;
   ticket: Availability<TicketPrice>;
@@ -77,9 +80,10 @@ export async function loadDayInputs(
   const routes = resolveAccessRoutes(mountain, origin);
   const corridorIds = [...new Set(routes.map((route) => route.corridorId))];
 
-  const [weather, operations, crowds, ticket, alerts, roadStatusResults, outboundResults, inboundResults] =
+  const [weather, snowpack, operations, crowds, ticket, alerts, roadStatusResults, outboundResults, inboundResults] =
     await Promise.all([
       attempt(registry.weather.id, () => registry.weather.getMountainWeather(mountain, context)),
+      attempt(registry.snowpack.id, () => registry.snowpack.getSnowpack(mountain, context)),
       attempt(registry.mountain.id, () => registry.mountain.getOperations(mountain, context)),
       attempt(registry.mountain.id, () => registry.mountain.getCrowdForecast(mountain, context)),
       attempt(registry.pricing.id, () => registry.pricing.getTicketPrice(mountain, context)),
@@ -174,6 +178,7 @@ export async function loadDayInputs(
     horizonDays: context.horizonDays,
     isToday: context.horizonDays === 0,
     weather,
+    snowpack,
     operations,
     crowds,
     ticket,

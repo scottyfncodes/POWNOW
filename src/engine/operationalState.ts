@@ -65,12 +65,19 @@ export function classifyOperationalState(inputs: DayInputs): OperationalStateRes
 
   if (inputs.weather.status === 'ok') {
     const weather = inputs.weather.data;
-    const baseDepth = weather.base?.snowDepthIn ?? null;
+    // A measured station depth is the better witness; the model's grid-cell
+    // depth is the fallback. Either way the bar is "next to nothing on the
+    // ground and nothing recent" — a thin pack alone is a coverage question
+    // for the lift report, not a NO_SNOW verdict.
+    const measured = inputs.snowpack.status === 'ok' ? inputs.snowpack.data.snowDepthIn : null;
+    const depth = measured ?? weather.modelSnowDepthIn;
     const history = weather.snowHistory;
-    if (baseDepth !== null && baseDepth < 6 && (!history || history.pastTotalIn < 3)) {
+    if (depth !== null && depth < 6 && (!history || history.pastTotalIn < 3)) {
       return {
         state: 'NO_SNOW',
-        reason: 'Real-time base depth is negligible and little has fallen recently.',
+        reason: measured !== null
+          ? 'The nearest snow station reads next to no depth, and little has fallen recently.'
+          : 'Modeled snow depth is negligible and little has fallen recently.',
       };
     }
   }

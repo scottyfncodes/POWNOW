@@ -94,6 +94,8 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     baseConditions: inputs.weather.status === 'ok' ? inputs.weather.data.base : null,
     peakConditions: inputs.weather.status === 'ok' ? inputs.weather.data.peak : null,
     snowHistory: inputs.weather.status === 'ok' ? inputs.weather.data.snowHistory : null,
+    modelSnowDepthIn: inputs.weather.status === 'ok' ? inputs.weather.data.modelSnowDepthIn : null,
+    snowpack: inputs.snowpack.status === 'ok' ? inputs.snowpack.data : null,
     operationalState,
     offSeasonMessage,
     ticket: inputs.ticket.status === 'ok' ? inputs.ticket.data : null,
@@ -141,8 +143,11 @@ function buildDataSources(inputs: DayInputs): DataSourceStatus[] {
 
   const opsSourceUrl = inputs.operations.status === 'ok' ? inputs.operations.data.sourceUrl : undefined;
 
+  const snowpackUrl = inputs.snowpack.status === 'ok' ? inputs.snowpack.data.sourceUrl : undefined;
+
   const rows = [
     row('Weather', inputs.weather),
+    row('Snowpack', inputs.snowpack, snowpackUrl),
     row('Traffic', inputs.outbound),
     row('Lift operations', inputs.operations, opsSourceUrl),
     row('Ticket price', inputs.ticket),
