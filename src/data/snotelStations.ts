@@ -11,13 +11,13 @@ import type { GeoPoint } from '@/domain/mountain';
  * and every reading the app shows names it, with its distance and elevation,
  * so "Vail Mountain SNOTEL, 10,300 ft" is never mistaken for the base of Vail.
  *
- * `expectedName` is a guard, not decoration. The station ids below were
- * chosen from the published NRCS station list without a network path to
- * confirm them (the same constraint every live adapter in this project has
- * worked under). The live provider fetches the station's own metadata and
- * refuses to show a reading whose name doesn't match the one recorded here —
- * so a wrong id fails as UNAVAILABLE with a reason, never as someone else's
- * snow depth wearing this mountain's label.
+ * `expectedName` is a guard, not decoration. The live provider fetches the
+ * station's own metadata and refuses to show a reading whose name doesn't
+ * match the one recorded here — so a wrong id fails as UNAVAILABLE with a
+ * reason, never as someone else's snow depth wearing this mountain's label.
+ *
+ * Every id, name, coordinate and elevation below was confirmed against the
+ * NRCS AWDB API on 2026-09-28 through the deployed proxy (`/api/snotel`).
  */
 export interface SnotelStation {
   /** NRCS station triplet, e.g. "842:CO:SNTL". */
@@ -34,81 +34,81 @@ export const SNOTEL_STATIONS: Record<string, SnotelStation> = {
   vail: {
     triplet: '842:CO:SNTL',
     expectedName: 'Vail Mountain',
-    coordinates: { lat: 39.6183, lon: -106.3811 },
-    elevationFt: 10300,
+    coordinates: { lat: 39.61765, lon: -106.38019 },
+    elevationFt: 10290,
   },
   'beaver-creek': {
     // No station on Beaver Creek itself; Vail Mountain is the nearest pillow.
     triplet: '842:CO:SNTL',
     expectedName: 'Vail Mountain',
-    coordinates: { lat: 39.6183, lon: -106.3811 },
-    elevationFt: 10300,
+    coordinates: { lat: 39.61765, lon: -106.38019 },
+    elevationFt: 10290,
   },
   breckenridge: {
     triplet: '531:CO:SNTL',
     expectedName: 'Hoosier Pass',
-    coordinates: { lat: 39.3606, lon: -106.0606 },
-    elevationFt: 11400,
+    coordinates: { lat: 39.36092, lon: -106.05999 },
+    elevationFt: 11600,
   },
   keystone: {
     triplet: '505:CO:SNTL',
     expectedName: 'Grizzly Peak',
-    coordinates: { lat: 39.6461, lon: -105.8697 },
-    elevationFt: 11100,
+    coordinates: { lat: 39.64646, lon: -105.8694 },
+    elevationFt: 11110,
   },
   'arapahoe-basin': {
     triplet: '505:CO:SNTL',
     expectedName: 'Grizzly Peak',
-    coordinates: { lat: 39.6461, lon: -105.8697 },
-    elevationFt: 11100,
+    coordinates: { lat: 39.64646, lon: -105.8694 },
+    elevationFt: 11110,
   },
   loveland: {
     triplet: '602:CO:SNTL',
     expectedName: 'Loveland Basin',
-    coordinates: { lat: 39.6742, lon: -105.9006 },
-    elevationFt: 11400,
+    coordinates: { lat: 39.67428, lon: -105.90264 },
+    elevationFt: 11410,
   },
   copper: {
     triplet: '415:CO:SNTL',
     expectedName: 'Copper Mountain',
-    coordinates: { lat: 39.4894, lon: -106.1706 },
-    elevationFt: 10550,
+    coordinates: { lat: 39.48917, lon: -106.17154 },
+    elevationFt: 10500,
   },
   'winter-park': {
     triplet: '335:CO:SNTL',
     expectedName: 'Berthoud Summit',
-    coordinates: { lat: 39.8039, lon: -105.7778 },
+    coordinates: { lat: 39.80364, lon: -105.77786 },
     elevationFt: 11300,
   },
   eldora: {
     triplet: '564:CO:SNTL',
     expectedName: 'Lake Eldora',
-    coordinates: { lat: 39.9394, lon: -105.5828 },
+    coordinates: { lat: 39.93659, lon: -105.59031 },
     elevationFt: 9700,
   },
   steamboat: {
     triplet: '709:CO:SNTL',
     expectedName: 'Rabbit Ears',
-    coordinates: { lat: 40.3706, lon: -106.7414 },
-    elevationFt: 9400,
+    coordinates: { lat: 40.36735, lon: -106.74118 },
+    elevationFt: 9390,
   },
   'crested-butte': {
     triplet: '380:CO:SNTL',
     expectedName: 'Butte',
-    coordinates: { lat: 38.8944, lon: -106.9528 },
-    elevationFt: 10160,
+    coordinates: { lat: 38.89435, lon: -106.95327 },
+    elevationFt: 10190,
   },
   purgatory: {
     triplet: '387:CO:SNTL',
     expectedName: 'Cascade #2',
-    coordinates: { lat: 37.6583, lon: -107.8042 },
-    elevationFt: 8920,
+    coordinates: { lat: 37.65751, lon: -107.80287 },
+    elevationFt: 8990,
   },
   'wolf-creek': {
     triplet: '874:CO:SNTL',
     expectedName: 'Wolf Creek Summit',
-    coordinates: { lat: 37.4794, lon: -106.8011 },
-    elevationFt: 11000,
+    coordinates: { lat: 37.47903, lon: -106.80234 },
+    elevationFt: 10930,
   },
 };
 

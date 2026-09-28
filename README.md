@@ -248,9 +248,9 @@ name**. The live provider fetches NRCS's own metadata for the id and refuses
 to show a reading whose name doesn't match — so a wrong id fails as
 UNAVAILABLE with the actual name in the reason, never as some other
 station's depth wearing this mountain's label. A reading more than three days
-old is likewise refused. The station ids were chosen from the published NRCS
-list without a network path to confirm them (see "Known limitations"); the
-name check is what makes that safe.
+old is likewise refused. Every station id in the registry was confirmed
+against the live NRCS API through the deployed proxy; the name check is what
+keeps a future edit honest.
 
 ### Mountain operations: a three-tier strategy
 
@@ -555,25 +555,17 @@ cold instances don't each pay the cold-cache cost, and keep the rate limit on.
 
 ## Known limitations
 
-- **The Vercel layout has not been deployed from this sandbox.** The adapter
-  is exercised by the same tests as the standalone server (request bodies
-  arrive pre-parsed on Vercel, and `readBody` accepts both shapes), but the
-  first real deploy should check `GET /api/health` and one
-  `POST /api/travel-curve` by hand.
-- **Only Google Routes has been smoke-tested against its real endpoint.**
-  This sandbox's network policy blocks `api.open-meteo.com`,
-  `api.weather.gov`, `liftie.info`, `data.cotrip.org` and
-  `wcc.sc.egov.usda.gov` outbound, so Open-Meteo, NWS, Liftie, CDOT and
-  SNOTEL are implemented against their documented shapes with passing mocked
-  tests, and each fails safe (`unavailable`) on a shape it doesn't recognize.
-  Before trusting any of them in production, hit the endpoint once by hand
-  and compare against the adapter's expectations.
-- **The SNOTEL station ids and the CDOT mile-marker windows are best
-  knowledge, not confirmed.** A wrong station id is caught by the name check
-  and reports unavailable with the real name in the reason; a wrong marker
-  window would either miss an event or flag one a few miles off the route.
-  Both live in one data file each (`snotelStations.ts`, `CDOT_ROUTES` in
-  `cotripRoad.ts`).
+- **Google Routes and SNOTEL are the two feeds confirmed against their real
+  endpoints** — Google via the Render smoke test, SNOTEL via the deployed
+  Vercel function (`/api/health` and `/api/snotel` answered from the preview
+  deployment, and all eleven station ids resolved to the expected names).
+  Open-Meteo, NWS, Liftie and CDOT are implemented against their documented
+  shapes with passing mocked tests, and each fails safe (`unavailable`) on a
+  shape it doesn't recognize. Before trusting any of them in production, hit
+  the endpoint once by hand and compare against the adapter's expectations.
+- **The CDOT mile-marker windows are best knowledge, not confirmed.** A
+  wrong window would either miss an event or flag one a few miles off the
+  route. They live in one place (`CDOT_ROUTES` in `cotripRoad.ts`).
 - **Liftie ids follow Liftie's repository naming** (`breck`, `abasin`,
   `winterpark`, `crestedbutte`, `wolfcreek`…). An id Liftie doesn't have
   404s and reports unavailable; none is guessed from a mountain's name.
