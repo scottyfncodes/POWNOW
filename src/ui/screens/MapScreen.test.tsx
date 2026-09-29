@@ -24,7 +24,7 @@ describe('MapScreen', () => {
       <MapScreen registry={createDemoRegistry()} clock={clock} origin={findOrigin('denver')} onBack={() => {}} />,
     );
     for (const mountain of MOUNTAINS) {
-      expect(screen.getByRole('button', { name: new RegExp(`select ${mountain.name}`, 'i') })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') })).toBeInTheDocument();
     }
   });
 
@@ -33,7 +33,7 @@ describe('MapScreen', () => {
       <MapScreen registry={createDemoRegistry()} clock={clock} origin={findOrigin('denver')} onBack={() => {}} />,
     );
     const vail = MOUNTAINS.find((m) => m.id === 'vail')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${vail.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${vail.name}\\. Tap to view`, 'i') }));
 
     await waitFor(() => expect(screen.getByText('Drive time')).toBeInTheDocument());
     expect(screen.getByText('Distance')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('MapScreen', () => {
     const liveRegistry = createLiveRegistry({ trafficApiBaseUrl: 'https://proxy.example.test' });
     render(<MapScreen registry={liveRegistry} clock={clock} origin={findOrigin('denver')} onBack={() => {}} />);
     const vail = MOUNTAINS.find((m) => m.id === 'vail')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${vail.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${vail.name}\\. Tap to view`, 'i') }));
 
     await waitFor(() => expect(screen.getByText('2h01')).toBeInTheDocument());
     expect(screen.getByText('99 mi')).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('MapScreen', () => {
     const origin = gpsOrigin(39.7, -105.2);
     render(<MapScreen registry={createDemoRegistry()} clock={clock} origin={origin} onBack={() => {}} />);
     const breck = MOUNTAINS.find((m) => m.id === 'breckenridge')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${breck.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${breck.name}\\. Tap to view`, 'i') }));
     await waitFor(() => expect(screen.getByText('Drive time')).toBeInTheDocument());
     expect(screen.getAllByText(/your location/i).length).toBeGreaterThan(0);
   });
@@ -85,7 +85,7 @@ describe('MapScreen', () => {
 
     render(<MapScreen registry={failingRegistry} clock={clock} origin={findOrigin('denver')} onBack={() => {}} />);
     const keystone = MOUNTAINS.find((m) => m.id === 'keystone')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${keystone.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${keystone.name}\\. Tap to view`, 'i') }));
 
     await waitFor(() => expect(screen.getByText(/Couldn't get a route/i)).toBeInTheDocument());
     // The failure is explained in plain language — never the raw provider

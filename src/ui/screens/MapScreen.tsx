@@ -14,6 +14,7 @@ import { useAsync } from '@/ui/hooks/useRecommendation';
 import { ScreenHeader } from '@/ui/components/ScreenHeader';
 import { MountainMap, type MapRoutePreview } from '@/ui/components/MountainMap';
 import { MountainProfilePanel } from '@/ui/components/MountainProfilePanel';
+import { NavigateLinks } from '@/ui/components/NavigateLinks';
 
 type RouteResult =
   | { kind: 'ok'; preview: MapRoutePreview }
@@ -59,7 +60,12 @@ export function MapScreen({ registry, clock, origin, onBack }: MapScreenProps) {
           const preview = await fetchRoutePreview(route.originPoint, route.destinationPoint, apiBaseUrl);
           return {
             kind: 'ok',
-            preview: { durationMinutes: preview.durationMinutes, distanceMiles: preview.distanceMiles, trafficAware: true },
+            preview: {
+              durationMinutes: preview.durationMinutes,
+              distanceMiles: preview.distanceMiles,
+              trafficAware: true,
+              routePoints: preview.routePoints,
+            },
           };
         } catch (error) {
           const { message, likelySlowWake } = describeRoutePreviewFailure(error);
@@ -80,6 +86,8 @@ export function MapScreen({ registry, clock, origin, onBack }: MapScreenProps) {
           durationMinutes: Math.round(estimate.durationMinutes),
           distanceMiles: curve.distanceMiles ?? route.distanceMiles ?? null,
           trafficAware: false,
+          // The demo model has no road geometry; the map draws a clearly marked approximate line.
+          routePoints: null,
         },
       };
     },
@@ -111,7 +119,7 @@ export function MapScreen({ registry, clock, origin, onBack }: MapScreenProps) {
       <ScreenHeader onBack={onBack} title="MAP" />
       <div className="screen-body shell">
         <p className="mapscreen-intro">
-          Every supported mountain, where they sit relative to {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive and the profile.
+          Every supported mountain on a real map, relative to {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive, the route and the profile.
         </p>
 
         <MountainMap
@@ -152,6 +160,11 @@ export function MapScreen({ registry, clock, origin, onBack }: MapScreenProps) {
                 </div>
               </dl>
             )}
+            <NavigateLinks
+              destination={selectedMountain.coordinates}
+              destinationLabel={selectedMountain.name}
+              origin={origin.coordinates}
+            />
           </section>
         )}
 

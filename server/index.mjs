@@ -273,7 +273,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
  * One Google Routes call for one departure time. `departureIso` may be null,
  * which Google reads as "now". Returns null on any failure — callers skip the point.
  */
-async function fetchOneSample(origin, destination, departureIso) {
+async function fetchOneSample(origin, destination, departureIso, { withPolyline = false } = {}) {
   try {
     const response = await fetchWithTimeout(
       ROUTES_ENDPOINT,
@@ -282,7 +282,11 @@ async function fetchOneSample(origin, destination, departureIso) {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': API_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters',
+          // The polyline is the real driven road geometry; it rides along on
+          // the same call at no extra cost, so only the map preview asks for it.
+          'X-Goog-FieldMask': withPolyline
+            ? 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'
+            : 'routes.duration,routes.distanceMeters',
         },
         body: JSON.stringify({
           origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lon } } },
@@ -305,6 +309,7 @@ async function fetchOneSample(origin, destination, departureIso) {
     return {
       durationMinutes: Math.round(seconds / 60),
       distanceMiles: Number.isFinite(distanceMeters) ? distanceMeters / 1609.344 : null,
+      polyline: typeof route.polyline?.encodedPolyline === 'string' ? route.polyline.encodedPolyline : null,
     };
   } catch {
     return null;
@@ -385,14 +390,16 @@ async function buildTravelCurve(origin, destination, direction, date) {
 /**
  * A single "right now" reading — one Google Routes call, no departure grid.
  * Exists for the mountain map, which only ever needs one point-in-time
- * duration/distance for whichever mountain the user actually tapped.
+ * duration/distance for whichever mountain the user actually tapped, plus
+ * the route's encoded polyline so the map can draw the real road.
  */
 async function fetchRoutePreview(origin, destination) {
-  const sample = await fetchOneSample(origin, destination, null);
+  const sample = await fetchOneSample(origin, destination, null, { withPolyline: true });
   if (!sample) return null;
   return {
     durationMinutes: sample.durationMinutes,
     distanceMiles: sample.distanceMiles === null ? null : Math.round(sample.distanceMiles * 10) / 10,
+    polyline: sample.polyline,
   };
 }
 

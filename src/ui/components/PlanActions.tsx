@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { SkiDayPlan } from '@/domain/plan';
+import { googleMapsDirectionsUrl } from '@/lib/navigationLinks';
 import { downloadText, planCalendarIcs, sharePlan } from '@/lib/share';
 
 export interface PlanActionsProps {
@@ -14,7 +15,8 @@ export interface PlanActionsProps {
 
 /**
  * What you do with the answer: send it to the people you're skiing with, put
- * the alarm on the calendar, or ask again. Also where the plan admits its
+ * the alarm on the calendar, hand the destination to a navigation app, or
+ * ask again. Also where the plan admits its
  * age — a recommendation computed at 5:02 should say so at 6:40.
  */
 export function PlanActions({ plan, generatedAt, onRefresh, nowTick }: PlanActionsProps) {
@@ -51,6 +53,15 @@ export function PlanActions({ plan, generatedAt, onRefresh, nowTick }: PlanActio
             Add to calendar
           </button>
         )}
+        <a
+          className="planactions-button"
+          href={googleMapsDirectionsUrl(plan.mountain.coordinates, plan.origin.coordinates)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Navigate to ${plan.mountain.name} in Google Maps`}
+        >
+          Navigate ↗
+        </a>
         {onRefresh && (
           <button type="button" className="planactions-button is-quiet" onClick={onRefresh}>
             Refresh

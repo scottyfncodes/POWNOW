@@ -56,6 +56,69 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
         />
       </dl>
 
+      <section className="profile-dining" aria-labelledby="profile-grub-heading">
+        <h3 id="profile-grub-heading" className="eyebrow profile-dining-heading">
+          Grub
+        </h3>
+        {profile.grub ? (
+          <>
+            {profile.grub.town && (
+              <p className="profile-dining-note">
+                There's little to no base-area dining here — most people eat in {profile.grub.town}.
+              </p>
+            )}
+            {profile.grub.quickBreakfast && (
+              <p className="profile-dining-note">
+                <strong className="profile-dining-label profile-dining-label-bright">Best quick breakfast:</strong>{' '}
+                {profile.grub.quickBreakfast.name} — {profile.grub.quickBreakfast.note}
+              </p>
+            )}
+            <ul className="profile-dining-list">
+              {profile.grub.picks.map((pick) => (
+                <li key={pick.name}>
+                  <strong>{pick.name}</strong> — {pick.note}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="profile-dining-note">We haven't researched restaurants for this mountain yet.</p>
+        )}
+      </section>
+
+      <section className="profile-dining" aria-labelledby="profile-brews-heading">
+        <h3 id="profile-brews-heading" className="eyebrow profile-dining-heading">
+          Brews
+        </h3>
+        {profile.brews ? (
+          <>
+            <ul className="profile-dining-list">
+              {profile.brews.picks.map((pick) => (
+                <li key={pick.name}>
+                  <strong>{pick.name}</strong> — {pick.note}
+                </li>
+              ))}
+            </ul>
+            {profile.brews.distilleries && profile.brews.distilleries.length > 0 && (
+              <>
+                <p className="profile-dining-note">
+                  <strong className="profile-dining-label">Bonus — distilleries:</strong>
+                </p>
+                <ul className="profile-dining-list">
+                  {profile.brews.distilleries.map((pick) => (
+                    <li key={pick.name}>
+                      <strong>{pick.name}</strong> — {pick.note}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        ) : (
+          <p className="profile-dining-note">We haven't researched breweries for this mountain yet.</p>
+        )}
+      </section>
+
       <ul className="profile-links">
         <ProfileLink label="Snow report" href={profile.snowReportUrl} />
         <ProfileLink label="Webcams" href={profile.webcamUrl} />

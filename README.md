@@ -186,7 +186,7 @@ function. Endpoints:
 
 Guard rails: an origin allowlist (`CORS_ORIGIN`, moot when same-origin), a
 per-IP rate limit (`RATE_LIMIT_PER_MINUTE`), and in-flight de-duplication so
-thirteen mountains asking for the same corridor in the same second produce
+fifteen mountains asking for the same corridor in the same second produce
 one Google call. A same-day traffic request no longer loses every past
 departure time: Google refuses a `departureTime` in the past, so the proxy
 drops those grid points and anchors the curve at "now" instead of reporting
@@ -266,7 +266,7 @@ tries, in order:
    closed` plus a `stats` tally — and cross-checks the two; a disagreement
    is an unrecognized shape and reports `unavailable`. `data/resortSources.ts`
    carries Liftie's compact ids (`breck`, `abasin`, `winterpark`…) for all
-   thirteen mountains. A pre-opening board reads "scheduled to open", not
+   fifteen mountains. A pre-opening board reads "scheduled to open", not
    closed; a board Liftie itself last scraped hours ago is refused. Every
    value sourced this way carries `Provenance.attribution` saying plainly
    "Third-party aggregator (Liftie) — not the resort's own feed".
@@ -299,7 +299,7 @@ longer stamps a fabricated `clear` on its data.
 
 ### Ticket pricing: investigated, and genuinely unavailable
 
-Every one of the thirteen mountains prices tickets through a dynamic commerce
+Every one of the fifteen mountains prices tickets through a dynamic commerce
 flow, not a stable public "price for this date" endpoint. Live mode reports
 ticket price as `unavailable` for every resort — never the demo model's
 plausible number presented as live. The resort's real ticket page is still
@@ -337,13 +337,17 @@ src/
     cache.ts      TTL cache + memoizeAsync (in-flight de-duplication)
     http.ts       fetchJson with a hard timeout and typed failures
     share.ts      Share text and the .ics calendar event, derived from a plan
+    polyline.ts   Google's polyline encoding → real road points for the map
+    navigationLinks.ts  Universal links into Google Maps / Apple Maps
     snow.ts       Snow-density physics shared by demo and live weather
 
   data/         Content, not code
-    mountains.ts  Thirteen Colorado mountains, four pass networks, two snow regions
+    mountains.ts  Fifteen Colorado mountains, four pass networks, two snow regions
     origins.ts    Six starting cities, plus `gpsOrigin()` for a live GPS fix
     corridors.ts  Shared traffic corridors, their severity and weather region
     resortSources.ts  Per-resort Liftie id, official ops page, official ticket page
+    mountainProfiles.ts Researched reference per resort: links, season dates,
+                  and Grub & Brews picks (real, named places, never a live feed)
     snotelStations.ts Per-mountain SNOTEL station, with the name the live reading must match
     pricing.ts    Demo lift-ticket rate cards
 
@@ -503,11 +507,19 @@ tables and anything that needs to be studied.
 - huge numerals, strong hierarchy, generous space
 - motion is decoration and switches itself off for `prefers-reduced-motion`
 - charts are hand-rolled SVG (no charting library) and expose their data as
-  tables to assistive technology; the map is a group of real buttons, not an
-  image, and labels on the crowded I-70 stretch flip below their dots rather
-  than overlapping
+  tables to assistive technology
+- the map is a real, pannable Leaflet map on Esri's keyless dark basemap:
+  every mountain at its true coordinates, nearby resorts clustered so a tap
+  is never ambiguous, and the *actual driven road* drawn from Google's route
+  polyline when traffic is live (a clearly dashed approximate line, never a
+  road dressed up as real, when it isn't). Every pin has a real, focusable
+  button behind it for keyboard and screen-reader users
+- every plan and every mountain profile hands the destination to Google Maps
+  or Apple Maps with one tap; SNOWNOW is the decision layer, never the
+  navigator
 - status is never encoded in colour alone
-- ~115 kB gzipped, no web fonts, no external requests in demo mode
+- ~145 kB gzipped, no web fonts; the only external requests in demo mode are
+  the map tiles
 - each screen is a real history entry (`#/now`, `#/later`, `#/map`), so the
   phone's Back gesture returns home instead of leaving the app
 - the starting city and your ride settings are remembered between visits; a

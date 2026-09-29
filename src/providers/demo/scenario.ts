@@ -49,6 +49,8 @@ export interface MountainProfile {
  *  Purgatory     San Juan track, no lines  · south-facing, low, and far from everywhere
  *  Copper        best-sorted terrain, closest· the good stuff up high goes on wind hold
  *  Wolf Creek    the most snow in the state  · four and a half hours from Denver
+ *  Monarch       divide-top storms, no lines  · small, slow lifts, three hours out
+ *  Telluride     deep and steep, Alpino Vino  · the end of a dead-end road
  */
 const PROFILES: Record<string, MountainProfile> = {
   vail: { snow: 1.34, wind: 1.3, operations: 0.96, crowds: 1.06, grooming: 0.78, controlDelay: 35 },
@@ -60,6 +62,10 @@ const PROFILES: Record<string, MountainProfile> = {
   purgatory: { snow: 1.0, wind: 0.45, operations: 1.12, crowds: 0.26, grooming: 0.9, controlDelay: 8 },
   copper: { snow: 0.95, wind: 1.3, operations: 0.95, crowds: 0.92, grooming: 0.84, controlDelay: 35 },
   'wolf-creek': { snow: 1.75, wind: 1.02, operations: 1.08, crowds: 0.5, grooming: 0.66, controlDelay: 25 },
+  // Monarch: a divide-top pass resort that catches San Juan storms, old fixed-grip lifts, nobody in line.
+  monarch: { snow: 1.3, wind: 0.95, operations: 1.0, crowds: 0.3, grooming: 0.7, controlDelay: 20 },
+  // Telluride: deep San Juan snow, a lot of steep terrain that needs control work, a long way from Denver.
+  telluride: { snow: 1.25, wind: 1.1, operations: 0.95, crowds: 0.5, grooming: 0.72, controlDelay: 35 },
 };
 
 const NEUTRAL_PROFILE: MountainProfile = {
