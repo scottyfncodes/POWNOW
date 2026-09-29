@@ -10,6 +10,18 @@
   "orientation": "portrait",
   "icons": [
     {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "./favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
@@ -18,40 +30,41 @@
   ],
   "shortcuts": [
     {
-      "name": "NOW \u2014 ski today",
-      "short_name": "NOW",
-      "description": "Where to ski today, and when to leave.",
-      "url": "./#/now",
+      "name": "SNOW NOW — rank my mountains",
+      "short_name": "SNOW NOW",
+      "description": "Say how you ride, get every mountain ranked for your day.",
+      "url": "./#/setup",
       "icons": [
         {
-          "src": "./favicon.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
-        }
-      ]
-    },
-    {
-      "name": "LATER \u2014 plan another day",
-      "short_name": "LATER",
-      "description": "What your ski day would look like on another date.",
-      "url": "./#/later",
-      "icons": [
-        {
-          "src": "./favicon.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Mountain map",
       "short_name": "MAP",
+      "description": "Every mountain on a real map.",
       "url": "./#/map",
       "icons": [
         {
-          "src": "./favicon.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "All mountains",
+      "short_name": "LIST",
+      "description": "Every mountain, A to Z.",
+      "url": "./#/list",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
