@@ -2157,14 +2157,6 @@
   color: var(--ink-dim);
 }
 
-/* =============================================================== map link */
-
-.home-map-link {
-  display: block;
-  margin: 4px auto 0;
-  text-align: center;
-}
-
 /* ================================================================== map */
 
 .mapscreen-intro {
@@ -2625,31 +2617,19 @@
 }
 
 .mapscreen-top {
-  padding-top: 10px;
+  padding-top: 14px;
   padding-bottom: 14px;
-}
-
-.mapscreen-tagline {
-  margin: 2px 0 12px;
-  font-size: 13px;
-  color: var(--ink-dim);
-}
-
-.mapscreen-actions {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.mapscreen-actions .bigbutton {
-  flex: 1;
-  min-height: 0;
-  padding: 14px 16px;
-  align-items: center;
+.mapscreen-top .mapscreen-intro {
+  margin: 0;
 }
 
-.mapscreen-actions .bigbutton-word {
-  font-size: clamp(26px, 8vw, 36px);
+.mapscreen-fullplan {
+  margin: 4px 0 10px;
 }
 
 .mapscreen-profile {
@@ -3248,4 +3228,406 @@
   font-size: 12.5px;
   font-weight: 700;
   color: var(--ice);
+}
+
+/* ========================================================== home options */
+
+/* The two browsing doors beside SNOW NOW: real buttons, quieter than the
+   main event, side by side so the home screen stays three choices tall. */
+.home-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.optionbutton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 88px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    border-color 160ms var(--ease),
+    background 160ms var(--ease),
+    transform 160ms var(--ease);
+}
+
+.optionbutton:hover,
+.optionbutton:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+
+.optionbutton:active {
+  transform: scale(0.985);
+}
+
+.optionbutton-word {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.optionbutton-sub {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+/* ============================================================== your ride */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 18px;
+}
+
+.setup-intro {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.setup-when {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setup-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.setup-cta {
+  margin-top: 8px;
+}
+
+.setup-range {
+  align-self: center;
+}
+
+/* The settings as a page: a static heading where the disclosure toggle was. */
+.ridersettings-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px 0;
+}
+
+.ridersettings-head .ridersettings-title {
+  margin: 0;
+}
+
+.ridersettings-head .ridersettings-summary {
+  margin: 0;
+  white-space: normal;
+}
+
+.ridersettings.is-page .ridersettings-body {
+  border-top: 0;
+}
+
+/* ============================================================ your mountains */
+
+.picks-body {
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.picks-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+
+.picks-summary-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-dim);
+}
+
+.picks-summary-edit {
+  flex: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ice);
+}
+
+.picks-lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.picks-demo {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.picks-demo .chip {
+  flex: none;
+}
+
+.picks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------------------------------------------------------- mountain card */
+
+.mcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 16px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  text-align: left;
+  transition:
+    border-color 160ms var(--ease),
+    transform 160ms var(--ease),
+    box-shadow 220ms var(--ease);
+}
+
+.mcard:hover,
+.mcard:focus-visible {
+  border-color: var(--line-strong);
+}
+
+.mcard:active {
+  transform: scale(0.99);
+}
+
+.mcard.is-best {
+  border-color: rgba(124, 231, 255, 0.45);
+  box-shadow: 0 18px 60px -28px rgba(124, 231, 255, 0.65);
+}
+
+.mcard.is-offseason {
+  background: var(--surface);
+}
+
+.mcard-rank {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+
+.mcard.is-best .mcard-rank {
+  color: var(--ice);
+}
+
+.mcard-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mcard-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mcard-name {
+  font-size: clamp(26px, 8vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--ink);
+}
+
+.mcard-fullname {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.mcard-score {
+  flex: none;
+}
+
+.mcard-verdict {
+  font-size: clamp(18px, 5.4vw, 24px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ice);
+}
+
+.mcard.is-offseason .mcard-verdict {
+  color: var(--ink-dim);
+}
+
+.mcard-why {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
+
+.mcard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 2px 0 0;
+}
+
+.mcard-stats dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mcard-stats dd {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+  .mcard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mcard-tradeoffs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mcard-cta {
+  align-self: flex-end;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ice);
+}
+
+/* ============================================================ mountain list */
+
+.listscreen-intro {
+  margin: 18px 0 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.mountainlist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mountainlist-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    background 150ms var(--ease),
+    border-color 150ms var(--ease);
+}
+
+.mountainlist-row:hover,
+.mountainlist-row:focus-visible {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+.mountainlist-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.mountainlist-meta {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+.mountainlist-character {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
+
+.mountainlist-passes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* ========================================================== mountain screen */
+
+.mountainscreen-out {
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.mountainscreen-name {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 8vw, 40px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.mountainscreen-outnote {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
 }
