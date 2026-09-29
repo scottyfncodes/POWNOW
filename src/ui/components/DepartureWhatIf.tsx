@@ -44,7 +44,6 @@ export function DepartureWhatIf({ plan }: { plan: SkiDayPlan }) {
         points={options.map((option) => ({
           departure: option.departure,
           driveMinutes: option.driveMinutes,
-          recommended: option.recommended,
         }))}
         markedMinute={selected.departure}
         label={`Drive time from ${plan.origin.shortName} by departure time`}

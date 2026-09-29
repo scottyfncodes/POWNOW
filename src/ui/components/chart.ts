@@ -2,7 +2,6 @@
 
 export interface Scale {
   (value: number): number;
-  invert(pixel: number): number;
 }
 
 export function linearScale(domain: [number, number], range: [number, number]): Scale {
@@ -10,7 +9,6 @@ export function linearScale(domain: [number, number], range: [number, number]): 
   const [r0, r1] = range;
   const span = d1 - d0 || 1;
   const scale = ((value: number) => r0 + ((value - d0) / span) * (r1 - r0)) as Scale;
-  scale.invert = (pixel: number) => d0 + ((pixel - r0) / (r1 - r0 || 1)) * span;
   return scale;
 }
 

@@ -1,3 +1,4 @@
+import type { PassAffiliation } from '@/domain/mountain';
 import type { ScoreFactorKey } from '@/domain/plan';
 
 /**
@@ -88,6 +89,14 @@ export interface RiderPreferences {
   /** Latest the rider wants to be home. */
   latestHomeArrival: number;
   favoriteMountainIds: string[];
+  /**
+   * Season passes the rider holds. A mountain one of them honors costs
+   * nothing extra that day, so its ticket factor reads as covered rather
+   * than as a walk-up price nobody is going to pay.
+   */
+  passes: PassAffiliation[];
+  /** Only consider mountains one of `passes` honors. Ignored when `passes` is empty. */
+  onlyMyPasses: boolean;
 }
 
 export const DEFAULT_PREFERENCES: RiderPreferences = {
@@ -99,6 +108,8 @@ export const DEFAULT_PREFERENCES: RiderPreferences = {
   earliestDeparture: 4 * 60,
   latestHomeArrival: 19 * 60,
   favoriteMountainIds: [],
+  passes: [],
+  onlyMyPasses: false,
 };
 
 /** Tunables the optimisers share. Kept out of the algorithms for testability. */

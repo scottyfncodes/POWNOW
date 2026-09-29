@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Mountain } from '@/domain/mountain';
 import type { MountainProfile, SeasonDate } from '@/domain/mountainProfile';
 
@@ -68,7 +69,7 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
   );
 }
 
-function ProfileRow({ label, value }: { label: string; value: React.ReactNode }) {
+function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="profile-row">
       <dt>{label}</dt>

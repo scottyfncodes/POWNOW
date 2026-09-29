@@ -11,6 +11,7 @@ import type { ParkingInfo } from '@/domain/parking';
 import type { TicketPrice } from '@/domain/pricing';
 import type { Availability } from '@/domain/provenance';
 import type { RoadStatus } from '@/domain/road';
+import type { SnowpackObservation } from '@/domain/snowpack';
 import type { MinuteOfDay } from '@/domain/time';
 
 /**
@@ -86,6 +87,17 @@ export interface RoadConditionProvider {
 }
 
 /**
+ * Measured snowpack, separate from the weather model. A forecast can say how
+ * much it expects to snow; only a station can say how deep the snow actually
+ * is right now. The two are kept in different slots so a plan can be honest
+ * about which one each number came from — see `domain/snowpack.ts`.
+ */
+export interface SnowpackProvider {
+  readonly id: string;
+  getSnowpack(mountain: Mountain, context: ProviderContext): Promise<Availability<SnowpackObservation>>;
+}
+
+/**
  * Ticket pricing is its own upstream: a resort's commerce system has nothing
  * to do with its lift-status feed, and one will go live long before the other.
  * Keeping it behind its own interface means a real pricing integration lands
@@ -154,6 +166,7 @@ export interface ProviderRegistry {
   alerts: AlertsProvider;
   roads: RoadConditionProvider;
   parking: ParkingProvider;
+  snowpack: SnowpackProvider;
   /**
    * True when any provider *slot* in this bundle is a demo implementation —
    * a configuration-time fact, decided when the registry was assembled. It is

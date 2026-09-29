@@ -2,6 +2,7 @@ import type { SkiDayPlan } from '@/domain/plan';
 import { formatClock } from '@/domain/time';
 import { AlertBanner } from './AlertBanner';
 import { BasePeakConditions } from './BasePeakConditions';
+import { SnowpackPanel } from './SnowpackPanel';
 import { SnowTimeline } from './SnowTimeline';
 
 export interface ConditionsPanelProps {
@@ -10,7 +11,7 @@ export interface ConditionsPanelProps {
 
 /**
  * Everything about "what's actually happening at the mountain right now" in
- * one place: temperature/wind/depth at both elevations, the 5-day snow
+ * one place: temperature/wind at both elevations, measured or modeled depth, the 5-day snow
  * cycle, lift/terrain status, and any official alert. Only ever shows a
  * metric a real provider returned — `BasePeakConditions` already renders
  * "Unavailable" rather than a guess, and this panel follows the same rule
@@ -34,6 +35,12 @@ export function ConditionsPanel({ plan }: ConditionsPanelProps) {
       )}
 
       <BasePeakConditions base={plan.baseConditions} peak={plan.peakConditions} />
+
+      <SnowpackPanel
+        snowpack={plan.snowpack}
+        modelSnowDepthIn={plan.modelSnowDepthIn}
+        demo={plan.provenance.source === 'demo'}
+      />
 
       <SnowTimeline history={plan.snowHistory} />
 

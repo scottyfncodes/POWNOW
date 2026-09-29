@@ -88,15 +88,18 @@ export function MountainMap({
       ? smoothPath([originXY, project(selected.coordinates)])
       : null;
 
+
   const isGps = origin.id === 'gps';
 
   return (
     <figure className="mountainmap">
+      {/* `role="group"`, not `role="img"`: an image hides its children from
+          assistive technology, and every marker here is a real button. */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="mountainmap-svg"
-        role="img"
-        aria-label={`Map of ${mountains.length} mountains relative to ${origin.name}`}
+        role="group"
+        aria-label={`Map of ${mountains.length} mountains relative to ${origin.name}. Each mountain is a button.`}
       >
         <rect x={0} y={0} width={WIDTH} height={HEIGHT} className="mountainmap-bg" rx={16} />
 

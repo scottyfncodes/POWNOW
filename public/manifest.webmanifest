@@ -9,6 +9,51 @@
   "theme_color": "#04060a",
   "orientation": "portrait",
   "icons": [
-    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "NOW \u2014 ski today",
+      "short_name": "NOW",
+      "description": "Where to ski today, and when to leave.",
+      "url": "./#/now",
+      "icons": [
+        {
+          "src": "./favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "LATER \u2014 plan another day",
+      "short_name": "LATER",
+      "description": "What your ski day would look like on another date.",
+      "url": "./#/later",
+      "icons": [
+        {
+          "src": "./favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Mountain map",
+      "short_name": "MAP",
+      "url": "./#/map",
+      "icons": [
+        {
+          "src": "./favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
   ]
 }

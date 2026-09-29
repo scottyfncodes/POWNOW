@@ -58,7 +58,6 @@ export function ReturnPlanner({ plan, now }: ReturnPlannerProps) {
         points={plan.returnOptions.map((option) => ({
           departure: option.departure,
           driveMinutes: option.driveMinutes,
-          recommended: option.recommended,
         }))}
         markedMinute={recommended.departure}
         label={`Drive home to ${plan.origin.shortName} by the time you leave the mountain`}

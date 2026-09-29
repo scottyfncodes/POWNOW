@@ -163,9 +163,6 @@ a {
   letter-spacing: -0.02em;
 }
 
-.muted {
-  color: var(--ink-dim);
-}
 
 .faint {
   color: var(--ink-faint);
@@ -186,16 +183,7 @@ a {
 
 /* ------------------------------------------------------------------ cards */
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 18px;
-}
 
-.card-tight {
-  padding: 14px 16px;
-}
 
 /* ------------------------------------------------------------------ chips */
 

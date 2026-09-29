@@ -174,13 +174,11 @@ function Marker({
   label,
   accent,
   pulse,
-  low,
 }: {
   x: number;
   label: string;
   accent?: boolean;
   pulse?: boolean;
-  low?: boolean;
 }) {
   const className = ['snowclock-marker', accent && 'is-accent', pulse && 'is-now']
     .filter(Boolean)
@@ -191,7 +189,7 @@ function Marker({
   return (
     <g className={className}>
       <line x1={x} x2={x} y1={PAD.top - 4} y2={HEIGHT - PAD.bottom} />
-      <text x={textX} y={low ? HEIGHT - PAD.bottom + 13 : PAD.top - 2} textAnchor={anchor}>
+      <text x={textX} y={PAD.top - 2} textAnchor={anchor}>
         {label}
       </text>
     </g>

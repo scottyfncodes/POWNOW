@@ -1,11 +1,12 @@
 import type { WeatherAlert } from './alerts';
 import type { ElevationConditions, OperationsReport, SnowHistory } from './conditions';
 import type { DateKey } from './dates';
-import type { Mountain, Origin } from './mountain';
+import type { Mountain, Origin, PassAffiliation } from './mountain';
 import type { MountainOperationalState, OffSeasonMessage } from './mountainStatus';
 import type { ParkingInfo } from './parking';
 import type { TicketPrice } from './pricing';
 import type { Availability, ConfidenceLevel, DisplayStatus, Provenance } from './provenance';
+import type { SnowpackObservation } from './snowpack';
 import type { MinuteOfDay, Minutes } from './time';
 
 /**
@@ -211,6 +212,10 @@ export interface SkiDayPlan {
   peakConditions: ElevationConditions | null;
   /** Five-day-back / five-day-forward snowfall, when a real source covers it. */
   snowHistory: SnowHistory | null;
+  /** The weather model's own snow depth at the forecast point — an estimate, labeled as one. */
+  modelSnowDepthIn: number | null;
+  /** A measured snowpack reading at the nearest station, when one exists. Never derived from the model. */
+  snowpack: SnowpackObservation | null;
   /** Real-world operational state, distinct from "the feed is unavailable." */
   operationalState: MountainOperationalState;
   /** Lift/terrain report, when the feed succeeded. `null` — never a guessed lift count — when it didn't. */
@@ -226,6 +231,8 @@ export interface SkiDayPlan {
    * the resort is known regardless of whether the live price call succeeded.
    */
   ticketPurchaseUrl?: string;
+  /** The rider's pass that covers this mountain, when they told us they hold one. */
+  passCoverage: PassAffiliation | null;
   /** Active official alerts, supplementary only — scoring never reads this. */
   alerts: WeatherAlert[];
   /** Parking rules/status for this mountain — see `domain/parking.ts`. Supplementary; scoring never reads this. */

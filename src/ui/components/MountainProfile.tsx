@@ -1,3 +1,4 @@
+import { PASS_LABELS } from '@/domain/mountain';
 import type { SkiDayPlan } from '@/domain/plan';
 import type { MountainProfile as MountainReference } from '@/domain/mountainProfile';
 import { formatPrice, savingsVsWindow } from '@/domain/pricing';
@@ -91,14 +92,19 @@ export function MountainProfile({ plan, reference, now }: MountainProfileProps) 
 /** Real price when the (rare) live source has one; otherwise an honest "unavailable" pointing at the resort's own purchase page — never a guessed number. */
 function TicketPanel({ plan }: { plan: SkiDayPlan }) {
   const ticket = plan.ticket;
-  if (!ticket && !plan.ticketPurchaseUrl) return null;
+  if (!ticket && !plan.ticketPurchaseUrl && !plan.passCoverage) return null;
 
   return (
     <section className="panel ticketpanel" aria-labelledby="ticket-heading">
       <h2 id="ticket-heading" className="section-title">
         Lift ticket
       </h2>
-      {ticket ? (
+      {plan.passCoverage ? (
+        <p className="ticketpanel-price">
+          <span className="ticketpanel-amount">On your {PASS_LABELS[plan.passCoverage]}</span>
+          <span className="ticketpanel-note">No day ticket to buy.</span>
+        </p>
+      ) : ticket ? (
         <p className="ticketpanel-price">
           <span className="ticketpanel-amount numeral">{formatPrice(ticket.adultDay, ticket.currency)}</span>
           <span className="ticketpanel-note">

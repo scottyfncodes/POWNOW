@@ -1,0 +1,34 @@
+name: CI
+
+# The Pages workflow only builds the default branch, so without this a branch
+# or pull request never runs the suite until after it has merged. This is the
+# gate before merge; pages.yml stays the gate before publish.
+on:
+  push:
+    branches-ignore: [gh-pages]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # `build` runs `tsc -b` first, so this type-checks the tests too.
+      - run: npm run build
+
+      - run: npm test

@@ -17,8 +17,10 @@ import { useAsync } from '@/ui/hooks/useRecommendation';
 import { MountainMap, type MapRoutePreview, type MountainMarkerInfo } from '@/ui/components/MountainMap';
 import { MountainProfile } from '@/ui/components/MountainProfile';
 import { OriginPicker } from '@/ui/components/OriginPicker';
+import { RiderSettingsPanel } from '@/ui/components/RiderSettings';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
+import type { RiderSettings } from '@/ui/hooks/usePreferences';
 
 type RouteResult =
   | { kind: 'ok'; preview: MapRoutePreview }
@@ -30,6 +32,10 @@ export interface MapScreenProps {
   origin: Origin;
   onOriginChange: (origin: Origin) => void;
   preferences?: RiderPreferences;
+  /** The rider's own knobs, editable from the landing screen. */
+  settings?: RiderSettings;
+  onSettingsChange?: (patch: Partial<RiderSettings>) => void;
+  onSettingsReset?: () => void;
   onNow: () => void;
   onLater: () => void;
   /** Unused today — MAP is the landing screen and has nowhere "back" to go — kept so the prop shape stays stable if that ever changes. */
@@ -54,11 +60,23 @@ const tierFor = (score: number): MountainMarkerInfo['tier'] =>
  * route preview so the screen still answers "how far is it", even with the
  * richer verdict/conditions/parking temporarily unavailable.
  */
-export function MapScreen({ registry, clock, origin, onOriginChange, preferences, onNow, onLater }: MapScreenProps) {
+export function MapScreen({
+  registry,
+  clock,
+  origin,
+  onOriginChange,
+  preferences,
+  settings,
+  onSettingsChange,
+  onSettingsReset,
+  onNow,
+  onLater,
+}: MapScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(true);
   const selectedMountain = selectedId ? (findMountain(selectedId) ?? null) : null;
-  const apiBaseUrl = resolveEnvironment().trafficApiBaseUrl;
+  const environment = resolveEnvironment();
+  const apiBaseUrl = environment.trafficApiBaseUrl;
 
   const recState = useAsync<{ all: SkiDayPlan[]; bestId: string }>(
     async () => {
@@ -72,7 +90,9 @@ export function MapScreen({ registry, clock, origin, onOriginChange, preferences
       });
       return { all: recommendation.all, bestId: recommendation.best.mountain.id };
     },
-    [origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, clock.now, preferences],
+    // `clock.now` is read inside but deliberately not a dependency: the
+    // whole-map ranking must not re-run every minute the tab is open.
+    [origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, preferences],
   );
 
   const plans = recState.status === 'ready' ? recState.data.all : null;
@@ -96,7 +116,9 @@ export function MapScreen({ registry, clock, origin, onOriginChange, preferences
   // Only used as a degrade path — see the module docblock — for a mountain
   // the shared recommendation hasn't covered (still loading, or the whole
   // call failed). Never re-fetched once `selectedPlan` above is available.
-  const useLivePreview = !registry.usingDemoData && Boolean(apiBaseUrl);
+  const useLivePreview = !registry.usingDemoData && environment.proxyConfigured;
+  // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
+  const remoteProxy = environment.proxyConfigured && apiBaseUrl !== '';
   const needsFallback = selectedMountain !== null && !selectedPlan && recState.status !== 'loading';
 
   const fallbackRouteState = useAsync(
@@ -136,7 +158,9 @@ export function MapScreen({ registry, clock, origin, onOriginChange, preferences
         },
       };
     },
-    [selectedMountain?.id, origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, clock.now, useLivePreview],
+    // `clock.now` is read inside but deliberately not a dependency: the
+    // fallback preview should not re-fetch a Google route every minute the tab is open.
+    [selectedMountain?.id, origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, useLivePreview],
     { enabled: needsFallback },
   );
 
@@ -184,17 +208,20 @@ export function MapScreen({ registry, clock, origin, onOriginChange, preferences
         </div>
 
         <OriginPicker origin={origin} onChange={onOriginChange} />
+        {settings && onSettingsChange && onSettingsReset && (
+          <RiderSettingsPanel settings={settings} onChange={onSettingsChange} onReset={onSettingsReset} />
+        )}
 
         {registry.usingDemoData ? (
           <p className="home-demo">
             <span className="chip chip-demo">DEMO DATA</span>
-            <span>No live weather, traffic or lift feeds are connected. Every number below is simulated — and labelled as such.</span>
+            <span>No live weather, traffic or lift feeds are connected. Every number in the app is simulated — and labelled as such.</span>
           </p>
-        ) : (
+        ) : remoteProxy ? (
           <p className="home-note">
             First traffic check in a while? It can take up to 15 seconds to wake up — that's normal, not a bug.
           </p>
-        )}
+        ) : null}
       </header>
 
       <div className="mapscreen-body mapscreen-split">

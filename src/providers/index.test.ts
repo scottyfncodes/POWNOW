@@ -8,6 +8,7 @@ import {
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
+  DemoSnowpackProvider,
   DemoTrafficProvider,
   DemoWeatherProvider,
 } from '@/providers/demo';
@@ -33,6 +34,7 @@ const DEMO_CLASSES = [
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
+  DemoSnowpackProvider,
   DemoTrafficProvider,
   DemoWeatherProvider,
 ] as const;
@@ -47,6 +49,7 @@ function expectNoDemoInstances(registry: ReturnType<typeof createLiveRegistry>) 
     registry.alerts,
     registry.roads,
     registry.parking,
+    registry.snowpack,
   ];
   for (const provider of slots) {
     for (const DemoClass of DEMO_CLASSES) {
@@ -69,6 +72,14 @@ describe('createLiveRegistry — no configuration', () => {
   it('traffic is unavailable, not a synthesized number, when no server is configured', async () => {
     const route = testMountain().accessRoutes[0]!;
     const result = await registry.traffic.getTravelCurve(route, 'outbound', makeContext('2026-01-17', '2026-01-17', at(5)));
+    expect(result.status).toBe('unavailable');
+  });
+});
+
+describe('createLiveRegistry — snowpack', () => {
+  it('is unavailable, never demo, when no proxy is configured to reach SNOTEL', async () => {
+    const registry = createLiveRegistry();
+    const result = await registry.snowpack.getSnowpack(testMountain({ id: 'vail' }), makeContext('2026-01-17', '2026-01-17', at(5)));
     expect(result.status).toBe('unavailable');
   });
 });
@@ -133,6 +144,24 @@ describe('createLiveRegistry — every slot, every configuration', () => {
   });
 });
 
+describe('createLiveRegistry — a same-origin proxy', () => {
+  it('treats an empty base URL as a configured proxy at /api, not as "no proxy"', async () => {
+    const registry = createLiveRegistry({ trafficApiBaseUrl: '' });
+    expect(registry.label).toBe('Live data');
+    // The traffic slot is a real live provider that will call `/api/travel-curve` on this origin.
+    expect(registry.traffic.id).toBe('google-routes');
+    expect(registry.snowpack.id).toBe('snotel');
+    expect(registry.roads.id).toBe('cotrip');
+  });
+
+  it('the dispatcher passes same-origin through and still treats unset as unavailable', () => {
+    const sameOrigin = createProviderRegistry({ dataMode: 'live', trafficApiBaseUrl: '', proxyConfigured: true, enableRoadConditions: true });
+    expect(sameOrigin.traffic.id).toBe('google-routes');
+    const none = createProviderRegistry({ dataMode: 'live', trafficApiBaseUrl: '', proxyConfigured: false, enableRoadConditions: true });
+    expect(none.traffic.id).toBe('traffic-unconfigured');
+  });
+});
+
 describe('createProviderRegistry — the dispatcher', () => {
   it('missing environment configuration does not activate demo mode when dataMode is live', () => {
     // Every optional knob left at its type default (empty/false) — the one
@@ -140,6 +169,7 @@ describe('createProviderRegistry — the dispatcher', () => {
     const registry = createProviderRegistry({
       dataMode: 'live',
       trafficApiBaseUrl: '',
+      proxyConfigured: false,
       enableRoadConditions: false,
     });
     expectNoDemoInstances(registry);
@@ -150,6 +180,7 @@ describe('createProviderRegistry — the dispatcher', () => {
     const registry = createProviderRegistry({
       dataMode: 'demo',
       trafficApiBaseUrl: '',
+      proxyConfigured: false,
       enableRoadConditions: false,
     });
     expect(registry.weather).toBeInstanceOf(DemoWeatherProvider);

@@ -109,6 +109,7 @@ export function LaterScreen({ registry, clock, origin, preferences, onBack }: La
           type="date"
           min={addDays(clock.today, 1)}
           max={addDays(clock.today, 60)}
+          value={selection.kind === 'single' && !presets.some((p) => p.label === selection.label) ? selection.date : ''}
           onChange={(event) => {
             const value = event.target.value;
             if (!value) return;
