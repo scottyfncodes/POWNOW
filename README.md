@@ -32,7 +32,7 @@ is the map.
 |---|---|---|
 | **Map** | The logo → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
 | **List** | The map's other tab → a mountain → its day | The same mountains by name, A to Z. |
-| **Rank them for my day** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first. |
+| **POW PLANNER** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first. |
 
 Every path lands on the same mountain screen — the verdict card, parking, the
 route, the trail map, the snow clock, the timeline, when to leave and when to
@@ -72,8 +72,8 @@ page. See "Going live" below for what each optional variable turns on.
 
 The engine has always modeled a person — how much they value sleep, powder,
 quiet, an early night, a short drive — but until recently the only person it
-modeled was the default one. The **Your ride** step — reached from "Rank them
-for my day" on the map or the list — is the whole personal layer:
+modeled was the default one. The **Your ride** step — reached from POW PLANNER
+on the map or the list — is the whole personal layer:
 
 - **Passes you hold** (Epic, Ikon, Mountain Collective, Indy). A mountain on
   your pass scores as if the ticket were free, because for you it is; the

@@ -22,7 +22,7 @@ export function BrowseBar({ view, onShowMap, onShowList, onRank }: BrowseBarProp
         </button>
       </div>
       <button type="button" className="browsebar-rank" onClick={onRank}>
-        Rank them for my day →
+        POW PLANNER →
       </button>
     </div>
   );

@@ -18,9 +18,9 @@ import { PREFERENCES_STORAGE_KEY } from '@/ui/hooks/usePreferences';
 const user = () => userEvent.setup();
 
 const logo = () => screen.getByRole('button', { name: /^POW NOW — open the map/ });
-const rankButton = () => screen.getByRole('button', { name: /rank them for my day/i });
+const rankButton = () => screen.getByRole('button', { name: /^POW PLANNER/ });
 
-/** Home → the logo → the map → "Rank them for my day": the Your ride step. */
+/** Home → the logo → the map → POW PLANNER: the Your ride step. */
 async function openSetup() {
   await user().click(logo());
   await user().click(rankButton());
@@ -137,7 +137,7 @@ describe('the home screen', () => {
     expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   }, 20_000);
 
-  it('"Rank them for my day" goes to the Your ride step: where from, which day, how you ride', async () => {
+  it('POW PLANNER goes to the Your ride step: where from, which day, how you ride', async () => {
     render(<App />);
     await openSetup();
     expect(screen.getByText('YOUR RIDE')).toBeInTheDocument();
