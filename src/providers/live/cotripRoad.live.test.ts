@@ -98,9 +98,16 @@ describe('CDOT, as the live feed actually writes it', () => {
     expect(normalizeRouteName('CO-96E')).toBe(normalizeRouteName('CO 96'));
     expect(normalizeRouteName('US-287N')).toBe(normalizeRouteName('US 287'));
     expect(normalizeRouteName('State Highway 9')).toBe(normalizeRouteName('CO 9'));
-    // A business or spur route is a different road, not a direction.
-    expect(normalizeRouteName('US 36B')).not.toBe(normalizeRouteName('US 36'));
-    expect(normalizeRouteName('US 24A')).not.toBe(normalizeRouteName('US 24'));
+  });
+
+  it('reads CDOT\'s "US 24A" as US 24 — the live feed names the mainline that way', () => {
+    expect(normalizeRouteName('US 24A')).toBe(normalizeRouteName('US 24'));
+    const route = CDOT_ROUTES['us24-buena-vista']![0]!;
+    // Live segments at Woodland Park and at Minturn: the first is on the Colorado Springs drive, the second isn't.
+    const woodlandPark: RoadEvent = { kind: 'condition', routeName: 'US 24A', description: '3 - dry', points: [[38.994, -105.0575]] };
+    const minturn: RoadEvent = { kind: 'condition', routeName: 'US 24A', description: '3 - dry', points: [[39.6082, -106.4484]] };
+    expect(eventMatches(woodlandPark, route)).toBe(true);
+    expect(eventMatches(minturn, route)).toBe(false);
   });
 
   it('takes the mile marker from the message when CDOT leaves the marker fields empty', () => {
