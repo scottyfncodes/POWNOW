@@ -5,7 +5,7 @@ import type { GeoPoint } from '@/domain/mountain';
  * Google Routes, and the Google Maps Roads API all use) into a list of
  * real lat/lon points describing the actual driven road geometry.
  *
- * This is the one piece of route *shape* SNOWNOW ever draws: everywhere
+ * This is the one piece of route *shape* POW NOW ever draws: everywhere
  * else a "route" is a duration/distance number from Google Routes, honestly
  * labelled. When this decodes a real `encodedPolyline` from the traffic
  * proxy, the line on the map is the real road path, not a straight guess.

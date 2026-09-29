@@ -1,5 +1,5 @@
 /**
- * Every number SNOWNOW shows can be traced to where it came from and how much
+ * Every number POW NOW shows can be traced to where it came from and how much
  * we trust it. This is a product rule, not a nicety: we never render demo data
  * as if it were live, and we never render a forecast as if it were observed.
  */

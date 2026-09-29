@@ -4,7 +4,7 @@ import type { PlaceKind, Place, PlacesProvider, ProviderContext } from '@/provid
 
 /**
  * Places exist only to serve the ski-day decision — mostly "where do I wait
- * out the eastbound wall". SNOWNOW is not a restaurant guide and this provider
+ * out the eastbound wall". POW NOW is not a restaurant guide and this provider
  * stays deliberately thin.
  */
 const CATALOG: Record<string, Place[]> = {

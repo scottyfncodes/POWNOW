@@ -1,4 +1,4 @@
-import type { SnownowEnvironment } from '@/config/env';
+import type { PownowEnvironment } from '@/config/env';
 import { resolveEnvironment } from '@/config/env';
 import { createDemoRegistry } from './demo';
 import { createLiveRegistry } from './live';
@@ -15,7 +15,7 @@ import type { ProviderRegistry } from './types';
  * not a runtime toggle); this is what makes demo mode "safe" in the sense the
  * real-data gate asks for: there is no way to end up live by accident.
  */
-export function createProviderRegistry(env: SnownowEnvironment = resolveEnvironment()): ProviderRegistry {
+export function createProviderRegistry(env: PownowEnvironment = resolveEnvironment()): ProviderRegistry {
   if (env.dataMode === 'demo') return createDemoRegistry();
   return createLiveRegistry({
     // `''` is a real value here (same-origin proxy); only "not configured" is undefined.

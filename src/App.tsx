@@ -22,14 +22,14 @@ import { PicksScreen } from '@/ui/screens/PicksScreen';
 import { SetupScreen } from '@/ui/screens/SetupScreen';
 
 /**
- * SNOWNOW.
+ * POW NOW.
  *
  * The provider registry is created once and injected downward: the screens
  * know they are talking to *a* weather/traffic/mountain provider, never which
  * one. Swapping the demo bundle for live integrations happens on this line and
  * nowhere else.
  *
- * The flow is HOME → YOUR RIDE → YOUR MOUNTAINS → ONE MOUNTAIN'S DAY. SNOW NOW
+ * The flow is HOME → YOUR RIDE → YOUR MOUNTAINS → ONE MOUNTAIN'S DAY. POW NOW
  * walks it; MAP and LIST skip straight to browsing the mountains and land on
  * the same mountain screen. One `recommend()` call, owned here, feeds both
  * the ranked picks and every mountain screen, so opening a card costs no
@@ -165,7 +165,7 @@ export default function App({ registry: injected }: AppProps = {}) {
     default:
       return (
         <HomeScreen
-          onSnowNow={() => navigate('setup')}
+          onPowNow={() => navigate('setup')}
           onMap={() => navigate('map')}
           onList={() => navigate('list')}
           usingDemoData={registry.usingDemoData}

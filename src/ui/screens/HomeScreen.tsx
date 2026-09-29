@@ -4,7 +4,7 @@ import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
 
 export interface HomeScreenProps {
-  onSnowNow: () => void;
+  onPowNow: () => void;
   onMap: () => void;
   onList: () => void;
   usingDemoData: boolean;
@@ -13,13 +13,13 @@ export interface HomeScreenProps {
 /**
  * Three ways in, and the first one is the product.
  *
- * SNOW NOW is the decision path: say how you ride, get every mountain ranked
+ * POW NOW is the decision path: say how you ride, get every mountain ranked
  * for your day, open the one you like. MAP and LIST are the browsing paths —
  * the same mountains by geography or by name, for someone who already knows
  * where they're looking. Nothing else earns a place above the fold, and no
  * chart appears before the user has asked a question.
  */
-export function HomeScreen({ onSnowNow, onMap, onList, usingDemoData }: HomeScreenProps) {
+export function HomeScreen({ onPowNow, onMap, onList, usingDemoData }: HomeScreenProps) {
   const environment = resolveEnvironment();
   // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
   const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
@@ -31,14 +31,14 @@ export function HomeScreen({ onSnowNow, onMap, onList, usingDemoData }: HomeScre
         <header className="home-head">
           <h1>
             <Wordmark />
-            <span className="visually-hidden">SNOWNOW</span>
+            <span className="visually-hidden">POW NOW</span>
           </h1>
           <p className="home-tagline">Find your best mountain day.</p>
         </header>
 
         <div className="home-actions">
-          <button type="button" className="bigbutton bigbutton-now" onClick={onSnowNow}>
-            <span className="bigbutton-word">SNOW NOW</span>
+          <button type="button" className="bigbutton bigbutton-now" onClick={onPowNow}>
+            <span className="bigbutton-word">POW NOW</span>
             <span className="bigbutton-sub">Tell us how you ride. We'll rank every mountain for your day.</span>
           </button>
 

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 
 /**
- * GitHub Pages serves this project from `/SNOWNOW/`, not from a domain root,
+ * GitHub Pages serves this project from `/POW NOW/`, not from a domain root,
  * so every asset URL has to be prefixed or the page loads and then 404s on its
  * own JavaScript.
  *

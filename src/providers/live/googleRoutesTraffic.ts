@@ -25,7 +25,7 @@ import type { ProviderContext, TrafficProvider } from '@/providers/types';
  * needed to change to make that true for live data too.
  */
 export interface LiveTrafficOptions {
-  /** e.g. "https://snownow-server.example.com". Empty string = same origin. */
+  /** e.g. "https://pownow-server.example.com". Empty string = same origin. */
   apiBaseUrl: string;
 }
 

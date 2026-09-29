@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { DEFAULT_PREFERENCES, type RiderPreferences } from '@/config/weights';
 import { HOLDABLE_PASSES, type PassAffiliation } from '@/domain/mountain';
 
+/** Named for the app's old name on purpose: renaming it would wipe every saved setting. */
 export const PREFERENCES_STORAGE_KEY = 'snownow.preferences';
 
 /** The fields a rider can set. Origin lives in `useOrigin`; the rest of `RiderPreferences` is not user-facing. */

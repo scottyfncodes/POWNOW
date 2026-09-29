@@ -7,7 +7,7 @@ export interface ControlPoint {
 
 /**
  * Piecewise-linear sampling of a control-point curve. Everything time-varying
- * in SNOWNOW (traffic congestion, crowding, snowfall rate) is expressed this
+ * in POW NOW (traffic congestion, crowding, snowfall rate) is expressed this
  * way so it can be reasoned about, charted and tested as plain data.
  */
 export function sampleCurve(points: ControlPoint[], minute: MinuteOfDay): number {

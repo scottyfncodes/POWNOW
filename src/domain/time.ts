@@ -1,5 +1,5 @@
 /**
- * SNOWNOW works in *minutes since local midnight* for the day being planned.
+ * POW NOW works in *minutes since local midnight* for the day being planned.
  *
  * Ski days are single-day, single-timezone reasoning problems: everything the
  * engine cares about (first chair, prime snow, the 4pm traffic wall) is a wall

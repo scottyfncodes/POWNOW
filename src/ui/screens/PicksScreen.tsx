@@ -23,7 +23,7 @@ export interface PicksScreenProps {
 
 /**
  * Every mountain the rider can reach, ranked for their day — the answer
- * SNOW NOW promised, as cards. The ranking is `recommend()`'s, the same
+ * POW NOW promised, as cards. The ranking is `recommend()`'s, the same
  * pipeline the map and every plan use; this screen only lays it out. The
  * winner leads with why it won; every other card wears its trade-offs
  * against the winner, so the list can be scanned rather than studied.

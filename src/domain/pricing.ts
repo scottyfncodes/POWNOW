@@ -4,7 +4,7 @@ import type { DateKey } from './dates';
  * Lift ticket pricing.
  *
  * A day ticket is a real part of "the best day I can realistically have", so
- * SNOWNOW carries it as first-class domain data — with the same provenance
+ * POW NOW carries it as first-class domain data — with the same provenance
  * discipline as snow and traffic. It is deliberately *not* a headline number:
  * see `config/weights.ts` for how lightly it is allowed to move a score.
  */

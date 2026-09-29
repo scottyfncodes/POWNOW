@@ -1,8 +1,8 @@
 import type { GeoPoint } from '@/domain/mountain';
 
 /**
- * Hands the destination SNOWNOW has already decided on to the user's actual
- * turn-by-turn navigation app — SNOWNOW is the decision layer (which
+ * Hands the destination POW NOW has already decided on to the user's actual
+ * turn-by-turn navigation app — POW NOW is the decision layer (which
  * mountain, when to leave), never the navigator. Both links are universal
  * links: they open the native app when it's installed and fall back to the
  * web when it isn't, on any platform, so no user-agent–gated app-install

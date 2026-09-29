@@ -14,7 +14,7 @@ export function ListScreen({ onBack, onOpenMountain }: ListScreenProps) {
       <ScreenHeader onBack={onBack} title="ALL MOUNTAINS" />
       <div className="screen-body shell">
         <p className="listscreen-intro">
-          Every mountain SNOWNOW knows, A to Z. Tap one for today's call — the verdict, the snow, the drive and
+          Every mountain POW NOW knows, A to Z. Tap one for today's call — the verdict, the snow, the drive and
           when to leave.
         </p>
         <MountainList mountains={MOUNTAINS} onSelectMountain={onOpenMountain} />

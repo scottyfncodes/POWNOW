@@ -6,13 +6,13 @@
  *
  * All three variables are plain configuration, safe to ship in a public
  * bundle (a base URL is not a credential). Absence of every one of them is
- * the supported, default state: SNOWNOW runs in demo mode with zero
+ * the supported, default state: POW NOW runs in demo mode with zero
  * environment setup, which is what "safe demo mode when keys are absent"
  * requires.
  */
 export type DataMode = 'demo' | 'live';
 
-export interface SnownowEnvironment {
+export interface PownowEnvironment {
   dataMode: DataMode;
   /**
    * Base URL of the data proxy (`server/`). `''` with `proxyConfigured: true`
@@ -57,7 +57,7 @@ export function resolveProxyBase(raw: unknown): { base: string; configured: bool
   return { base: trimmed.replace(/\/+$/, ''), configured: true };
 }
 
-export function resolveEnvironment(): SnownowEnvironment {
+export function resolveEnvironment(): PownowEnvironment {
   const env = readEnv();
   const dataMode = env.VITE_DATA_MODE === 'live' ? 'live' : 'demo';
   const proxy = resolveProxyBase(env.VITE_API_BASE_URL);
