@@ -72,8 +72,8 @@ page. See "Going live" below for what each optional variable turns on.
 
 The engine has always modeled a person — how much they value sleep, powder,
 quiet, an early night, a short drive — but until recently the only person it
-modeled was the default one. The **Your ride** step — the screen between SNOW
-NOW and the answer — is the whole personal layer:
+modeled was the default one. The **Your ride** step — reached from "Rank them
+for my day" on the map or the list — is the whole personal layer:
 
 - **Passes you hold** (Epic, Ikon, Mountain Collective, Indy). A mountain on
   your pass scores as if the ticket were free, because for you it is; the
