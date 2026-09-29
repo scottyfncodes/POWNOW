@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import type { MountainProfile as MountainReference } from '@/domain/mountainProfile';
 import type { Recommendation, SkiDayPlan } from '@/domain/plan';
 import type { MinuteOfDay } from '@/domain/time';
 import { planSummary } from '@/engine/explain';
@@ -8,25 +9,59 @@ import { Caveats } from '@/ui/components/Caveats';
 import { DataSources } from '@/ui/components/DataSources';
 import { DepartureWhatIf } from '@/ui/components/DepartureWhatIf';
 import { FactorBreakdown } from '@/ui/components/FactorBreakdown';
+import { GetTherePanel } from '@/ui/components/GetTherePanel';
+import { MountainProfilePanel } from '@/ui/components/MountainProfilePanel';
+import { ParkingPanel } from '@/ui/components/ParkingPanel';
 import { RecommendationCard } from '@/ui/components/RecommendationCard';
 import { ReturnPlanner } from '@/ui/components/ReturnPlanner';
 import { SnowClockPanel } from '@/ui/components/SnowClockPanel';
 import { Timeline } from '@/ui/components/Timeline';
+import { TrailMapPanel } from '@/ui/components/TrailMapPanel';
 
 export interface PlanViewProps {
   recommendation: Recommendation;
   now?: MinuteOfDay | null;
   projected?: boolean;
-  /** Present for NOW: re-runs the recommendation. */
+  /** Present for today's plan: re-runs the recommendation. */
   onRefresh?: () => void;
+  /**
+   * Which mountain's day to show. Uncontrolled (the winner, switchable from
+   * the alternatives) when omitted; a screen that owns the choice — the
+   * mountain screen, where the URL names the mountain — passes both.
+   */
+  selectedId?: string;
+  onSelectMountain?: (mountainId: string) => void;
+  /**
+   * The mountain's researched reference, when this view *is* the mountain's
+   * page: adds parking, the route panel, the trail map and the reference
+   * sheet (links, season dates, Grub & Brews) to the day plan. `undefined`
+   * leaves the plan alone; `null` means "this is the mountain page, but
+   * nobody has researched this mountain yet", which the panels say honestly.
+   */
+  profile?: MountainReference | null;
 }
 
 /**
- * One full ski-day answer, whether it came from NOW or LATER. Both modes ask
- * the same question, so they get the same anatomy.
+ * One full ski-day answer, whether it is today's call, a future day's
+ * projection or a day out of the range planner. Every path asks the same
+ * question, so they all get the same anatomy.
  */
-export function PlanView({ recommendation, now, projected = false, onRefresh }: PlanViewProps) {
-  const [selectedId, setSelectedId] = useState(recommendation.best.mountain.id);
+export function PlanView({
+  recommendation,
+  now,
+  projected = false,
+  onRefresh,
+  selectedId: controlledId,
+  onSelectMountain,
+  profile,
+}: PlanViewProps) {
+  const [ownId, setOwnId] = useState(recommendation.best.mountain.id);
+  const selectedId = controlledId ?? ownId;
+  const setSelectedId = (mountainId: string) => {
+    setOwnId(mountainId);
+    onSelectMountain?.(mountainId);
+  };
+  const isMountainPage = profile !== undefined;
   const [showFactors, setShowFactors] = useState(false);
   const [showSources, setShowSources] = useState(false);
   const alternativesRef = useRef<HTMLElement | null>(null);
@@ -71,6 +106,14 @@ export function PlanView({ recommendation, now, projected = false, onRefresh }: 
         onRefresh={onRefresh}
         nowTick={now ?? undefined}
       />
+
+      {isMountainPage && (
+        <>
+          <ParkingPanel parking={plan.parking} />
+          <GetTherePanel plan={plan} />
+          <TrailMapPanel mountain={plan.mountain} trailMap={profile?.trailMap ?? null} />
+        </>
+      )}
 
       <SnowClockPanel
         clock={plan.snowClock}
@@ -125,6 +168,8 @@ export function PlanView({ recommendation, now, projected = false, onRefresh }: 
       </section>
 
       <Caveats items={plan.caveats} />
+
+      {isMountainPage && <MountainProfilePanel mountain={plan.mountain} profile={profile} />}
     </div>
   );
 }

@@ -18,10 +18,7 @@ import { MountainMap, type MapRoutePreview, type MountainMarkerInfo } from '@/ui
 import { MountainProfile } from '@/ui/components/MountainProfile';
 import { NavigateLinks } from '@/ui/components/NavigateLinks';
 import { OriginPicker } from '@/ui/components/OriginPicker';
-import { RiderSettingsPanel } from '@/ui/components/RiderSettings';
-import { Snowfall } from '@/ui/components/Snowfall';
-import { Wordmark } from '@/ui/components/Wordmark';
-import type { RiderSettings } from '@/ui/hooks/usePreferences';
+import { ScreenHeader } from '@/ui/components/ScreenHeader';
 
 type RouteResult =
   | { kind: 'ok'; preview: MapRoutePreview }
@@ -33,28 +30,24 @@ export interface MapScreenProps {
   origin: Origin;
   onOriginChange: (origin: Origin) => void;
   preferences?: RiderPreferences;
-  /** The rider's own knobs, editable from the landing screen. */
-  settings?: RiderSettings;
-  onSettingsChange?: (patch: Partial<RiderSettings>) => void;
-  onSettingsReset?: () => void;
-  onNow: () => void;
-  onLater: () => void;
-  /** Unused today — MAP is the landing screen and has nowhere "back" to go — kept so the prop shape stays stable if that ever changes. */
-  onBack?: () => void;
+  onBack: () => void;
+  /** Leave the map for the mountain's whole day on its own screen. */
+  onOpenMountain: (mountainId: string) => void;
 }
 
 const tierFor = (score: number): MountainMarkerInfo['tier'] =>
   score >= 7.2 ? 'go' : score >= 4.8 ? 'mixed' : 'skip';
 
 /**
- * The SNOWNOW landing experience: MAP → SELECT MOUNTAIN → MOUNTAIN PROFILE,
- * with the map staying visible the whole time.
+ * The browsing path: MAP → SELECT MOUNTAIN → MOUNTAIN PROFILE, with the map
+ * staying visible the whole time, and one tap more for the mountain's whole
+ * day on its own screen.
  *
  * The map itself renders the instant it mounts — mountain identity needs no
  * network call. Ranking (score, verdict, "BEST NOW") comes from one shared
- * `recommend()` call, the *same* multi-mountain pipeline NOW already runs —
+ * `recommend()` call, the *same* multi-mountain pipeline the ranked picks run —
  * this is not a second scoring system, and it is not a per-marker or
- * per-tap fetch: one batched call for the whole map, same as NOW pays today.
+ * per-tap fetch: one batched call for the whole map, same as the picks pay.
  * Selecting a mountain reads its plan out of that already-computed result —
  * no additional network request. If that shared call hasn't resolved yet (or
  * failed outright), the profile falls back to the lightweight single-call
@@ -67,11 +60,8 @@ export function MapScreen({
   origin,
   onOriginChange,
   preferences,
-  settings,
-  onSettingsChange,
-  onSettingsReset,
-  onNow,
-  onLater,
+  onBack,
+  onOpenMountain,
 }: MapScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(true);
@@ -211,27 +201,15 @@ export function MapScreen({
 
   return (
     <div className="screen mapscreen">
-      <Snowfall density={18} />
-      <header className="mapscreen-top shell">
-        <h1>
-          <Wordmark size="sm" />
-          <span className="visually-hidden">SNOWNOW</span>
-        </h1>
-        <p className="mapscreen-tagline">Where should I ski today?</p>
-
-        <div className="mapscreen-actions">
-          <button type="button" className="bigbutton bigbutton-now" onClick={onNow}>
-            <span className="bigbutton-word">NOW</span>
-          </button>
-          <button type="button" className="bigbutton bigbutton-later" onClick={onLater}>
-            <span className="bigbutton-word">LATER</span>
-          </button>
-        </div>
+      <ScreenHeader onBack={onBack} title="MAP" />
+      <div className="mapscreen-top shell">
+        <p className="mapscreen-intro">
+          Every supported mountain on a real map, relative to{' '}
+          {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive, the route and the
+          profile.
+        </p>
 
         <OriginPicker origin={origin} onChange={onOriginChange} />
-        {settings && onSettingsChange && onSettingsReset && (
-          <RiderSettingsPanel settings={settings} onChange={onSettingsChange} onReset={onSettingsReset} />
-        )}
 
         {registry.usingDemoData ? (
           <p className="home-demo">
@@ -243,7 +221,7 @@ export function MapScreen({
             First traffic check in a while? It can take up to 15 seconds to wake up — that's normal, not a bug.
           </p>
         ) : null}
-      </header>
+      </div>
 
       <div className="mapscreen-body mapscreen-split">
         <MountainMap
@@ -270,6 +248,13 @@ export function MapScreen({
               />
             </div>
             <div className="shell">
+              <button
+                type="button"
+                className="linkbutton mapscreen-fullplan"
+                onClick={() => onOpenMountain(selectedMountain.id)}
+              >
+                Full day plan for {selectedMountain.shortName} →
+              </button>
               {selectedPlan ? (
                 <MountainProfile plan={selectedPlan} reference={mountainProfileFor(selectedMountain.id)} now={clock.now} />
               ) : (

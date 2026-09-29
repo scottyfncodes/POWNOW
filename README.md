@@ -22,15 +22,26 @@ Head home 2:42 PM · Home 4:28 PM
 
 ---
 
-## The two modes
+## The flow
 
-| | Means | Answers |
+The home screen is three doors, and the first one is the product:
+
+| | Path | What you get |
 |---|---|---|
-| **NOW** | Decision mode. Today. | "I want to ski today — where, and when do I leave?" |
-| **LATER** | Planning mode. A future date or range. | "What would my ski day look like on Saturday?" |
+| **SNOW NOW** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first; tap one for its whole day. |
+| **Map** | A real map → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
+| **List** | A to Z → a mountain → its day | The same mountains by name, for someone who already knows where they're looking. |
 
-Both ask the same question and share the same engine. LATER differs only in how
-much certainty it is willing to claim.
+All three land on the same mountain screen — the verdict card, parking, the
+route, the trail map, the snow clock, the timeline, when to leave and when to
+head home, the alternatives, how the score was built, and the reference sheet
+with Grub & Brews — built from the same `recommend()` call, so a mountain never
+has two different days depending on the door you came in.
+
+Today is the real call. Any other day is a projection, and the cards and the
+plan say so, with how sure each call is. Weighing several days at once? The
+Your ride step hands off to the range planner, which ranks a whole range and
+names a best bet with its confidence.
 
 ---
 
@@ -59,8 +70,8 @@ page. See "Going live" below for what each optional variable turns on.
 
 The engine has always modeled a person — how much they value sleep, powder,
 quiet, an early night, a short drive — but until recently the only person it
-modeled was the default one. The **Your ride** panel on the homepage is the
-whole personal layer:
+modeled was the default one. The **Your ride** step — the screen between SNOW
+NOW and the answer — is the whole personal layer:
 
 - **Passes you hold** (Epic, Ikon, Mountain Collective, Indy). A mountain on
   your pass scores as if the ticket were free, because for you it is; the
@@ -73,12 +84,13 @@ whole personal layer:
   field the optimiser and scorer already read.
 
 Settings live in this browser only (`localStorage`), are validated field by
-field on the way back in, and reset from the panel. Nothing here changes what
-NOW or LATER mean — only whose day they are optimising.
+field on the way back in, and reset from the step. Nothing here changes what a
+ski day means — only whose day it is optimising.
 
 Every plan can leave the app: **Share plan** (the native share sheet, or the
-clipboard) and **Add to calendar** (an `.ics` with the departure as the event
-and a 30-minute alarm). NOW says how old its answer is and has a **Refresh**.
+clipboard), **Add to calendar** (an `.ics` with the departure as the event and
+a 30-minute alarm) and **Navigate** (Google Maps or Apple Maps). Today's plan
+says how old its answer is and has a **Refresh**.
 
 ---
 
@@ -367,11 +379,15 @@ src/
     scoring.ts    The number on the card, and why
     explain.ts    Plain-language reasoning
     plan.ts       buildPlan · recommend · stayOrGo
-    future.ts     LATER: range projection with confidence discounting
+    future.ts     The range planner: projection with confidence discounting
 
   ui/           React. Renders plans; contains no business logic.
+    hooks/useScreen.ts       Hash routing: every screen is a URL and a history entry
     hooks/usePreferences.ts  Your ride, remembered and validated
-    components/RiderSettings.tsx · SnowpackPanel.tsx · PlanActions.tsx
+    screens/      Home · Setup (your ride) · Picks (ranked cards) · Mountain (one
+                  day, whole) · List · Map · Later (the range planner)
+    components/MountainCard.tsx · MountainList.tsx · MountainMap.tsx (Leaflet) ·
+                  RiderSettings.tsx · PlanActions.tsx · NavigateLinks.tsx
 
 server/
   index.mjs     The data proxy: Google Routes, CDOT, SNOTEL; cache, dedup,
@@ -472,7 +488,7 @@ test that fails because the demo weather changed would be telling us nothing.
 
 Coverage spans: snow-clock physics, prime-window selection, scoring (factor
 interactions, imputation, the ticket-price ceiling, pass coverage), morning
-and return optimisation, the recommendation layer, LATER, dataset integrity,
+and return optimisation, the recommendation layer, the range planner, dataset integrity,
 planning a mountain the engine has never seen, demo-provider determinism,
 provider-failure handling, and the UI end-to-end — including the ten-second
 test as an executable acceptance test, honest empty states, rider settings
@@ -520,8 +536,10 @@ tables and anything that needs to be studied.
 - status is never encoded in colour alone
 - ~145 kB gzipped, no web fonts; the only external requests in demo mode are
   the map tiles
-- each screen is a real history entry (`#/now`, `#/later`, `#/map`), so the
-  phone's Back gesture returns home instead of leaving the app
+- each screen is a real history entry (`#/setup`, `#/picks`,
+  `#/mountain/vail`, `#/list`, `#/map`, `#/later`), so the phone's Back
+  gesture retraces the flow instead of leaving the app, and the in-app back
+  arrow pops history rather than piling up entries
 - the starting city and your ride settings are remembered between visits; a
   GPS fix is used for the visit only and never written to storage
 
@@ -537,7 +555,7 @@ and interpolates locally (`engine/travel.ts#travelAt`) — it never asks again
 per candidate departure time.
 
 - **Client-side**: every live provider goes through one shared TTL cache
-  (`providers/live/fetchCache.ts`) with in-flight sharing, so a NOW screen
+  (`providers/live/fetchCache.ts`) with in-flight sharing, so a ranking
   makes one request per distinct URL, not one per mountain per render, and
   `Provenance.fetchedAt` is the moment the network answered, not the moment
   the cache was read. Weather 10 min, alerts and roads 5, Liftie 10, SNOTEL
@@ -548,7 +566,7 @@ per candidate departure time.
   Vercel KV to share it (the proxy writes through automatically when the KV
   env vars exist); the GET endpoints are also CDN-cached regardless.
 
-**API calls for one NOW request** (one mountain, one origin, cache cold):
+**API calls for one mountain's day** (one mountain, one origin, cache cold):
 
 | Call | Count | Notes |
 |---|---|---|
@@ -559,7 +577,7 @@ per candidate departure time.
 | CDOT (proxy) | 1 | one statewide fetch, shared by every corridor |
 | Google Routes (proxy) | up to 20 | fewer on a same-day request once the morning is under way |
 
-A full NOW screen multiplies Open-Meteo, Liftie, SNOTEL and Google Routes by
+A full ranking multiplies Open-Meteo, Liftie, SNOTEL and Google Routes by
 the number of reachable mountains (8–13). Google Routes is the only billed
 call; at personal-use volume with the shared 15-minute cache it sits inside
 the free tier. A public multi-user deployment should budget for it, turn on the KV tier so

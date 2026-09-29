@@ -7,7 +7,7 @@ export interface PlanActionsProps {
   plan: SkiDayPlan;
   /** When this plan was computed, ISO 8601. */
   generatedAt?: string;
-  /** Present for NOW: re-runs the recommendation. */
+  /** Present for today's plan: re-runs the recommendation. */
   onRefresh?: () => void;
   /** The current minute, so "updated N min ago" ticks without a re-fetch. */
   nowTick?: number;

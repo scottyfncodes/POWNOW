@@ -14,12 +14,12 @@ export interface RecommendationCardProps {
   plan: SkiDayPlan;
   /** One line on why this mountain beat the runner-up. */
   why?: string;
-  /** LATER shows a projection rather than a call. */
+  /** A future day shows a projection rather than a call. */
   projected?: boolean;
   onCompare?: () => void;
   /** When the recommendation was computed, for the "updated N min ago" line. */
   generatedAt?: string;
-  /** Present for NOW: re-runs the recommendation. */
+  /** Present for today's plan: re-runs the recommendation. */
   onRefresh?: () => void;
   /** The current minute, so the age line ticks. */
   nowTick?: number;

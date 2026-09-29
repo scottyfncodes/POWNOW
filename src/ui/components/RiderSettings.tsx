@@ -7,6 +7,12 @@ export interface RiderSettingsPanelProps {
   settings: RiderSettings;
   onChange: (patch: Partial<RiderSettings>) => void;
   onReset: () => void;
+  /**
+   * `true` on the Your ride step, where the knobs *are* the screen: no
+   * collapsed summary, no toggle, every control showing. Default `false`
+   * keeps the compact disclosure for places the settings are a sidebar.
+   */
+  alwaysOpen?: boolean;
 }
 
 const DRIVE_OPTIONS: { minutes: number; label: string }[] = [
@@ -50,11 +56,12 @@ export function summarizeSettings(settings: RiderSettings): string {
  * The rider's own knobs. The engine has always modeled a person — how much
  * they value sleep, powder, quiet, an early night — but until now the only
  * person it modeled was the default one. These few controls are the whole
- * personal layer: nothing here changes what NOW or LATER mean, only whose
+ * personal layer: nothing here changes what a ski day means, only whose
  * day they are optimising.
  */
-export function RiderSettingsPanel({ settings, onChange, onReset }: RiderSettingsPanelProps) {
-  const [open, setOpen] = useState(false);
+export function RiderSettingsPanel({ settings, onChange, onReset, alwaysOpen = false }: RiderSettingsPanelProps) {
+  const [toggled, setToggled] = useState(false);
+  const open = alwaysOpen || toggled;
   const isDefault = JSON.stringify(settings) === JSON.stringify(DEFAULT_SETTINGS);
 
   const togglePass = (pass: PassAffiliation) => {
@@ -63,24 +70,33 @@ export function RiderSettingsPanel({ settings, onChange, onReset }: RiderSetting
   };
 
   return (
-    <section className="ridersettings" aria-labelledby="ridersettings-heading">
-      <button
-        type="button"
-        className="ridersettings-toggle"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-controls="ridersettings-body"
-      >
-        <span className="ridersettings-toggle-text">
-          <span id="ridersettings-heading" className="ridersettings-title">
-            Your ride
+    <section className={`ridersettings${alwaysOpen ? ' is-page' : ''}`} aria-labelledby="ridersettings-heading">
+      {alwaysOpen ? (
+        <header className="ridersettings-head">
+          <h2 id="ridersettings-heading" className="ridersettings-title">
+            How you ride
+          </h2>
+          <p className="ridersettings-summary">{summarizeSettings(settings)}</p>
+        </header>
+      ) : (
+        <button
+          type="button"
+          className="ridersettings-toggle"
+          onClick={() => setToggled((value) => !value)}
+          aria-expanded={open}
+          aria-controls="ridersettings-body"
+        >
+          <span className="ridersettings-toggle-text">
+            <span id="ridersettings-heading" className="ridersettings-title">
+              Your ride
+            </span>
+            <span className="ridersettings-summary">{summarizeSettings(settings)}</span>
           </span>
-          <span className="ridersettings-summary">{summarizeSettings(settings)}</span>
-        </span>
-        <span aria-hidden="true" className="ridersettings-caret">
-          {open ? '−' : '+'}
-        </span>
-      </button>
+          <span aria-hidden="true" className="ridersettings-caret">
+            {open ? '−' : '+'}
+          </span>
+        </button>
+      )}
 
       {open && (
         <div id="ridersettings-body" className="ridersettings-body">

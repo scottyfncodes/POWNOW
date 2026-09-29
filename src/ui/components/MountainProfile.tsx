@@ -21,7 +21,7 @@ export interface MountainProfileProps {
  * The whole "what should I do about this mountain" answer, in the order the
  * product brief specifies: verdict, conditions, parking, route, timing, why,
  * then the reference material nobody needs at a glance. Every section reads
- * from the same `SkiDayPlan` the NOW/LATER screens already compute — this is
+ * from the same `SkiDayPlan` the ranked picks and the mountain screen already compute — this is
  * not a second, map-only recommendation engine.
  */
 export function MountainProfile({ plan, reference, now }: MountainProfileProps) {

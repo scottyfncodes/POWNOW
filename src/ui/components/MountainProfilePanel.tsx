@@ -9,8 +9,8 @@ export interface MountainProfilePanelProps {
 
 /**
  * The deeper reference sheet for a mountain: official links, contact info,
- * and season dates. Deliberately not shown on the NOW card — this is where
- * that information belongs instead, reached from the map (see MapScreen).
+ * and season dates. Deliberately not shown on the recommendation card — this
+ * is where that information belongs instead: the mountain screen and the map.
  *
  * Every field here either shows a real value or an honest "not available"
  * state — never a guessed URL, an invented date, or a silently blank row.

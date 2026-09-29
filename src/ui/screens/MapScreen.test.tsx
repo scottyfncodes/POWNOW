@@ -31,8 +31,8 @@ describe('MapScreen', () => {
         clock={clock}
         origin={findOrigin('denver')}
         onOriginChange={noop}
-        onNow={noop}
-        onLater={noop}
+        onBack={noop}
+        onOpenMountain={noop}
       />,
     );
     for (const mountain of MOUNTAINS) {
@@ -51,8 +51,8 @@ describe('MapScreen', () => {
         clock={clock}
         origin={findOrigin('denver')}
         onOriginChange={noop}
-        onNow={noop}
-        onLater={noop}
+        onBack={noop}
+        onOpenMountain={noop}
       />,
     );
     const vail = MOUNTAINS.find((m) => m.id === 'vail')!;
@@ -88,7 +88,7 @@ describe('MapScreen', () => {
 
     const liveRegistry = createLiveRegistry({ trafficApiBaseUrl: 'https://proxy.example.test' });
     render(
-      <MapScreen registry={liveRegistry} clock={clock} origin={findOrigin('denver')} onOriginChange={noop} onNow={noop} onLater={noop} />,
+      <MapScreen registry={liveRegistry} clock={clock} origin={findOrigin('denver')} onOriginChange={noop} onBack={noop} onOpenMountain={noop} />,
     );
     const vail = MOUNTAINS.find((m) => m.id === 'vail')!;
     await user().click(screen.getByRole('button', { name: new RegExp(`^${vail.name}\\. Tap to view`, 'i') }));
@@ -117,7 +117,7 @@ describe('MapScreen', () => {
   it('works the same way for a GPS origin as for a manual city', async () => {
     const origin = gpsOrigin(39.7, -105.2);
     render(
-      <MapScreen registry={createDemoRegistry()} clock={clock} origin={origin} onOriginChange={noop} onNow={noop} onLater={noop} />,
+      <MapScreen registry={createDemoRegistry()} clock={clock} origin={origin} onOriginChange={noop} onBack={noop} onOpenMountain={noop} />,
     );
     const breck = MOUNTAINS.find((m) => m.id === 'breckenridge')!;
     await user().click(screen.getByRole('button', { name: new RegExp(`^${breck.name}\\. Tap to view`, 'i') }));
@@ -142,8 +142,8 @@ describe('MapScreen', () => {
         clock={clock}
         origin={findOrigin('denver')}
         onOriginChange={noop}
-        onNow={noop}
-        onLater={noop}
+        onBack={noop}
+        onOpenMountain={noop}
       />,
     );
     const keystone = MOUNTAINS.find((m) => m.id === 'keystone')!;
@@ -159,8 +159,28 @@ describe('MapScreen', () => {
 
   it('marks the top-ranked mountain as BEST NOW, from the same engine NOW uses — never a separate ranking', async () => {
     render(
-      <MapScreen registry={createDemoRegistry()} clock={clock} origin={findOrigin('denver')} onOriginChange={noop} onNow={noop} onLater={noop} />,
+      <MapScreen registry={createDemoRegistry()} clock={clock} origin={findOrigin('denver')} onOriginChange={noop} onBack={noop} onOpenMountain={noop} />,
     );
+    await waitFor(() => expect(screen.getAllByText(/best now/i).length).toBeGreaterThan(0), { timeout: 12_000 });
+  }, 15_000);
+
+  it('hands off to the mountain screen from the profile sheet — one tap from the map to the whole day', async () => {
+    const onOpenMountain = vi.fn();
+    render(
+      <MapScreen
+        registry={createDemoRegistry()}
+        clock={clock}
+        origin={findOrigin('denver')}
+        onOriginChange={noop}
+        onBack={noop}
+        onOpenMountain={onOpenMountain}
+      />,
+    );
+    const copper = MOUNTAINS.find((m) => m.id === 'copper')!;
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${copper.name}\\. Tap to view`, 'i') }));
+    await user().click(screen.getByRole('button', { name: /full day plan for copper/i }));
+    expect(onOpenMountain).toHaveBeenCalledWith('copper');
+    // Let the background ranking settle inside this test's act() scope.
     await waitFor(() => expect(screen.getAllByText(/best now/i).length).toBeGreaterThan(0), { timeout: 12_000 });
   }, 15_000);
 });
