@@ -10,6 +10,7 @@ import type {
 } from '@/domain/conditions';
 import type { WeatherAlert } from '@/domain/alerts';
 import type { Mountain, Origin } from '@/domain/mountain';
+import type { ParkingInfo } from '@/domain/parking';
 import type { TicketPrice } from '@/domain/pricing';
 import { type Availability, ok, unavailable, type Provenance } from '@/domain/provenance';
 import type { RoadStatus } from '@/domain/road';
@@ -223,6 +224,19 @@ export function testTicket(adultDay = 179, windowRate = 229): TicketPrice {
   };
 }
 
+export function testParking(overrides: Partial<ParkingInfo> = {}): ParkingInfo {
+  return {
+    status: 'unknown',
+    occupied: null,
+    capacity: null,
+    reservationRequired: 'not-required',
+    freeOptionAvailable: true,
+    notes: ['Fixture parking notes.'],
+    infoUrl: 'https://example.test/parking',
+    ...overrides,
+  };
+}
+
 export function testAlert(overrides: Partial<WeatherAlert> = {}): WeatherAlert {
   return {
     id: 'fixture-alert-1',
@@ -322,6 +336,7 @@ export interface InputsSpec {
   crowds?: CrowdCurve | 'unavailable';
   ticket?: TicketPrice | 'unavailable';
   alerts?: WeatherAlert[] | 'unavailable';
+  parking?: ParkingInfo | 'unavailable';
   outbound?: TravelCurve | 'unavailable';
   inbound?: TravelCurve | 'unavailable';
   /** Only used when `outbound`/`inbound` is 'unavailable' — lets a test model a specific failure reason (e.g. a timeout). */
@@ -354,6 +369,7 @@ export function testInputs(spec: InputsSpec = {}): DayInputs {
     crowds: wrap(spec.crowds ?? testCrowds(), 'No crowd data.'),
     ticket: wrap(spec.ticket ?? testTicket(), 'No ticket pricing.'),
     alerts: wrap(spec.alerts ?? [], 'No alert feed.'),
+    parking: wrap(spec.parking ?? testParking(), 'No parking data.'),
     outbound: wrap(outbound, spec.outboundReason ?? 'No route data.'),
     inbound: wrap(inbound, spec.inboundReason ?? 'No route data.'),
     outboundOptions: outbound === 'unavailable' ? [] : [outbound],

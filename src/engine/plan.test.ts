@@ -4,7 +4,7 @@ import { MOUNTAINS } from '@/data/mountains';
 import { findOrigin, gpsOrigin } from '@/data/origins';
 import { at } from '@/domain/time';
 import { createDemoRegistry } from '@/providers/demo';
-import { testInputs, testOperations, testTravel, testWeather } from '@/test/fixtures';
+import { testInputs, testMountain, testOperations, testTravel, testWeather } from '@/test/fixtures';
 import { sampleCurve } from '@/lib/curve';
 import { buildPlan, recommend, stayOrGo, stayOrGoLadder } from './plan';
 
@@ -68,6 +68,28 @@ describe('buildPlan', () => {
   it('flags an unreliable lift report as a caveat', () => {
     const plan = buildPlan(testInputs({ operations: 'unavailable' }));
     expect(plan.caveats.join(' ')).toMatch(/lift report/i);
+  });
+
+  it('carries parking through to the plan, and lists it in the data-sources disclosure', () => {
+    const plan = buildPlan(testInputs());
+    expect(plan.parking.status).toBe('ok');
+    expect(plan.dataSources.some((source) => source.label === 'Parking')).toBe(true);
+  });
+
+  it('reports parking honestly unavailable rather than a fabricated status when the feed is down', () => {
+    const plan = buildPlan(testInputs({ parking: 'unavailable' }));
+    expect(plan.parking.status).toBe('unavailable');
+  });
+
+  it('carries a real route distance/label through to the plan, from the live curve when traffic succeeded', () => {
+    const plan = buildPlan(testInputs());
+    expect(plan.routeDistanceMiles).toBe(80);
+    expect(plan.routeLabel).toBe('Test Highway');
+  });
+
+  it('falls back to the pre-authored route distance, never a guess, when traffic is unavailable', () => {
+    const plan = buildPlan(testInputs({ outbound: 'unavailable' }));
+    expect(plan.routeDistanceMiles).toBe(testMountain().accessRoutes[0]!.distanceMiles);
   });
 });
 

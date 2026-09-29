@@ -1,10 +1,11 @@
 import type { WeatherAlert } from './alerts';
-import type { ElevationConditions, SnowHistory } from './conditions';
+import type { ElevationConditions, OperationsReport, SnowHistory } from './conditions';
 import type { DateKey } from './dates';
 import type { Mountain, Origin, PassAffiliation } from './mountain';
 import type { MountainOperationalState, OffSeasonMessage } from './mountainStatus';
+import type { ParkingInfo } from './parking';
 import type { TicketPrice } from './pricing';
-import type { ConfidenceLevel, DisplayStatus, Provenance } from './provenance';
+import type { Availability, ConfidenceLevel, DisplayStatus, Provenance } from './provenance';
 import type { SnowpackObservation } from './snowpack';
 import type { MinuteOfDay, Minutes } from './time';
 
@@ -203,6 +204,8 @@ export interface SkiDayPlan {
   snowClock: SnowClock;
   /** The honest, absolute snow-quality claim for this plan — see `SnowState`. */
   snowState: SnowState;
+  /** Snow that fell overnight and is still skiable, inches. `null` only when the weather feed itself failed. */
+  freshSnowIn: number | null;
   /** Base-elevation conditions, when the weather feed succeeded. Never a guess. */
   baseConditions: ElevationConditions | null;
   /** Summit conditions. `null` whenever the provider couldn't resolve one — never copied from base. */
@@ -215,6 +218,8 @@ export interface SkiDayPlan {
   snowpack: SnowpackObservation | null;
   /** Real-world operational state, distinct from "the feed is unavailable." */
   operationalState: MountainOperationalState;
+  /** Lift/terrain report, when the feed succeeded. `null` — never a guessed lift count — when it didn't. */
+  operations: OperationsReport | null;
   /** Set only in the non-skiable states (see `NON_SKIABLE_STATES`) — a personality-forward line plus the real data behind it. */
   offSeasonMessage: OffSeasonMessage | null;
   /** Null when pricing was unavailable — never a guessed number. */
@@ -230,12 +235,18 @@ export interface SkiDayPlan {
   passCoverage: PassAffiliation | null;
   /** Active official alerts, supplementary only — scoring never reads this. */
   alerts: WeatherAlert[];
+  /** Parking rules/status for this mountain — see `domain/parking.ts`. Supplementary; scoring never reads this. */
+  parking: Availability<ParkingInfo>;
   /** Per-feed honesty, for the "data sources" disclosure. */
   dataSources: DataSourceStatus[];
   departure: DepartureOption | null;
   departureOptions: DepartureOption[];
   return: ReturnOption | null;
   returnOptions: ReturnOption[];
+  /** Real route distance — Google's reported figure when traffic is live, the pre-authored/estimated figure otherwise. `null` only when no route at all was resolved. */
+  routeDistanceMiles: number | null;
+  /** The corridor/road description for the route actually used, e.g. "I-70 west to Avon". */
+  routeLabel: string | null;
   timeline: TimelineEvent[];
   /** Two or three lines of plain-language reasoning. */
   headline: string;

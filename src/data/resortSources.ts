@@ -63,8 +63,11 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
     liftieSlug: 'copper',
   },
   purgatory: {
-    officialOpsUrl: 'https://www.purgatory.ski/mountain-report/',
-    officialPurchaseUrl: 'https://www.purgatory.ski/lift-tickets/',
+    // Official domain is purgatory.ski (purgatoryresort.com was an earlier
+    // unverified guess). The ops page is the resort's conditions/webcams page
+    // and the purchase URL is its store's one-day ticket calendar.
+    officialOpsUrl: 'https://www.purgatory.ski/mountain/weather-conditions-webcams/',
+    officialPurchaseUrl: 'https://store.purgatory.ski/Calendar.aspx?Department=TICKET%3AWIN&Category=VARIABLE&Item=1DAY&Link=Lift+Tickets',
     liftieSlug: 'purgatory',
   },
   'wolf-creek': {

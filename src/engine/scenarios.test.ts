@@ -395,6 +395,7 @@ describe('scenario 14 — total provider outage', () => {
         crowds: 'unavailable',
         ticket: 'unavailable',
         alerts: 'unavailable',
+        parking: 'unavailable',
         outbound: 'unavailable',
         inbound: 'unavailable',
       }),

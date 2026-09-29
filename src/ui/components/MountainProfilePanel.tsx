@@ -18,10 +18,7 @@ export interface MountainProfilePanelProps {
 export function MountainProfilePanel({ mountain, profile }: MountainProfilePanelProps) {
   if (!profile) {
     return (
-      <section className="panel profile-panel" aria-labelledby="profile-heading">
-        <h2 id="profile-heading" className="section-title">
-          {mountain.name}
-        </h2>
+      <section className="panel profile-panel" aria-label={`${mountain.name} reference information`}>
         <p className="profile-unavailable">
           We don't have a researched profile for this mountain yet — not currently available.
         </p>
@@ -30,11 +27,9 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
   }
 
   return (
-    <section className="panel profile-panel" aria-labelledby="profile-heading">
+    <section className="panel profile-panel" aria-label={`${mountain.name} reference information`}>
       <header className="panel-head">
-        <h2 id="profile-heading" className="section-title">
-          {mountain.name}
-        </h2>
+        <span className="section-title">Reference &amp; links</span>
         <a className="profile-website" href={profile.officialWebsite} target="_blank" rel="noreferrer">
           Official site ↗
         </a>
@@ -56,6 +51,8 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
         />
       </dl>
 
+      {/* Trail map has its own dedicated, prominent section elsewhere in the
+          profile (see TrailMapPanel) — it isn't repeated in this reference list. */}
       <section className="profile-dining" aria-labelledby="profile-grub-heading">
         <h3 id="profile-grub-heading" className="eyebrow profile-dining-heading">
           Grub
@@ -122,7 +119,6 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
       <ul className="profile-links">
         <ProfileLink label="Snow report" href={profile.snowReportUrl} />
         <ProfileLink label="Webcams" href={profile.webcamUrl} />
-        <ProfileLink label="Trail map" href={profile.trailMapUrl} />
         <ProfileLink label="Lift tickets" href={profile.ticketUrl} />
         <ProfileLink label="Pass info" href={profile.passInfoUrl} />
       </ul>

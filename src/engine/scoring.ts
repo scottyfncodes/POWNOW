@@ -24,6 +24,19 @@ import { resolveCrowds, resolveOperations, resolveWeather, weatherAt } from './s
  * has to be able to explain itself.
  *
  * The score is decision support. It is not a measurement of anything.
+ *
+ * Parking (`domain/parking.ts`) is deliberately NOT a scoring factor here.
+ * The product brief asks for parking to influence the recommendation "when
+ * reliable data supports doing so" — today, no resort in this dataset
+ * exposes live per-lot occupancy (see `providers/live/parking.ts`), so the
+ * only thing scoring could weight is a resort's static reservation policy,
+ * which does not vary day to day and would not change which mountain is
+ * best *today*. Adding a factor with no live signal behind it would be
+ * exactly the kind of penalty this file elsewhere refuses to invent (see
+ * `NEUTRAL`/`imputed` handling below). Parking stays a first-class, visible
+ * part of the plan (`SkiDayPlan.parking`) without moving the score — if a
+ * resort ever exposes real live occupancy, that is the day to add a
+ * `'parking'` `ScoreFactorKey` here, not before.
  */
 
 export interface ScoreInput {

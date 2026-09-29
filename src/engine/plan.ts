@@ -91,22 +91,27 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     score,
     snowClock,
     snowState,
+    freshSnowIn: inputs.weather.status === 'ok' ? inputs.weather.data.overnightSnowIn : null,
     baseConditions: inputs.weather.status === 'ok' ? inputs.weather.data.base : null,
     peakConditions: inputs.weather.status === 'ok' ? inputs.weather.data.peak : null,
     snowHistory: inputs.weather.status === 'ok' ? inputs.weather.data.snowHistory : null,
     modelSnowDepthIn: inputs.weather.status === 'ok' ? inputs.weather.data.modelSnowDepthIn : null,
     snowpack: inputs.snowpack.status === 'ok' ? inputs.snowpack.data : null,
     operationalState,
+    operations: inputs.operations.status === 'ok' ? inputs.operations.data : null,
     offSeasonMessage,
     ticket: inputs.ticket.status === 'ok' ? inputs.ticket.data : null,
     ticketPurchaseUrl: resortSourceFor(inputs.mountain.id).officialPurchaseUrl,
     passCoverage: passCovering(inputs.mountain, preferences.passes),
     alerts: inputs.alerts.status === 'ok' ? inputs.alerts.data : [],
+    parking: inputs.parking,
     dataSources: buildDataSources(inputs),
     departure: optimized.departure,
     departureOptions: optimized.departureOptions,
     return: optimized.ret,
     returnOptions: optimized.returnOptions,
+    routeDistanceMiles: routeDistanceMiles(inputs),
+    routeLabel: routeLabel(inputs),
     timeline: buildTimeline(inputs, snowClock, snowState, optimized.departure, optimized.ret),
     headline: headlineFor(inputs, snowClock, score),
     verdict: verdictFor(score.score, hasSnow),
@@ -115,6 +120,19 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     provenance: planProvenance(inputs),
     caveats,
   };
+}
+
+/** Google's real reported distance when the traffic feed is live; the pre-authored/estimated route figure otherwise. Never invented. */
+function routeDistanceMiles(inputs: DayInputs): number | null {
+  if (inputs.outbound.status === 'ok') return inputs.outbound.data.distanceMiles;
+  const primary = inputs.routes.find((route) => route.isPrimary) ?? inputs.routes[0];
+  return primary?.distanceMiles ?? null;
+}
+
+function routeLabel(inputs: DayInputs): string | null {
+  if (inputs.outbound.status === 'ok') return inputs.outbound.data.routeLabel;
+  const primary = inputs.routes.find((route) => route.isPrimary) ?? inputs.routes[0];
+  return primary?.label ?? null;
 }
 
 function planProvenance(inputs: DayInputs): Provenance {
@@ -144,6 +162,7 @@ function buildDataSources(inputs: DayInputs): DataSourceStatus[] {
 
   const opsSourceUrl = inputs.operations.status === 'ok' ? inputs.operations.data.sourceUrl : undefined;
 
+  const parkingSourceUrl = inputs.parking.status === 'ok' ? (inputs.parking.data.infoUrl ?? undefined) : undefined;
   const snowpackUrl = inputs.snowpack.status === 'ok' ? inputs.snowpack.data.sourceUrl : undefined;
 
   const rows = [
@@ -153,6 +172,7 @@ function buildDataSources(inputs: DayInputs): DataSourceStatus[] {
     row('Lift operations', inputs.operations, opsSourceUrl),
     row('Ticket price', inputs.ticket),
     row('Alerts', inputs.alerts),
+    row('Parking', inputs.parking, parkingSourceUrl),
   ];
 
   // Roads only gets a row when there was a corridor to ask about at all —

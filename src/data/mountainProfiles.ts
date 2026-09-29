@@ -47,7 +47,18 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     officialWebsite: 'https://www.vail.com',
     snowReportUrl: 'https://www.vail.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
     webcamUrl: 'https://www.vail.com/the-mountain/mountain-conditions/mountain-cams.aspx',
-    trailMapUrl: 'https://www.vail.com/the-mountain/about-the-mountain/trail-map.aspx',
+    trailMap: {
+      officialUrl: 'https://www.vail.com/the-mountain/about-the-mountain/trail-map.aspx',
+      source: 'official',
+      // The only direct PDF search turned up (fy20/2019) is six seasons
+      // stale — too old to present as "the" trail map even with a caveat,
+      // so no imageUrl/pdfUrl/season here: honestly link to the official
+      // page, which the resort itself keeps current, rather than embed a
+      // years-old layout.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.vail.com/plan-your-trip/lift-tickets.aspx',
     passInfoUrl: 'https://www.epicpass.com',
     phone: '970-754-8245',
@@ -81,7 +92,14 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     officialWebsite: 'https://www.beavercreek.com',
     snowReportUrl: 'https://www.beavercreek.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     webcamUrl: null,
-    trailMapUrl: null,
+    trailMap: {
+      officialUrl: 'https://www.beavercreek.com/the-mountain/about-the-mountain/trail-map.aspx',
+      source: 'official',
+      // Only a 2022-23 PDF was confirmable (three seasons stale) — see vail's note above for the same reasoning.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.beavercreek.com/plan-your-trip/lift-tickets.aspx',
     passInfoUrl: 'https://www.epicpass.com',
     phone: '970-754-4636',
@@ -109,13 +127,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       ],
     },
     notes:
-      'Opening date per Vail Resorts’ 8/18/2026 press release. Webcam/trail-map URLs could not be confirmed from a distinct source and are left null rather than guessed from Vail’s page template. CORRECTED: the parking note previously implied the village garages (Ford Hall, Villa Montane) had a separate free-hours policy from Ford Hall/Villa Montane themselves — they are the same structures. Replaced with the resort\'s actual tiered rate policy. Not fetch-verified.',
+      'Opening date per Vail Resorts’ 8/18/2026 press release. Webcam URL could not be confirmed from a distinct source and is left null rather than guessed from Vail’s page template. Trail map links the official page only — the one direct PDF found is six seasons stale. CORRECTED: the parking note previously implied the village garages (Ford Hall, Villa Montane) had a separate free-hours policy from Ford Hall/Villa Montane themselves — they are the same structures. Replaced with the resort\'s actual tiered rate policy. Not fetch-verified.',
   },
   breckenridge: {
     officialWebsite: 'https://www.breckenridge.com',
     snowReportUrl: 'https://www.breckenridge.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
     webcamUrl: 'https://www.breckenridge.com/the-mountain/mountain-conditions/mountain-cams.aspx',
-    trailMapUrl: null,
+    trailMap: {
+      officialUrl: 'https://www.breckenridge.com/the-mountain/about-the-mountain/trail-map.aspx',
+      source: 'official',
+      // Newest confirmable PDF was 2023-24 (two seasons stale) — see vail's note above.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.breckenridge.com/plan-your-trip/lift-tickets.aspx',
     passInfoUrl: 'https://www.epicpass.com',
     phone: '970-453-5000',
@@ -144,13 +169,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       distilleries: [{ name: 'Breckenridge Distillery', note: 'Award-winning bourbon with a full tour and tasting program — reservations recommended.' }],
     },
     notes:
-      'Opening date per Vail Resorts’ 8/18/2026 press release. Trail-map URL could not be confirmed from a distinct source and is left null. Not fetch-verified.',
+      'Opening date per Vail Resorts’ 8/18/2026 press release. Not fetch-verified.',
   },
   keystone: {
     officialWebsite: 'https://www.keystoneresort.com',
     snowReportUrl: 'https://www.keystoneresort.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
     webcamUrl: 'https://www.keystoneresort.com/the-mountain/mountain-conditions/mountain-cams.aspx',
-    trailMapUrl: null,
+    trailMap: {
+      officialUrl: 'https://www.keystoneresort.com/the-mountain/about-the-mountain/trail-map.aspx',
+      source: 'official',
+      pdfUrl:
+        'https://www.keystoneresort.com/-/aemasset/sitecore/keystone/maps/winter-2025-2026/20251028_KY_winter-trail_map_001.pdf',
+      imageUrl: null,
+      season: '2025-26',
+    },
     ticketUrl: 'https://www.keystoneresort.com/plan-your-trip/lift-tickets.aspx',
     passInfoUrl: 'https://www.epicpass.com',
     phone: '855-603-0049',
@@ -178,13 +210,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       ],
     },
     notes:
-      'Vail Resorts’ 8/18/2026 release says Keystone is targeting "as soon as possible in October 2026" with no specific date, so no date is recorded despite the target being real. Trail-map URL not confirmed. Not fetch-verified.',
+      'Vail Resorts’ 8/18/2026 release says Keystone is targeting "as soon as possible in October 2026" with no specific date, so no date is recorded despite the target being real. Not fetch-verified.',
   },
   'crested-butte': {
     officialWebsite: 'https://www.skicb.com',
     snowReportUrl: 'https://www.skicb.com/the-mountain/mountain-conditions/lift-and-terrain-status.aspx',
     webcamUrl: 'https://www.skicb.com/the-mountain/mountain-conditions/mountain-cams.aspx',
-    trailMapUrl: 'https://www.skicb.com/the-mountain/about-the-mountain/trail-maps.aspx',
+    trailMap: {
+      officialUrl: 'https://www.skicb.com/the-mountain/about-the-mountain/trail-maps.aspx',
+      source: 'official',
+      pdfUrl:
+        'https://www.skicb.com/-/aemasset/sitecore/crested-butte/maps/winter-2025-2026/20251103_CB_winter-trail_map_001.pdf',
+      imageUrl: null,
+      season: '2025-26',
+    },
     ticketUrl: 'https://www.skicb.com/plan-your-trip/lift-tickets.aspx',
     passInfoUrl: 'https://www.epicpass.com',
     phone: '970-251-7022',
@@ -217,7 +256,13 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     officialWebsite: 'https://www.winterparkresort.com',
     snowReportUrl: 'https://www.winterparkresort.com/the-mountain/mountain-report',
     webcamUrl: 'https://www.winterparkresort.com/the-mountain/mountain-cams',
-    trailMapUrl: 'https://www.winterparkresort.com/the-mountain/mountain-information/maps',
+    trailMap: {
+      officialUrl: 'https://www.winterparkresort.com/the-mountain/mountain-information/maps',
+      source: 'official',
+      pdfUrl: 'https://www.winterparkresort.com/-/media/winter-park/winter-2526/maps/25-26_wp_winter-trail-map-web.pdf',
+      imageUrl: null,
+      season: '2025-26',
+    },
     ticketUrl: 'https://www.winterparkresort.com/tickets-and-passes',
     passInfoUrl: 'https://www.ikonpass.com',
     phone: '970-726-5514',
@@ -249,10 +294,24 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       'Resort’s own materials describe 2026-27 opening as "as soon as possible" with no fixed date — recorded as TBD rather than turning that into an invented date. CORRECTED: Crooked Creek Saloon in Fraser changed hands and was rebranded to Fisher\'s Bar (same address/phone, new owners) — updated to the current name. Not fetch-verified.',
   },
   purgatory: {
+    // CORRECTED: the official Purgatory Ski Resort (Durango, CO) source is
+    // purgatory.ski — confirmed by the site owner. A prior session had kept
+    // purgatoryresort.com as an unconfirmed placeholder; that domain is not
+    // this resort's current site and has been replaced everywhere.
     officialWebsite: 'https://www.purgatory.ski',
     snowReportUrl: 'https://www.purgatory.ski/mountain/weather-conditions-webcams/snow-weather/',
     webcamUrl: 'https://www.purgatory.ski/mountain/mountain-webcams/',
-    trailMapUrl: null,
+    trailMap: {
+      // No dedicated "trail map" landing page was confirmed distinct from
+      // this — the PDF itself was found directly, so the mountain's general
+      // conditions page is the closest real "official source" page to send
+      // a human to alongside the direct PDF.
+      officialUrl: 'https://www.purgatory.ski/mountain/weather-conditions-webcams/',
+      source: 'official',
+      pdfUrl: 'https://www.purgatory.ski/wp-content/uploads/sites/2/2025/12/Purgatory_Winter25-26_TrailMap_Website.pdf',
+      imageUrl: null,
+      season: '2025-26',
+    },
     ticketUrl: 'https://www.purgatory.ski/mountain/lift-tickets/',
     passInfoUrl: 'https://www.thepowerpass.ski/purgatory-passes',
     phone: '970-247-9000',
@@ -284,13 +343,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       distilleries: [{ name: 'Durango Craft Spirits', note: "Durango's first grain-to-glass distillery since Prohibition — vodka, moonshine, bourbon." }],
     },
     notes:
-      "CONFIRMED (human, previously flagged for review here): purgatory.ski is the resort's real, current domain — not a guess, verified by the site owner. officialWebsite, snowReportUrl, webcamUrl, ticketUrl, passInfoUrl (Power Pass, the resort's own program — thepowerpass.ski), phone, and the parking infoUrl are all updated to it, each landing on a real page confirmed via search. Address corrected to drop a stray '#' (matches the resort's own listing: '1 Skier Place'). Trail-map URL still left null — only a prior-season (2024-25) PDF could be found, matching this file's policy of not linking an out-of-date map. No 2026-27 opening date recorded — a Nov 27, 2026 figure appears on ski-news aggregators but reads like the same kind of algorithmic season-over-season projection flagged elsewhere in this file, not a resort announcement. Parking note updated: the Main Village Lot is now carpool-only (4+) during peak operations per the resort's own transportation page — a real, current policy detail this entry was missing. CORRECTED (firsthand report, cross-checked against Durango Herald/The Journal): removed Ore House (caught fire and has been closed for an extended rebuild since) and Switchback (permanently closed March 2026, replaced on-site by The Wilds Tavern under the same owners). Added the on-mountain/village options that were missing entirely — The Powderhouse (Lift 1/2), Dante's (Lift 8, or the Lift 5 midway unload), Paradise Pizza and Village Market & Deli (both Village Center) — so the mountain itself isn't made to look like it only has Purgy's.",
+      "CONFIRMED (human, previously flagged for review here): purgatory.ski is the resort's real, current domain — not a guess, verified by the site owner. officialWebsite, snowReportUrl, webcamUrl, ticketUrl, passInfoUrl (Power Pass, the resort's own program — thepowerpass.ski), phone, and the parking infoUrl are all updated to it, each landing on a real page confirmed via search. Address corrected to drop a stray '#' (matches the resort's own listing: '1 Skier Place'). Trail map: a 2025-26 season PDF (dated December 2025 on purgatory.ski) is linked directly; check for the current season’s map once posted. No 2026-27 opening date recorded — a Nov 27, 2026 figure appears on ski-news aggregators but reads like the same kind of algorithmic season-over-season projection flagged elsewhere in this file, not a resort announcement. Parking note updated: the Main Village Lot is now carpool-only (4+) during peak operations per the resort's own transportation page — a real, current policy detail this entry was missing. CORRECTED (firsthand report, cross-checked against Durango Herald/The Journal): removed Ore House (caught fire and has been closed for an extended rebuild since) and Switchback (permanently closed March 2026, replaced on-site by The Wilds Tavern under the same owners). Added the on-mountain/village options that were missing entirely — The Powderhouse (Lift 1/2), Dante's (Lift 8, or the Lift 5 midway unload), Paradise Pizza and Village Market & Deli (both Village Center) — so the mountain itself isn't made to look like it only has Purgy's.",
   },
   copper: {
     officialWebsite: 'https://www.coppercolorado.com',
     snowReportUrl: 'https://www.coppercolorado.com/the-mountain/conditions-weather/snow-report/',
     webcamUrl: 'https://www.coppercolorado.com/the-mountain/webcams/',
-    trailMapUrl: 'https://www.coppercolorado.com/the-mountain/trail-area-maps/winter-trail-map/',
+    trailMap: {
+      officialUrl: 'https://www.coppercolorado.com/the-mountain/trail-area-maps/winter-trail-map/',
+      source: 'official',
+      // The page itself was confirmed; no directly-linkable current-season image/PDF asset was.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.coppercolorado.com/lift-tickets/',
     passInfoUrl: 'https://www.coppercolorado.com/tickets-passes/season-passes/ikon-pass/',
     phone: '866-841-2481',
@@ -325,7 +391,14 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     officialWebsite: 'https://wolfcreekski.com',
     snowReportUrl: 'https://wolfcreekski.com/mountain-report/',
     webcamUrl: 'https://wolfcreekski.com/webcams/',
-    trailMapUrl: null,
+    trailMap: {
+      officialUrl: 'https://wolfcreekski.com/area-maps/',
+      source: 'official',
+      // Only a 2016-vintage hi-res PDF was confirmable — too old to present as current.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://wolfcreekski.com/lift-tickets/',
     passInfoUrl: null,
     phone: '970-264-5639',
@@ -352,13 +425,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       distilleries: [{ name: 'Woodshed Distilling', note: 'Small-batch spirits, right in Pagosa Springs.' }],
     },
     notes:
-      'Independent and famously snow-dependent — some seasons open in October on natural snowfall alone, but nothing published for 2026-27 yet. Address is the mailing address; the ski area itself has no separate street address. No confirmed trail-map URL or pass-program URL (own independent pass, same page as tickets). Not fetch-verified.',
+      'Independent and famously snow-dependent — some seasons open in October on natural snowfall alone, but nothing published for 2026-27 yet. Address is the mailing address; the ski area itself has no separate street address. No confirmed pass-program URL (own independent pass, same page as tickets). Not fetch-verified.',
   },
   'arapahoe-basin': {
     officialWebsite: 'https://www.arapahoebasin.com',
     snowReportUrl: 'https://www.arapahoebasin.com/mountain/conditions-and-weather/',
     webcamUrl: 'https://www.arapahoebasin.com/mountain-cams/',
-    trailMapUrl: null,
+    trailMap: {
+      officialUrl: 'https://www.arapahoebasin.com/trail-maps/',
+      source: 'official',
+      // Page confirmed (covers Frontside + The Beavers); no directly-linkable current-season asset confirmed.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.arapahoebasin.com/tickets/',
     passInfoUrl: 'https://www.ikonpass.com/en/destinations/arapahoe-basin',
     phone: '888-272-7246',
@@ -386,13 +466,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       distilleries: [{ name: 'Pullman Distillery', note: 'Frisco Main Street, housed in a restored 1800s railcar, about 20 minutes away.' }],
     },
     notes:
-      'A-Basin’s own materials describe 2026-27 opening as explicitly TBD, pending sufficient snow. No confirmed trail-map URL. UPDATED: parking reservation window shifted to Jan 2–May 2, 2027 (was Jan 17–May 3) — A-Basin adjusted its reservation program for the season that also brought unlimited access to the full Ikon Pass; also clarified the Admin Lot\'s $40 fee applies every day, not just weekend reservation days. Sunshine Café corrected to Silverthorne (every current listing places it there, not Dillon). Not fetch-verified.',
+      'A-Basin’s own materials describe 2026-27 opening as explicitly TBD, pending sufficient snow. Trail map links the official page only. UPDATED: parking reservation window shifted to Jan 2–May 2, 2027 (was Jan 17–May 3) — A-Basin adjusted its reservation program for the season that also brought unlimited access to the full Ikon Pass; also clarified the Admin Lot\'s $40 fee applies every day, not just weekend reservation days. Sunshine Café corrected to Silverthorne (every current listing places it there, not Dillon). Not fetch-verified.',
   },
   loveland: {
     officialWebsite: 'https://www.skiloveland.com',
     snowReportUrl: 'https://www.skiloveland.com/conditions/',
     webcamUrl: 'https://skiloveland.com/webcams/',
-    trailMapUrl: null,
+    trailMap: {
+      officialUrl: 'https://skiloveland.com/plan-your-trip/trail-maps/',
+      source: 'official',
+      // Only a long-standing (2015-dated) PDF was confirmable — too old to present as current.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.skiloveland.com/lift-tickets/',
     passInfoUrl: 'https://skiloveland.com/season-passes/',
     phone: '800-736-3754',
@@ -420,13 +507,20 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       ],
     },
     notes:
-      'Resort materials describe targeting "mid-October to early November 2026" with snowmaking starting late September — vague, so recorded as TBD rather than an invented specific date. Independent (Powder Alliance reciprocity, not Epic/Ikon). No confirmed trail-map URL. Not fetch-verified.',
+      'Resort materials describe targeting "mid-October to early November 2026" with snowmaking starting late September — vague, so recorded as TBD rather than an invented specific date. Independent (Powder Alliance reciprocity, not Epic/Ikon). Not fetch-verified.',
   },
   eldora: {
     officialWebsite: 'https://www.eldora.com',
     snowReportUrl: 'https://www.eldora.com/the-mountain/mountain-report/',
     webcamUrl: 'https://www.eldora.com/the-mountain/webcams/',
-    trailMapUrl: 'https://www.eldora.com/the-mountain/maps/alpine-trail-map/',
+    trailMap: {
+      officialUrl: 'https://www.eldora.com/the-mountain/maps/alpine-trail-map/',
+      source: 'official',
+      // Page confirmed; no directly-linkable current-season image/PDF asset confirmed.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.eldora.com/tickets-passes/lift-tickets/',
     passInfoUrl: 'https://www.eldora.com/ikon-pass/',
     phone: '303-440-8700',
@@ -458,7 +552,14 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     officialWebsite: 'https://www.steamboat.com',
     snowReportUrl: 'https://www.steamboat.com/the-mountain/mountain-report',
     webcamUrl: 'https://www.steamboat.com/the-mountain/live-cams',
-    trailMapUrl: 'https://www.steamboat.com/the-mountain/trail-map',
+    trailMap: {
+      officialUrl: 'https://www.steamboat.com/the-mountain/trail-map',
+      source: 'official',
+      // Page confirmed (includes an interactive grooming/trail map); no directly-linkable static current-season asset confirmed.
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://www.steamboat.com/lift-tickets',
     passInfoUrl: 'https://www.steamboat.com/plan-your-trip/lift-tickets-ski-pass/ikon-pass',
     phone: '800-922-2722',
@@ -487,7 +588,15 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     officialWebsite: 'https://skimonarch.com',
     snowReportUrl: 'https://skimonarch.com/conditions/',
     webcamUrl: 'https://skimonarch.com/conditions/cams/',
-    trailMapUrl: null,
+    trailMap: {
+      // Only a stale, year-stamped 2021-22 PDF was found — the official site is
+      // linked rather than an out-of-date map presented as current.
+      officialUrl: 'https://skimonarch.com',
+      source: 'official',
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://skimonarch.com/tickets/',
     passInfoUrl: 'https://skimonarch.com/season-passes/',
     phone: '719-530-5000',
@@ -514,13 +623,21 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       distilleries: [{ name: "Wood's High Mountain Distillery", note: 'Downtown Salida — handcrafted spirits from local ingredients since 2012.' }],
     },
     notes:
-      'A figure of Dec 4, 2026 for 2026-27 opening appears only on third-party aggregators (in the same "projected openings" style flagged elsewhere in this file as unreliable), not a Monarch press release or its own site, so recorded as TBD rather than repeated as if confirmed. The only trail-map URL found is a stale, year-stamped 2021-22 PDF — left null rather than linking an out-of-date map. Independent — not on Epic or Ikon — but Monarch passholders get reciprocal days at Powder Alliance-style partner resorts (skimonarch.com/season-pass-partner-resorts-26-27/), so "no major pass affiliation" would undersell it. UPDATED: removed Quincys Steak & Spirits (its Salida location is closed, per current listings; other Quincy\'s locations elsewhere are unrelated and still open). The Hunger Trailer corrected from Maysville to Poncha Springs, where it actually operates (now under "The Hunger Trailer at Poncha Lodge"), still on Hwy 50 en route to the mountain. Grub is down to 2 picks after that removal — genuinely fewer for now rather than padding with an unverified name; Salida likely has more worth adding on a future pass. Added a real webcam URL (skimonarch.com/conditions/cams/, listed under the resort\'s own Conditions section) — found via search indexing rather than a direct render, since skimonarch.com blocks this environment\'s fetch tool, so still worth a quick manual click-through to confirm. Not fetch-verified.',
+      'A figure of Dec 4, 2026 for 2026-27 opening appears only on third-party aggregators (in the same "projected openings" style flagged elsewhere in this file as unreliable), not a Monarch press release or its own site, so recorded as TBD rather than repeated as if confirmed. The only trail-map URL found is a stale, year-stamped 2021-22 PDF — the trail map links the official site rather than an out-of-date map. Independent — not on Epic or Ikon — but Monarch passholders get reciprocal days at Powder Alliance-style partner resorts (skimonarch.com/season-pass-partner-resorts-26-27/), so "no major pass affiliation" would undersell it. UPDATED: removed Quincys Steak & Spirits (its Salida location is closed, per current listings; other Quincy\'s locations elsewhere are unrelated and still open). The Hunger Trailer corrected from Maysville to Poncha Springs, where it actually operates (now under "The Hunger Trailer at Poncha Lodge"), still on Hwy 50 en route to the mountain. Grub is down to 2 picks after that removal — genuinely fewer for now rather than padding with an unverified name; Salida likely has more worth adding on a future pass. Added a real webcam URL (skimonarch.com/conditions/cams/, listed under the resort\'s own Conditions section) — found via search indexing rather than a direct render, since skimonarch.com blocks this environment\'s fetch tool, so still worth a quick manual click-through to confirm. Not fetch-verified.',
   },
   telluride: {
     officialWebsite: 'https://tellurideskiresort.com',
     snowReportUrl: 'https://tellurideskiresort.com/snow-report-scrape/',
     webcamUrl: 'https://tellurideskiresort.com/webcams/',
-    trailMapUrl: null,
+    trailMap: {
+      // Only a prior-season (2024-25) PDF could be confirmed — the official
+      // site is linked rather than an out-of-date map presented as current.
+      officialUrl: 'https://tellurideskiresort.com',
+      source: 'official',
+      imageUrl: null,
+      pdfUrl: null,
+      season: null,
+    },
     ticketUrl: 'https://shop.tellurideskiresort.com/s/passes-and-tickets/winter-lift-tickets/',
     passInfoUrl: 'https://www.epicpass.com',
     phone: '970-728-6900',
@@ -548,7 +665,7 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       ],
     },
     notes:
-      'CORRECTED: this entry previously said Telluride "joined the Epic Pass for 2026-27" — that was wrong. Telluride and Vail Resorts jointly announced Telluride joining Epic Pass on Jan 29, 2018, effective the 2018-19 season (the same year it left Mountain Collective), with the partnership extended via a separate press release in Oct 2022. The Epic Pass affiliation itself is still correct today, just not a 2026-27 change — there was no evidence for that date, it was a fabricated detail that slipped into an earlier pass. Opening (Nov 26, 2026) and closing (Apr 4, 2027) dates can now be sourced directly to Telluride Ski & Golf\'s own FAQ page ("Telluride\'s targeted opening day is November 26, 2026... with a closing day of April 4, 2027"), not just secondary ski-trade coverage — still explicitly "targeted" by the resort itself, so "projected" status stays accurate. Trail-map URL: only a prior-season (2024-25) PDF could be confirmed, so left null rather than link an out-of-date map. Removed Cosmopolitan (Hotel Columbia) from Grub — it closed after 29 years around April 2025, and Hotel Columbia itself is closed for renovation until late 2027, so there\'s no restaurant there to list for this season. Smugglers Brewery and Pub renamed to its current name, Smuggler Union Restaurant & Brewery (same address, same on-site brewery). Not fetch-verified — see module note.',
+      'CORRECTED: this entry previously said Telluride "joined the Epic Pass for 2026-27" — that was wrong. Telluride and Vail Resorts jointly announced Telluride joining Epic Pass on Jan 29, 2018, effective the 2018-19 season (the same year it left Mountain Collective), with the partnership extended via a separate press release in Oct 2022. The Epic Pass affiliation itself is still correct today, just not a 2026-27 change — there was no evidence for that date, it was a fabricated detail that slipped into an earlier pass. Opening (Nov 26, 2026) and closing (Apr 4, 2027) dates can now be sourced directly to Telluride Ski & Golf\'s own FAQ page ("Telluride\'s targeted opening day is November 26, 2026... with a closing day of April 4, 2027"), not just secondary ski-trade coverage — still explicitly "targeted" by the resort itself, so "projected" status stays accurate. Trail map: only a prior-season (2024-25) PDF could be confirmed, so it links the official site rather than an out-of-date map. Removed Cosmopolitan (Hotel Columbia) from Grub — it closed after 29 years around April 2025, and Hotel Columbia itself is closed for renovation until late 2027, so there\'s no restaurant there to list for this season. Smugglers Brewery and Pub renamed to its current name, Smuggler Union Restaurant & Brewery (same address, same on-site brewery). Not fetch-verified — see module note.',
   },
 };
 

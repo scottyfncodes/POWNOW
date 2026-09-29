@@ -4,6 +4,7 @@ import { makeContext } from '@/engine/inputs';
 import {
   DemoAlertsProvider,
   DemoMountainProvider,
+  DemoParkingProvider,
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
@@ -29,6 +30,7 @@ import { createProviderRegistry } from './index';
 const DEMO_CLASSES = [
   DemoAlertsProvider,
   DemoMountainProvider,
+  DemoParkingProvider,
   DemoPlacesProvider,
   DemoPricingProvider,
   DemoRoadConditionProvider,
@@ -46,6 +48,7 @@ function expectNoDemoInstances(registry: ReturnType<typeof createLiveRegistry>) 
     registry.places,
     registry.alerts,
     registry.roads,
+    registry.parking,
     registry.snowpack,
   ];
   for (const provider of slots) {
@@ -115,6 +118,29 @@ describe('createLiveRegistry — every slot, every configuration', () => {
     const registry = createLiveRegistry();
     const result = await registry.mountain.getCrowdForecast(testMountain(), makeContext('2026-01-17', '2026-01-17', at(5)));
     expect(result.status).toBe('unavailable');
+  });
+
+  it('parking never claims a live occupancy status — it is always honestly unknown', async () => {
+    const registry = createLiveRegistry();
+    const result = await registry.parking.getParkingInfo(testMountain(), makeContext('2026-01-17', '2026-01-17', at(5)));
+    // The test mountain has no researched parking entry, so this is the
+    // honest "we don't know this one" path, not a guessed status.
+    expect(result.status).toBe('unavailable');
+  });
+
+  it('a researched mountain gets real published parking rules, never a fabricated occupancy status', async () => {
+    const registry = createLiveRegistry();
+    const result = await registry.parking.getParkingInfo(
+      { ...testMountain(), id: 'purgatory' },
+      makeContext('2026-01-17', '2026-01-17', at(5)),
+    );
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      expect(result.data.status).toBe('unknown');
+      expect(result.data.occupied).toBeNull();
+      expect(result.data.notes.length).toBeGreaterThan(0);
+      expect(result.data.infoUrl).toContain('purgatory.ski');
+    }
   });
 });
 

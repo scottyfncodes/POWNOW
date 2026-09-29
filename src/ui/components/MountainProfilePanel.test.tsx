@@ -9,7 +9,7 @@ const baseProfile: MountainProfile = {
   officialWebsite: 'https://example.test',
   snowReportUrl: null,
   webcamUrl: null,
-  trailMapUrl: null,
+  trailMap: { officialUrl: 'https://example.test/trail-map', source: 'official' },
   ticketUrl: null,
   passInfoUrl: null,
   phone: null,

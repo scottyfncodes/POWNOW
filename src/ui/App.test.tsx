@@ -21,12 +21,13 @@ async function tapNow() {
   });
 }
 
-describe('the homepage', () => {
-  it('offers exactly two choices and no dashboard', () => {
+describe('the map-first landing', () => {
+  it('opens on the interactive map, with every mountain selectable, and NOW/LATER one tap away', () => {
     render(<App />);
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
+    expect(screen.getByText('Where should I ski today?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^NOW/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^LATER/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Vail\. Tap to view/i })).toBeInTheDocument();
     expect(screen.queryByText(/Snow Clock/i)).not.toBeInTheDocument();
   });
 
@@ -43,16 +44,15 @@ describe('the homepage', () => {
     expect((select as HTMLSelectElement).value).toBe('boulder');
   });
 
-  it('offers a third path to the map, without it crowding the two main choices', async () => {
+  it('opens a mountain profile below the map when a marker is selected, map still visible', async () => {
     render(<App />);
-    const mapLink = screen.getByRole('button', { name: /explore the map/i });
-    expect(mapLink).toBeInTheDocument();
-    await user().click(mapLink);
-    expect(screen.getByText('MAP')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Vail\. Tap to view/i })).toBeInTheDocument();
-    await user().click(screen.getByRole('button', { name: /back to start/i }));
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
-  });
+    await user().click(screen.getByRole('button', { name: /^Vail\. Tap to view/i }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Vail' })).toBeInTheDocument(), {
+      timeout: 12_000,
+    });
+    // The map itself is still on screen — selecting a mountain never navigates away from it.
+    expect(screen.getByRole('button', { name: /^Breckenridge\. Tap to view/i })).toBeInTheDocument();
+  }, 15_000);
 });
 
 describe('GPS location flow', () => {
@@ -374,35 +374,39 @@ describe('honest empty states', () => {
 });
 
 describe('navigation history', () => {
-  it('puts each screen in the URL, so the phone Back gesture returns home instead of leaving', async () => {
+  it('puts each screen in the URL, so the phone Back gesture returns to the map instead of leaving', async () => {
     render(<App />);
-    await user().click(screen.getByRole('button', { name: /explore the map/i }));
-    expect(window.location.hash).toBe('#/map');
+    await user().click(screen.getByRole('button', { name: /^LATER/ }));
+    expect(window.location.hash).toBe('#/later');
 
     act(() => {
       window.history.back();
     });
-    await waitFor(() => expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Where should I ski today?')).toBeInTheDocument());
     expect(window.location.hash).toBe('');
   });
 
   it('opens straight onto a screen from a shared or bookmarked link', () => {
-    window.history.replaceState(null, '', '/#/map');
+    window.history.replaceState(null, '', '/#/later');
     render(<App />);
-    expect(screen.getByText('MAP')).toBeInTheDocument();
+    expect(screen.getByText('LATER')).toBeInTheDocument();
   });
 
-  it('treats an unknown hash as the homepage', () => {
+  it('treats an unknown hash, and the old #/map link, as the map landing', () => {
     window.history.replaceState(null, '', '/#/nonsense');
+    const first = render(<App />);
+    expect(screen.getByText('Where should I ski today?')).toBeInTheDocument();
+    first.unmount();
+    window.history.replaceState(null, '', '/#/map');
     render(<App />);
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
+    expect(screen.getByText('Where should I ski today?')).toBeInTheDocument();
   });
 
-  it('goes home from a deep link without leaving the app', async () => {
-    window.history.replaceState(null, '', '/#/map');
+  it('returns to the map from a deep link without leaving the app', async () => {
+    window.history.replaceState(null, '', '/#/later');
     render(<App />);
     await user().click(screen.getByRole('button', { name: /back to start/i }));
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
+    expect(screen.getByText('Where should I ski today?')).toBeInTheDocument();
     expect(window.location.hash).toBe('');
   });
 });
@@ -448,7 +452,7 @@ describe('remembering where you start from', () => {
 });
 
 describe('your ride — the rider settings', () => {
-  it('is collapsed on the homepage with a one-line summary of what the engine believes about you', () => {
+  it('is collapsed on the map landing with a one-line summary of what the engine believes about you', () => {
     render(<App />);
     const toggle = screen.getByRole('button', { name: /your ride/i });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');

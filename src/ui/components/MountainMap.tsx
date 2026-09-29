@@ -20,6 +20,15 @@ export interface MapRoutePreview {
   routePoints: GeoPoint[] | null;
 }
 
+/** What a pin can show at a glance, once the background ranking has resolved. Never shown until real. */
+export interface MountainMarkerInfo {
+  score: number | null;
+  /** Coarse verdict tier, driving pin colour — never a second scoring system, just a bucket of the real score. */
+  tier: 'go' | 'mixed' | 'skip' | null;
+  freshSnowIn: number | null;
+  driveMinutes: number | null;
+}
+
 export interface MountainMapProps {
   mountains: Mountain[];
   origin: Origin;
@@ -34,6 +43,10 @@ export interface MountainMapProps {
    * not competing with the profile content below it for the screen.
    */
   variant?: 'home' | 'compact';
+  /** Per-mountain ranking info, keyed by mountain id. Absent/`undefined` entries render as plain, unranked pins — not zero, not "skip". */
+  markerInfo?: Record<string, MountainMarkerInfo | undefined>;
+  /** The mountain the ranking engine currently favours most, if the ranking has resolved at all. */
+  bestMountainId?: string | null;
 }
 
 const toLatLng = (point: GeoPoint): L.LatLngTuple => [point.lat, point.lon];
@@ -66,9 +79,9 @@ const APPROXIMATE_ROUTE_STYLE: L.PathOptions = {
  * color. Plain SVG shapes rather than an emoji glyph: an emoji's colors are
  * fixed by the font and can't be recolored for the selected state.
  */
-function mountainDivIcon(selected: boolean): L.DivIcon {
+function mountainDivIcon(selected: boolean, best: boolean, tier: MountainMarkerInfo['tier'] | undefined): L.DivIcon {
   return L.divIcon({
-    className: `mm-pin${selected ? ' is-selected' : ''}`,
+    className: `mm-pin${selected ? ' is-selected' : ''}${best ? ' is-best' : ''}${tier ? ` is-tier-${tier}` : ''}`,
     html: `
       <svg class="mm-pin-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path class="mm-pin-back" d="M7 7 L16 20 H0.5 Z" />
@@ -117,10 +130,14 @@ function MountainClusterLayer({
   mountains,
   selectedMountainId,
   onSelectMountain,
+  markerInfo,
+  bestMountainId,
 }: {
   mountains: Mountain[];
   selectedMountainId: string | null;
   onSelectMountain: (mountainId: string) => void;
+  markerInfo?: Record<string, MountainMarkerInfo | undefined>;
+  bestMountainId?: string | null;
 }) {
   const map = useMap();
   const groupRef = useRef<L.MarkerClusterGroup | null>(null);
@@ -146,16 +163,19 @@ function MountainClusterLayer({
     group.clearLayers();
     for (const mountain of mountains) {
       const isSelected = mountain.id === selectedMountainId;
+      const isBest = bestMountainId != null && mountain.id === bestMountainId;
       const marker = L.marker(toLatLng(mountain.coordinates), {
-        icon: mountainDivIcon(isSelected),
+        icon: mountainDivIcon(isSelected, isBest, markerInfo?.[mountain.id]?.tier),
         keyboard: false,
       });
       marker.on('click', () => onSelectMountain(mountain.id));
-      marker.bindTooltip(mountain.shortName, {
-        permanent: isSelected,
+      // The engine's favourite keeps a permanent "BEST NOW" tooltip so it
+      // reads at a glance from the whole-state view, before any tap.
+      marker.bindTooltip(isBest ? `${mountain.shortName} · BEST NOW` : mountain.shortName, {
+        permanent: isSelected || isBest,
         direction: 'top',
         offset: [0, -16],
-        className: 'mm-tooltip',
+        className: `mm-tooltip${isBest ? ' is-best' : ''}`,
       });
       // The real accessible/keyboard control for this mountain is the button
       // below the map (see the visually-hidden mountain list) — marking the
@@ -165,7 +185,7 @@ function MountainClusterLayer({
       marker.on('add', () => marker.getElement()?.setAttribute('aria-hidden', 'true'));
       group.addLayer(marker);
     }
-  }, [mountains, selectedMountainId, onSelectMountain]);
+  }, [mountains, selectedMountainId, onSelectMountain, markerInfo, bestMountainId]);
 
   return null;
 }
@@ -273,6 +293,8 @@ export function MountainMap({
   onSelectMountain,
   route,
   variant = 'home',
+  markerInfo,
+  bestMountainId,
 }: MountainMapProps) {
   const selected = mountains.find((m) => m.id === selectedMountainId) ?? null;
   const isGps = origin.id === 'gps';
@@ -326,6 +348,8 @@ export function MountainMap({
           mountains={mountains}
           selectedMountainId={selectedMountainId}
           onSelectMountain={onSelectMountain}
+          markerInfo={markerInfo}
+          bestMountainId={bestMountainId}
         />
 
         <Marker
@@ -354,6 +378,7 @@ export function MountainMap({
       <div className="visually-hidden" role="group" aria-label="Mountains">
         {mountains.map((mountain) => {
           const isSelected = mountain.id === selectedMountainId;
+          const isBest = bestMountainId != null && mountain.id === bestMountainId;
           return (
             <button
               key={mountain.id}
@@ -363,16 +388,24 @@ export function MountainMap({
             >
               {mountain.name}
               {isSelected ? ' (selected)' : ''}. Tap to view mountain conditions and route.
+              {isBest ? ' Best mountain right now.' : ''}
             </button>
           );
         })}
       </div>
 
-      {showApproximateLine && (
+      {(showApproximateLine || bestMountainId) && (
         <figcaption className="mountainmap-legend">
-          <span className="mountainmap-legend-item mountainmap-legend-note">
-            Dashed line is approximate direction, not the actual road
-          </span>
+          {bestMountainId && (
+            <span className="mountainmap-legend-item">
+              <span className="mountainmap-swatch is-best" aria-hidden="true" /> BEST NOW — the engine's current pick
+            </span>
+          )}
+          {showApproximateLine && (
+            <span className="mountainmap-legend-item mountainmap-legend-note">
+              Dashed line is approximate direction, not the actual road
+            </span>
+          )}
         </figcaption>
       )}
     </figure>

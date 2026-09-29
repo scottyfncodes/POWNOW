@@ -36,13 +36,42 @@ describe('mountain profiles — data integrity', () => {
   });
 
   it('never fabricates a URL — every optional link is either a valid https URL or explicitly null', () => {
-    const optionalUrlFields = ['snowReportUrl', 'webcamUrl', 'trailMapUrl', 'ticketUrl', 'passInfoUrl'] as const;
+    const optionalUrlFields = ['snowReportUrl', 'webcamUrl', 'ticketUrl', 'passInfoUrl'] as const;
     for (const mountain of MOUNTAINS) {
       const profile = mountainProfileFor(mountain.id)!;
       for (const field of optionalUrlFields) {
         const value = profile[field];
         if (value === null) continue;
         expect(isValidHttpsUrl(value), `${mountain.id}.${field} = ${value}`).toBe(true);
+      }
+    }
+  });
+
+  it('gives every mountain a real, structured official trail map — an https officialUrl always, and, when set, a valid https image/pdf asset', () => {
+    for (const mountain of MOUNTAINS) {
+      const { trailMap } = mountainProfileFor(mountain.id)!;
+      expect(trailMap, `${mountain.id} trailMap`).toBeDefined();
+      expect(trailMap.source, `${mountain.id} trailMap.source`).toBe('official');
+      expect(isValidHttpsUrl(trailMap.officialUrl), `${mountain.id} trailMap.officialUrl`).toBe(true);
+      if (trailMap.imageUrl) expect(isValidHttpsUrl(trailMap.imageUrl), `${mountain.id} trailMap.imageUrl`).toBe(true);
+      if (trailMap.pdfUrl) expect(isValidHttpsUrl(trailMap.pdfUrl), `${mountain.id} trailMap.pdfUrl`).toBe(true);
+    }
+  });
+
+  it('never claims a season for a trail map asset it does not actually have, and never claims an asset with no season', () => {
+    // A season claim without a viewable asset would misleadingly imply
+    // there's something current to look at; an asset with no season claim
+    // is fine (a page URL doesn't need one) — but never the reverse:
+    // an asset presented as embeddable *without* saying which season it's
+    // from would be exactly the "is this even current" ambiguity this
+    // field exists to avoid.
+    for (const mountain of MOUNTAINS) {
+      const { trailMap } = mountainProfileFor(mountain.id)!;
+      const hasAsset = Boolean(trailMap.imageUrl || trailMap.pdfUrl);
+      if (hasAsset) {
+        expect(trailMap.season, `${mountain.id} trailMap.season for a claimed asset`).toBeTruthy();
+      } else {
+        expect(trailMap.season ?? null, `${mountain.id} trailMap.season without an asset`).toBeNull();
       }
     }
   });
@@ -61,6 +90,19 @@ describe('mountain profiles — data integrity', () => {
         }
       }
     }
+  });
+
+  it('uses the official Purgatory Ski Resort domain (purgatory.ski), never a look-alike or unrelated resort', () => {
+    const profile = mountainProfileFor('purgatory')!;
+    expect(profile.officialWebsite).toBe('https://www.purgatory.ski');
+    for (const url of [profile.snowReportUrl, profile.webcamUrl, profile.ticketUrl]) {
+      if (url) expect(new URL(url).hostname).toMatch(/(^|\.)purgatory\.ski$/);
+    }
+    // Purgatory's pass is the Power Pass, the resort's own multi-mountain
+    // program on its own domain — confirmed by the site owner, not a look-alike.
+    expect(new URL(profile.passInfoUrl!).hostname).toMatch(/(^|\.)(purgatory|thepowerpass)\.ski$/);
+    expect(new URL(profile.trailMap.officialUrl).hostname).toMatch(/(^|\.)purgatory\.ski$/);
+    if (profile.trailMap.pdfUrl) expect(new URL(profile.trailMap.pdfUrl).hostname).toMatch(/(^|\.)purgatory\.ski$/);
   });
 
   it('never claims a confirmed opening/closing date this early in the 2026-27 season research pass', () => {

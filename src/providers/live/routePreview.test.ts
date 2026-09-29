@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearProviderCaches } from '@/providers/live/fetchCache';
 import { ProviderTimeoutError } from '@/lib/http';
 import { describeRoutePreviewFailure, fetchRoutePreview } from './routePreview';
 
@@ -6,6 +7,7 @@ const origin = { lat: 39.7392, lon: -104.9903 };
 const destination = { lat: 39.6403, lon: -106.3742 };
 
 afterEach(() => {
+  clearProviderCaches();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
