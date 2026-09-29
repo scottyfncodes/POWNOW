@@ -27,7 +27,7 @@ describe('the map-first landing', () => {
     expect(screen.getByText('Where should I ski today?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^NOW/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^LATER/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /select vail/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Vail\. Tap to view/i })).toBeInTheDocument();
     expect(screen.queryByText(/Snow Clock/i)).not.toBeInTheDocument();
   });
 
@@ -46,12 +46,12 @@ describe('the map-first landing', () => {
 
   it('opens a mountain profile below the map when a marker is selected, map still visible', async () => {
     render(<App />);
-    await user().click(screen.getByRole('button', { name: /select vail/i }));
+    await user().click(screen.getByRole('button', { name: /^Vail\. Tap to view/i }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Vail' })).toBeInTheDocument(), {
       timeout: 12_000,
     });
     // The map itself is still on screen — selecting a mountain never navigates away from it.
-    expect(screen.getByRole('button', { name: /select breckenridge/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Breckenridge\. Tap to view/i })).toBeInTheDocument();
   }, 15_000);
 });
 

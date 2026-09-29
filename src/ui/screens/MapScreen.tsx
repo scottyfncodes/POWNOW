@@ -16,6 +16,7 @@ import type { ClockState } from '@/ui/hooks/useClock';
 import { useAsync } from '@/ui/hooks/useRecommendation';
 import { MountainMap, type MapRoutePreview, type MountainMarkerInfo } from '@/ui/components/MountainMap';
 import { MountainProfile } from '@/ui/components/MountainProfile';
+import { NavigateLinks } from '@/ui/components/NavigateLinks';
 import { OriginPicker } from '@/ui/components/OriginPicker';
 import { RiderSettingsPanel } from '@/ui/components/RiderSettings';
 import { Snowfall } from '@/ui/components/Snowfall';
@@ -113,13 +114,19 @@ export function MapScreen({
     return info;
   }, [plans]);
 
-  // Only used as a degrade path — see the module docblock — for a mountain
-  // the shared recommendation hasn't covered (still loading, or the whole
-  // call failed). Never re-fetched once `selectedPlan` above is available.
+  // The single-call route preview serves two purposes. In demo mode it is
+  // purely a degrade path — see the module docblock — for a mountain the
+  // shared recommendation hasn't covered (still loading, or the whole call
+  // failed), and is never fetched once `selectedPlan` above is available. In
+  // live mode it also runs for a selected mountain because it is the only
+  // source of the real driven road geometry the map draws: a `SkiDayPlan`
+  // carries drive minutes, not a polyline. One cheap, proxy-cached call per
+  // selection, not per marker.
   const useLivePreview = !registry.usingDemoData && environment.proxyConfigured;
   // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
   const remoteProxy = environment.proxyConfigured && apiBaseUrl !== '';
-  const needsFallback = selectedMountain !== null && !selectedPlan && recState.status !== 'loading';
+  const needsFallback =
+    selectedMountain !== null && (useLivePreview || (!selectedPlan && recState.status !== 'loading'));
 
   const fallbackRouteState = useAsync(
     async (): Promise<RouteResult | null> => {
@@ -134,7 +141,12 @@ export function MapScreen({
           const preview = await fetchRoutePreview(route.originPoint, route.destinationPoint, apiBaseUrl);
           return {
             kind: 'ok',
-            preview: { durationMinutes: preview.durationMinutes, distanceMiles: preview.distanceMiles, trafficAware: true },
+            preview: {
+              durationMinutes: preview.durationMinutes,
+              distanceMiles: preview.distanceMiles,
+              trafficAware: true,
+              routePoints: preview.routePoints,
+            },
           };
         } catch (error) {
           const { message, likelySlowWake } = describeRoutePreviewFailure(error);
@@ -155,6 +167,8 @@ export function MapScreen({
           durationMinutes: Math.round(estimate.durationMinutes),
           distanceMiles: curve.distanceMiles ?? route.distanceMiles ?? null,
           trafficAware: false,
+          // The demo model has no road geometry; the map draws a clearly marked approximate line.
+          routePoints: null,
         },
       };
     },
@@ -166,12 +180,19 @@ export function MapScreen({
 
   const mapRoute = useMemo((): MapRoutePreview | 'loading' | 'error' | null => {
     if (!selectedMountain) return null;
+    const previewPoints =
+      fallbackRouteState.status === 'ready' && fallbackRouteState.data?.kind === 'ok'
+        ? fallbackRouteState.data.preview.routePoints
+        : null;
     if (selectedPlan) {
       if (!selectedPlan.departure) return 'error';
       return {
         durationMinutes: Math.round(selectedPlan.departure.driveMinutes),
         distanceMiles: selectedPlan.routeDistanceMiles,
         trafficAware: !registry.usingDemoData,
+        // Real geometry only when the live preview returned it; otherwise the
+        // map draws a clearly marked approximate line, never a fake road.
+        routePoints: previewPoints,
       };
     }
     if (!needsFallback) return 'loading';
@@ -279,6 +300,11 @@ export function MapScreen({
                       </div>
                     </dl>
                   )}
+                  <NavigateLinks
+                    destination={selectedMountain.coordinates}
+                    destinationLabel={selectedMountain.name}
+                    origin={origin.coordinates}
+                  />
                 </section>
               )}
             </div>

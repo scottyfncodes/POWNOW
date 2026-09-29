@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearProviderCaches } from '@/providers/live/fetchCache';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MOUNTAINS } from '@/data/mountains';
@@ -15,6 +16,7 @@ const clock = { today: toDateKey(new Date('2026-01-17')), now: at(7, 0) };
 const noop = () => {};
 
 afterEach(() => {
+  clearProviderCaches();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -34,7 +36,7 @@ describe('MapScreen', () => {
       />,
     );
     for (const mountain of MOUNTAINS) {
-      expect(screen.getByRole('button', { name: new RegExp(`select ${mountain.name}`, 'i') })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') })).toBeInTheDocument();
     }
     expect(fetchSpy).not.toHaveBeenCalled();
     // Let the background ranking settle before the test ends, so its state
@@ -54,7 +56,7 @@ describe('MapScreen', () => {
       />,
     );
     const vail = MOUNTAINS.find((m) => m.id === 'vail')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${vail.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${vail.name}\\. Tap to view`, 'i') }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: vail.name })).toBeInTheDocument(), {
       timeout: 12_000,
@@ -65,7 +67,7 @@ describe('MapScreen', () => {
     expect(screen.getByRole('heading', { name: /the snow clock/i })).toBeInTheDocument();
   }, 15_000);
 
-  it('never re-fetches a route on selection once the shared ranking has loaded — it reads the already-computed plan', async () => {
+  it('never re-runs the ranking on selection — a live tap adds at most one cached route-geometry preview, and re-selecting is free', async () => {
     vi.stubEnv('VITE_DATA_MODE', 'live');
     vi.stubEnv('VITE_API_BASE_URL', 'https://proxy.example.test');
     const fetchSpy = vi.fn(
@@ -89,7 +91,7 @@ describe('MapScreen', () => {
       <MapScreen registry={liveRegistry} clock={clock} origin={findOrigin('denver')} onOriginChange={noop} onNow={noop} onLater={noop} />,
     );
     const vail = MOUNTAINS.find((m) => m.id === 'vail')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${vail.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${vail.name}\\. Tap to view`, 'i') }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: vail.name })).toBeInTheDocument(), {
       timeout: 12_000,
@@ -99,13 +101,17 @@ describe('MapScreen', () => {
 
     // Selecting a different mountain and back reuses the same already-loaded ranking.
     const breck = MOUNTAINS.find((m) => m.id === 'breckenridge')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${breck.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${breck.name}\\. Tap to view`, 'i') }));
     await waitFor(() => expect(screen.getByRole('heading', { name: breck.name })).toBeInTheDocument());
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${vail.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${vail.name}\\. Tap to view`, 'i') }));
     await waitFor(() => expect(screen.getByRole('heading', { name: vail.name })).toBeInTheDocument());
 
-    // The shared ranking call already covered every mountain up front — tapping between mountains issues no new network calls.
-    expect(fetchSpy.mock.calls.length).toBe(callsAfterFirstLoad);
+    // The shared ranking already covered every mountain up front. In live
+    // mode a newly selected mountain costs exactly one extra request — the
+    // route-preview call that carries the real road geometry a plan doesn't —
+    // and re-selecting Vail is answered from the client cache, not the network.
+    const newCalls = fetchSpy.mock.calls.slice(callsAfterFirstLoad).map(([url]) => String(url));
+    expect(newCalls).toEqual(['https://proxy.example.test/api/route-preview']);
   }, 20_000);
 
   it('works the same way for a GPS origin as for a manual city', async () => {
@@ -114,7 +120,7 @@ describe('MapScreen', () => {
       <MapScreen registry={createDemoRegistry()} clock={clock} origin={origin} onOriginChange={noop} onNow={noop} onLater={noop} />,
     );
     const breck = MOUNTAINS.find((m) => m.id === 'breckenridge')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${breck.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${breck.name}\\. Tap to view`, 'i') }));
     await waitFor(() => expect(screen.getByRole('heading', { name: breck.name })).toBeInTheDocument(), {
       timeout: 12_000,
     });
@@ -141,7 +147,7 @@ describe('MapScreen', () => {
       />,
     );
     const keystone = MOUNTAINS.find((m) => m.id === 'keystone')!;
-    await user().click(screen.getByRole('button', { name: new RegExp(`select ${keystone.name}`, 'i') }));
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${keystone.name}\\. Tap to view`, 'i') }));
 
     // The profile still opens (weather/ops/pricing/parking are unaffected), but never invents a route.
     await waitFor(() => expect(screen.getByRole('heading', { name: keystone.name })).toBeInTheDocument(), {

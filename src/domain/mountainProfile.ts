@@ -6,7 +6,8 @@
  * or the snow clock ever reads.
  *
  * See domain/plan.ts's layering note for the full picture:
- *   STATIC PROFILE   → this file's website/address/phone/trailMap/pass URLs
+ *   STATIC PROFILE   → this file's website/address/phone/trailMap/pass URLs,
+ *                      plus researched Grub & Brews picks
  *   SEASONAL PROFILE → this file's openingDate/closingDate
  *   LIVE CONDITIONS  → providers/live/* (snow, weather, lifts, alerts)
  *   LIVE ROUTING     → engine/routing.ts + providers/live/googleRoutesTraffic.ts
@@ -50,6 +51,43 @@ export interface TrailMap {
   season?: string | null;
 }
 
+/** One researched pick — a name and what it's actually known for, never a review score or a live wait time. */
+export interface DiningPick {
+  name: string;
+  note: string;
+}
+
+/**
+ * Restaurants around the mountain, researched the same way as parking: real,
+ * named places, never a live availability feed. Several of these resorts
+ * (Wolf Creek, Monarch, Loveland, Arapahoe Basin, Eldora) have little or no
+ * real base village of their own — for those, `town` names the actual town
+ * skiers eat in afterward (Pagosa Springs, Salida, Silverthorne/Dillon,
+ * Nederland) instead of pretending the mountain itself has a dining scene.
+ * `quickBreakfast` is a single deliberate pick, not a fourth item padded
+ * onto `picks` — the one place worth naming for someone who needs to eat and
+ * be on the lift in ten minutes.
+ */
+export interface GrubInfo {
+  /** Set only when the real scene is a nearby town rather than the base area. */
+  town?: string;
+  picks: DiningPick[];
+  quickBreakfast?: DiningPick;
+}
+
+/**
+ * Breweries around the mountain — same research standard as `GrubInfo`.
+ * Almost none of these resorts have an on-site brewery (Keystone's Steep
+ * Brewing, right in River Run Village, is the one exception); the rest are a
+ * short, named drive, and each pick's own note says how far. `distilleries`
+ * is a bonus list, present only where a real one was actually found nearby —
+ * never padded in to look complete.
+ */
+export interface BrewsInfo {
+  picks: DiningPick[];
+  distilleries?: DiningPick[];
+}
+
 export interface MountainProfile {
   officialWebsite: string;
   /** `null` when no official snow-report page could be confirmed distinct from `officialWebsite`. */
@@ -63,6 +101,10 @@ export interface MountainProfile {
   address: string | null;
   openingDate: SeasonDate;
   closingDate: SeasonDate;
+  /** Absent when restaurants haven't been researched for this resort yet. */
+  grub?: GrubInfo;
+  /** Absent when breweries haven't been researched for this resort yet. */
+  brews?: BrewsInfo;
   /** Provenance/uncertainty notes — never shown as fact, only as a caveat for whoever maintains this data. */
   notes?: string;
 }

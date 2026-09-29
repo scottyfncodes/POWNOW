@@ -159,6 +159,30 @@ export const PARKING_INFO: Record<string, ParkingInfo> = {
     ],
     infoUrl: 'https://www.eldora.com/the-mountain/questions/policies-terms/',
   },
+  monarch: {
+    status: 'unknown',
+    occupied: null,
+    capacity: null,
+    reservationRequired: 'not-required',
+    freeOptionAvailable: true,
+    notes: [
+      'All parking at Monarch is free and first-come — the lots sit right at the base off US-50, no shuttle, no reservation system.',
+      'The main lots fill on powder weekends; overflow parks along the access road and walks in.',
+    ],
+    infoUrl: 'https://skimonarch.com',
+  },
+  telluride: {
+    status: 'unknown',
+    occupied: null,
+    capacity: null,
+    reservationRequired: 'not-required',
+    freeOptionAvailable: true,
+    notes: [
+      'Mountain Village: the Gondola Parking Garage beside the gondola is paid day parking; the free gondola links Mountain Village and the town of Telluride.',
+      'Town of Telluride: paid on-street and lot parking downtown; the Carhenge lot is the free day-skier option, a short walk to the Oak Street gondola station.',
+    ],
+    infoUrl: 'https://tellurideskiresort.com',
+  },
   steamboat: {
     status: 'unknown',
     occupied: null,

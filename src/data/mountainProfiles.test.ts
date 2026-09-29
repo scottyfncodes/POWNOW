@@ -95,9 +95,12 @@ describe('mountain profiles — data integrity', () => {
   it('uses the official Purgatory Ski Resort domain (purgatory.ski), never a look-alike or unrelated resort', () => {
     const profile = mountainProfileFor('purgatory')!;
     expect(profile.officialWebsite).toBe('https://www.purgatory.ski');
-    for (const url of [profile.snowReportUrl, profile.webcamUrl, profile.ticketUrl, profile.passInfoUrl]) {
+    for (const url of [profile.snowReportUrl, profile.webcamUrl, profile.ticketUrl]) {
       if (url) expect(new URL(url).hostname).toMatch(/(^|\.)purgatory\.ski$/);
     }
+    // Purgatory's pass is the Power Pass, the resort's own multi-mountain
+    // program on its own domain — confirmed by the site owner, not a look-alike.
+    expect(new URL(profile.passInfoUrl!).hostname).toMatch(/(^|\.)(purgatory|thepowerpass)\.ski$/);
     expect(new URL(profile.trailMap.officialUrl).hostname).toMatch(/(^|\.)purgatory\.ski$/);
     if (profile.trailMap.pdfUrl) expect(new URL(profile.trailMap.pdfUrl).hostname).toMatch(/(^|\.)purgatory\.ski$/);
   });
