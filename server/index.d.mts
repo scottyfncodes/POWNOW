@@ -17,3 +17,5 @@ export function handleRequest(
   res: import('node:http').ServerResponse,
 ): Promise<void>;
 export function readBody(req: import('node:http').IncomingMessage & { body?: unknown }): Promise<string>;
+/** A few [lat, lon] points sampled from a GeoJSON geometry. */
+export function samplePoints(geometry: unknown, max?: number): [number, number][];
