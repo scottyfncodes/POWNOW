@@ -1,5 +1,6 @@
 import type { GeoPoint } from '@/domain/mountain';
 import { fetchJson, ProviderTimeoutError } from '@/lib/http';
+import { decodePolyline } from '@/lib/polyline';
 
 /**
  * A single "right now" reading from the traffic proxy's `/api/route-preview`
@@ -14,6 +15,12 @@ import { fetchJson, ProviderTimeoutError } from '@/lib/http';
 export interface RoutePreview {
   durationMinutes: number;
   distanceMiles: number | null;
+  /**
+   * The real driven road geometry, decoded from Google's polyline — `null`
+   * when the proxy didn't return one, in which case the map draws a clearly
+   * marked approximate line rather than a straight line pretending to be a road.
+   */
+  routePoints: GeoPoint[] | null;
 }
 
 export async function fetchRoutePreview(
@@ -21,7 +28,7 @@ export async function fetchRoutePreview(
   destination: GeoPoint,
   apiBaseUrl: string,
 ): Promise<RoutePreview> {
-  const payload = await fetchJson<{ durationMinutes?: number; distanceMiles?: number | null }>(
+  const payload = await fetchJson<{ durationMinutes?: number; distanceMiles?: number | null; polyline?: string | null }>(
     `${apiBaseUrl}/api/route-preview`,
     {
       method: 'POST',
@@ -36,6 +43,7 @@ export async function fetchRoutePreview(
   return {
     durationMinutes: payload.durationMinutes,
     distanceMiles: typeof payload.distanceMiles === 'number' ? payload.distanceMiles : null,
+    routePoints: typeof payload.polyline === 'string' && payload.polyline.length > 0 ? decodePolyline(payload.polyline) : null,
   };
 }
 

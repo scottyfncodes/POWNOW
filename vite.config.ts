@@ -19,7 +19,16 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
-  build: { target: 'es2022' },
+  build: {
+    target: 'es2022',
+    rollupOptions: {
+      output: {
+        // Leaflet and its React bindings only load with the map screen; keeping
+        // them in their own chunk keeps the NOW/LATER path as light as before.
+        manualChunks: { leaflet: ['leaflet', 'leaflet.markercluster', 'react-leaflet'] },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

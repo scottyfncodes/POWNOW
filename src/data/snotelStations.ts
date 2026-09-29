@@ -17,7 +17,7 @@ import type { GeoPoint } from '@/domain/mountain';
  * reason, never as someone else's snow depth wearing this mountain's label.
  *
  * Every id, name, coordinate and elevation below was confirmed against the
- * NRCS AWDB API on 2026-09-28 through the deployed proxy (`/api/snotel`).
+ * NRCS AWDB API on 2026-09-28/29 through the deployed proxy (`/api/snotel`).
  */
 export interface SnotelStation {
   /** NRCS station triplet, e.g. "842:CO:SNTL". */
@@ -103,6 +103,20 @@ export const SNOTEL_STATIONS: Record<string, SnotelStation> = {
     expectedName: 'Cascade #2',
     coordinates: { lat: 37.65751, lon: -107.80287 },
     elevationFt: 8990,
+  },
+  monarch: {
+    // On Monarch Pass itself, a mile south of the lifts.
+    triplet: '701:CO:SNTL',
+    expectedName: 'Porphyry Creek',
+    coordinates: { lat: 38.48864, lon: -106.33967 },
+    elevationFt: 10790,
+  },
+  telluride: {
+    // The nearest pillow is on the pass south of town; no station sits in the box canyon itself.
+    triplet: '586:CO:SNTL',
+    expectedName: 'Lizard Head Pass',
+    coordinates: { lat: 37.79895, lon: -107.92475 },
+    elevationFt: 10190,
   },
   'wolf-creek': {
     triplet: '874:CO:SNTL',

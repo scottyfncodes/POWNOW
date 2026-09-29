@@ -92,6 +92,16 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
     officialPurchaseUrl: 'https://www.steamboat.com/lift-tickets',
     liftieSlug: 'steamboat',
   },
+  monarch: {
+    officialOpsUrl: 'https://skimonarch.com/conditions/',
+    officialPurchaseUrl: 'https://skimonarch.com/tickets/',
+    liftieSlug: 'monarch',
+  },
+  telluride: {
+    officialOpsUrl: 'https://tellurideskiresort.com/lifts/',
+    officialPurchaseUrl: 'https://shop.tellurideskiresort.com/s/passes-and-tickets/winter-lift-tickets/',
+    liftieSlug: 'telluride',
+  },
 };
 
 export const resortSourceFor = (mountainId: string): ResortSource => RESORT_SOURCES[mountainId] ?? {};

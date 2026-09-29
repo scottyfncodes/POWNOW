@@ -29,7 +29,24 @@ describe('fetchRoutePreview — one call, not a curve', () => {
     expect(body.direction).toBeUndefined();
     expect(body.date).toBeUndefined();
 
-    expect(result).toEqual({ durationMinutes: 105, distanceMiles: 100 });
+    expect(result).toEqual({ durationMinutes: 105, distanceMiles: 100, routePoints: null });
+  });
+
+  it('decodes a real route polyline into road points when the proxy sends one', async () => {
+    // Google's documented example: "_p~iF~ps|U_ulLnnqC_mqNvxq`@" → (38.5,-120.2) (40.7,-120.95) (43.252,-126.453)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ durationMinutes: 105, distanceMiles: 100, polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' }), {
+            status: 200,
+          }),
+      ),
+    );
+    const result = await fetchRoutePreview(origin, destination, 'https://proxy.example.test');
+    expect(result.routePoints).toHaveLength(3);
+    expect(result.routePoints![0]).toEqual({ lat: 38.5, lon: -120.2 });
+    expect(result.routePoints![2]!.lat).toBeCloseTo(43.252, 3);
   });
 
   it('reports no distance as null rather than 0 or a guess', async () => {

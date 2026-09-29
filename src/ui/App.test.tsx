@@ -49,7 +49,7 @@ describe('the homepage', () => {
     expect(mapLink).toBeInTheDocument();
     await user().click(mapLink);
     expect(screen.getByText('MAP')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /select vail/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Vail\. Tap to view/i })).toBeInTheDocument();
     await user().click(screen.getByRole('button', { name: /back to start/i }));
     expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
   });
