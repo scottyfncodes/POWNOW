@@ -24,15 +24,17 @@ Head home 2:42 PM · Home 4:28 PM
 
 ## The flow
 
-The home screen is three doors, and the first one is the product:
+The home screen is the POW NOW logo, and the logo is the button: it opens the
+map. On every other screen the logo in the header is the home button, and home
+is the map.
 
 | | Path | What you get |
 |---|---|---|
-| **POW NOW** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first; tap one for its whole day. |
-| **Map** | A real map → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
-| **List** | A to Z → a mountain → its day | The same mountains by name, for someone who already knows where they're looking. |
+| **Map** | The logo → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
+| **List** | The map's other tab → a mountain → its day | The same mountains by name, A to Z. |
+| **Rank them for my day** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first. |
 
-All three land on the same mountain screen — the verdict card, parking, the
+Every path lands on the same mountain screen — the verdict card, parking, the
 route, the trail map, the snow clock, the timeline, when to leave and when to
 head home, the alternatives, how the score was built, and the reference sheet
 with Grub & Brews — built from the same `recommend()` call, so a mountain never
@@ -70,8 +72,8 @@ page. See "Going live" below for what each optional variable turns on.
 
 The engine has always modeled a person — how much they value sleep, powder,
 quiet, an early night, a short drive — but until recently the only person it
-modeled was the default one. The **Your ride** step — the screen between SNOW
-NOW and the answer — is the whole personal layer:
+modeled was the default one. The **Your ride** step — reached from "Rank them
+for my day" on the map or the list — is the whole personal layer:
 
 - **Passes you hold** (Epic, Ikon, Mountain Collective, Indy). A mountain on
   your pass scores as if the ticket were free, because for you it is; the
