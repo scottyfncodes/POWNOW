@@ -1,4 +1,5 @@
 import { resolveEnvironment } from '@/config/env';
+import { DataCredits } from '@/ui/components/DataCredits';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
 
@@ -53,6 +54,7 @@ export function HomeScreen({ onOpen, usingDemoData }: HomeScreenProps) {
               normal, not a bug. Give it a moment or check again if it says unavailable.
             </p>
           ) : null}
+          <DataCredits usingDemoData={usingDemoData} />
         </footer>
       </div>
     </main>

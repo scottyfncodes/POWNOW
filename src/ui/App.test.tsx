@@ -53,6 +53,16 @@ describe('the home screen', () => {
     expect(logo().textContent).toBe('POWNOW');
     // Nothing else to decide on the home screen.
     expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('names where the data comes from at the bottom, and says the numbers are demo when they are', () => {
+    render(<App />);
+    const credits = screen.getByRole('region', { name: /where the data comes from/i });
+    for (const who of ['Open-Meteo', 'USDA NRCS SNOTEL', 'National Weather Service', 'Google Maps Routes', 'CDOT COtrip']) {
+      expect(within(credits).getByRole('link', { name: new RegExp(who) })).toHaveAttribute('href', expect.stringMatching(/^https:\/\//));
+    }
+    expect(within(credits).getByText(/demo data right now/i)).toBeInTheDocument();
+    expect(within(credits).getByText(/reference, not live/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/starting from/i)).not.toBeInTheDocument();
   });
 
