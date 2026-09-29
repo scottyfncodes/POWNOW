@@ -14,6 +14,7 @@ import { describeRoutePreviewFailure, fetchRoutePreview } from '@/providers/live
 import type { ProviderRegistry } from '@/providers/types';
 import type { ClockState } from '@/ui/hooks/useClock';
 import { useAsync } from '@/ui/hooks/useRecommendation';
+import { BrowseBar } from '@/ui/components/BrowseBar';
 import { MountainMap, type MapRoutePreview, type MountainMarkerInfo } from '@/ui/components/MountainMap';
 import { MountainProfile } from '@/ui/components/MountainProfile';
 import { NavigateLinks } from '@/ui/components/NavigateLinks';
@@ -33,6 +34,10 @@ export interface MapScreenProps {
   onBack: () => void;
   /** Leave the map for the mountain's whole day on its own screen. */
   onOpenMountain: (mountainId: string) => void;
+  /** The map's other tab: every mountain by name. */
+  onShowList?: () => void;
+  /** Into the Your ride step, then every mountain ranked for your day. */
+  onRank?: () => void;
 }
 
 const tierFor = (score: number): MountainMarkerInfo['tier'] =>
@@ -62,6 +67,8 @@ export function MapScreen({
   preferences,
   onBack,
   onOpenMountain,
+  onShowList,
+  onRank,
 }: MapScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(true);
@@ -203,6 +210,7 @@ export function MapScreen({
     <div className="screen mapscreen">
       <ScreenHeader onBack={onBack} title="MAP" />
       <div className="mapscreen-top shell">
+        {onShowList && onRank && <BrowseBar view="map" onShowMap={() => {}} onShowList={onShowList} onRank={onRank} />}
         <p className="mapscreen-intro">
           Every supported mountain on a real map, relative to{' '}
           {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive, the route and the

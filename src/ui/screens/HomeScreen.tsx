@@ -1,25 +1,19 @@
 import { resolveEnvironment } from '@/config/env';
-import { MOUNTAINS } from '@/data/mountains';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
 
 export interface HomeScreenProps {
-  onPowNow: () => void;
-  onMap: () => void;
-  onList: () => void;
+  /** The logo is the button: it opens the map. */
+  onOpen: () => void;
   usingDemoData: boolean;
 }
 
 /**
- * Three ways in, and the first one is the product.
- *
- * POW NOW is the decision path: say how you ride, get every mountain ranked
- * for your day, open the one you like. MAP and LIST are the browsing paths —
- * the same mountains by geography or by name, for someone who already knows
- * where they're looking. Nothing else earns a place above the fold, and no
- * chart appears before the user has asked a question.
+ * The logo, and nothing else to decide. Tapping POW NOW opens the map, where
+ * every mountain is a tap away, the list is one tab over, and the ranking
+ * for your day is one button more.
  */
-export function HomeScreen({ onPowNow, onMap, onList, usingDemoData }: HomeScreenProps) {
+export function HomeScreen({ onOpen, usingDemoData }: HomeScreenProps) {
   const environment = resolveEnvironment();
   // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
   const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
@@ -28,30 +22,16 @@ export function HomeScreen({ onPowNow, onMap, onList, usingDemoData }: HomeScree
     <main className="home">
       <Snowfall density={38} />
       <div className="home-inner shell">
-        <header className="home-head">
-          <h1>
-            <Wordmark />
-            <span className="visually-hidden">POW NOW</span>
+        <div className="home-center">
+          <h1 className="home-logo-heading">
+            <button type="button" className="home-logo" onClick={onOpen} aria-label="POW NOW — open the map">
+              <Wordmark />
+            </button>
           </h1>
           <p className="home-tagline">Find your best mountain day.</p>
-        </header>
-
-        <div className="home-actions">
-          <button type="button" className="bigbutton bigbutton-now" onClick={onPowNow}>
-            <span className="bigbutton-word">POW NOW</span>
-            <span className="bigbutton-sub">Tell us how you ride. We'll rank every mountain for your day.</span>
-          </button>
-
-          <div className="home-options">
-            <button type="button" className="optionbutton" onClick={onMap}>
-              <span className="optionbutton-word">Map</span>
-              <span className="optionbutton-sub">Every mountain on a real map</span>
-            </button>
-            <button type="button" className="optionbutton" onClick={onList}>
-              <span className="optionbutton-word">List</span>
-              <span className="optionbutton-sub">All {MOUNTAINS.length} mountains, A to Z</span>
-            </button>
-          </div>
+          <p className="home-hint" aria-hidden="true">
+            Tap the logo
+          </p>
         </div>
 
         <footer className="home-foot">

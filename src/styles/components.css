@@ -55,12 +55,63 @@
   padding-bottom: max(28px, env(safe-area-inset-bottom));
 }
 
-.home-head {
-  padding-top: 4vh;
+/* The logo is the home screen's one button: centered, big, and it opens the map. */
+.home-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
 }
 
-.home-head h1 {
+.home-logo-heading {
   margin: 0;
+}
+
+.home-logo {
+  display: inline-block;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  transition:
+    transform 160ms var(--ease),
+    background 220ms var(--ease);
+}
+
+.home-logo:hover,
+.home-logo:focus-visible {
+  background: var(--surface);
+}
+
+.home-logo:active {
+  transform: scale(0.97);
+}
+
+.home-hint {
+  margin-top: 26px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  animation: home-hint-pulse 2.4s var(--ease) infinite;
+}
+
+@keyframes home-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hint {
+    animation: none;
+  }
 }
 
 .home-tagline {
@@ -68,12 +119,6 @@
   font-size: clamp(16px, 4.4vw, 20px);
   color: var(--ink-dim);
   letter-spacing: -0.01em;
-}
-
-.home-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
 }
 
 .bigbutton {
@@ -2121,10 +2166,6 @@
     overflow: hidden;
   }
 
-  .home-actions {
-    flex-direction: row;
-  }
-
   .bigbutton {
     min-height: 180px;
   }
@@ -3230,56 +3271,6 @@
   color: var(--ice);
 }
 
-/* ========================================================== home options */
-
-/* The two browsing doors beside POW NOW: real buttons, quieter than the
-   main event, side by side so the home screen stays three choices tall. */
-.home-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.optionbutton {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-height: 88px;
-  padding: 16px 18px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  text-align: left;
-  transition:
-    border-color 160ms var(--ease),
-    background 160ms var(--ease),
-    transform 160ms var(--ease);
-}
-
-.optionbutton:hover,
-.optionbutton:focus-visible {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
-}
-
-.optionbutton:active {
-  transform: scale(0.985);
-}
-
-.optionbutton-word {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-}
-
-.optionbutton-sub {
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--ink-faint);
-}
-
 /* ============================================================== your ride */
 
 .setup {
@@ -3630,4 +3621,71 @@
   font-size: 14.5px;
   line-height: 1.5;
   color: var(--ink-dim);
+}
+
+/* ============================================================ logo button */
+
+/* In every header the logo is the home button (home is the map). */
+.logobutton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  margin: 0 -4px;
+  border-radius: var(--radius-sm);
+}
+
+.logobutton:hover,
+.logobutton:focus-visible {
+  background: var(--surface);
+}
+
+/* ============================================================ browse tabs */
+
+.browsebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.browsebar-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.browsebar-tab {
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+}
+
+.browsebar-tab.is-active {
+  background: var(--ice);
+  color: var(--bg);
+}
+
+.browsebar-rank {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(124, 231, 255, 0.45);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ice);
+  box-shadow: 0 10px 34px -20px rgba(124, 231, 255, 0.7);
+}
+
+.browsebar-rank:hover,
+.browsebar-rank:focus-visible {
+  background: rgba(124, 231, 255, 0.08);
 }
