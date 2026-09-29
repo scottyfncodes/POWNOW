@@ -243,3 +243,34 @@ describe('missing travel data', () => {
     expect(result.departure).toBeNull();
   });
 });
+
+describe('why a day has no departure — the rider hears the real reason', () => {
+  it('names a route-service outage as one', () => {
+    expect(run(testInputs({ outbound: 'unavailable' })).timingIssue).toBe('no-route');
+    expect(run(testInputs({ inbound: 'unavailable' })).timingIssue).toBe('no-route');
+  });
+
+  it('at 10pm, a working route is "too late for today", with the drive right now — not "route service unavailable"', () => {
+    // What the proxy sends late in the evening: past departures dropped, one "now" sample left.
+    const tonight = testTravel({ direction: 'outbound', duration: () => 95, from: at(22, 12), to: at(22, 12) });
+    const result = run(testInputs({ outbound: tonight }));
+    expect(result.departure).toBeNull();
+    expect(result.timingIssue).toBe('too-late');
+    expect(result.unavailableReason).toMatch(/too late to ski .* today/i);
+    expect(result.unavailableReason).toMatch(/1h35 drive/);
+    expect(result.unavailableReason).not.toMatch(/unavailable/i);
+  });
+
+  it('says when every departure is longer than the drive the rider said they would make', () => {
+    const long = testTravel({ direction: 'outbound', duration: () => 250 });
+    const result = run(testInputs({ outbound: long }), { ...prefs, maxDriveMinutes: 180 });
+    expect(result.timingIssue).toBe('too-far');
+    expect(result.unavailableReason).toMatch(/4h10 drive — longer than the 3h you said you'd make/);
+  });
+
+  it('a timed day has no issue at all', () => {
+    const result = run(testInputs());
+    expect(result.departure).not.toBeNull();
+    expect(result.timingIssue).toBeNull();
+  });
+});

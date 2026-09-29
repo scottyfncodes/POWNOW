@@ -4,6 +4,7 @@ import { formatPrice } from '@/domain/pricing';
 import { formatClock, formatDuration } from '@/domain/time';
 import { SNOW_STATE_LABEL } from '@/engine/snowState';
 import { ScoreDial } from './ScoreDial';
+import { shortTimingLabel } from './timingLabel';
 
 export interface MountainCardProps {
   plan: SkiDayPlan;
@@ -72,7 +73,7 @@ export function MountainCard({ plan, rank, why, projected = false, onOpen }: Mou
               <dd className="numeral">
                 {plan.departure
                   ? `${formatClock(plan.departure.departure)} · ${formatDuration(plan.departure.driveMinutes)}`
-                  : "Can't time it"}
+                  : shortTimingLabel(plan)}
               </dd>
             </div>
             <div>

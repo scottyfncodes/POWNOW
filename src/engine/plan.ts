@@ -107,6 +107,8 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     parking: inputs.parking,
     dataSources: buildDataSources(inputs),
     departure: optimized.departure,
+    timingIssue: optimized.timingIssue,
+    timingNote: optimized.departure ? null : optimized.unavailableReason,
     departureOptions: optimized.departureOptions,
     return: optimized.ret,
     returnOptions: optimized.returnOptions,

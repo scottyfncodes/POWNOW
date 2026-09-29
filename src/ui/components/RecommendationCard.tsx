@@ -155,7 +155,11 @@ export function RecommendationCard({
           </div>
         </dl>
       ) : (
-        <p className="reccard-notiming">We can't time this day — see the notes below.</p>
+        <p className="reccard-notiming">
+          {plan.timingIssue === 'too-late' || plan.timingIssue === 'too-far'
+            ? plan.timingNote
+            : "We can't time this day — see the notes below."}
+        </p>
       )}
 
       {!offSeason && plan.passCoverage && (

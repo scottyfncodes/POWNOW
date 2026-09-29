@@ -57,7 +57,9 @@ export function GetTherePanel({ plan }: GetTherePanelProps) {
         </>
       ) : (
         <p className="gettherepanel-unavailable">
-          Route service unavailable — we can't time this drive right now.
+          {plan.timingIssue === 'too-late' || plan.timingIssue === 'too-far'
+            ? plan.timingNote
+            : "Route service unavailable — we can't time this drive right now."}
         </p>
       )}
     </section>

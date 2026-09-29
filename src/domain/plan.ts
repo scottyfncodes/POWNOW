@@ -193,6 +193,14 @@ export interface TimelineEvent {
   emphasis?: boolean;
 }
 
+/**
+ * Why a day has no departure to recommend. These are different situations
+ * and the rider deserves to know which one they're in: the route service
+ * being down is a data problem; being too late for today, or further than
+ * the drive they said they'd make, are real answers.
+ */
+export type TimingIssue = 'no-route' | 'too-late' | 'too-far' | 'no-timing';
+
 /** ---- The plan ---------------------------------------------------------- */
 
 export interface SkiDayPlan {
@@ -240,6 +248,10 @@ export interface SkiDayPlan {
   /** Per-feed honesty, for the "data sources" disclosure. */
   dataSources: DataSourceStatus[];
   departure: DepartureOption | null;
+  /** Set exactly when `departure` is null: which kind of "can't time it" this is. */
+  timingIssue: TimingIssue | null;
+  /** The sentence that explains `timingIssue` to the rider, e.g. "Too late for today…". */
+  timingNote: string | null;
   departureOptions: DepartureOption[];
   return: ReturnOption | null;
   returnOptions: ReturnOption[];
