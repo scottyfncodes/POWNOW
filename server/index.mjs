@@ -432,6 +432,32 @@ function pickNumber(obj, keys) {
   return null;
 }
 
+/**
+ * A few [lat, lon] points from a GeoJSON geometry, so the client can place an
+ * event on the map when it carries no mile markers (road-condition segments
+ * never do). GeoJSON order is [lon, lat]; this flips it and rounds, and keeps
+ * at most `max` evenly spaced points — enough to test a segment against a
+ * corridor's box, not a copy of the line.
+ */
+export function samplePoints(geometry, max = 5) {
+  const flat = [];
+  const visit = (value) => {
+    if (!Array.isArray(value)) return;
+    if (value.length >= 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+      const [lon, lat] = value;
+      if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        flat.push([Math.round(lat * 1e4) / 1e4, Math.round(lon * 1e4) / 1e4]);
+      }
+      return;
+    }
+    for (const item of value) visit(item);
+  };
+  visit(geometry?.coordinates);
+  if (flat.length <= max) return flat;
+  const step = (flat.length - 1) / (max - 1);
+  return Array.from({ length: max }, (_, i) => flat[Math.round(i * step)]);
+}
+
 function normalizeRoadConditionFeatures(payload) {
   const features = payload?.features;
   if (!Array.isArray(features)) return null;
@@ -454,6 +480,7 @@ function normalizeRoadConditionFeatures(payload) {
         startMarker: pickNumber(condition, ['startMarker']) ?? pickNumber(props, ['startMarker']),
         endMarker: pickNumber(condition, ['endMarker']) ?? pickNumber(props, ['endMarker']),
         lastUpdated: pickString(condition, ['lastUpdated']) ?? pickString(props, ['lastUpdated']),
+        points: samplePoints(feature?.geometry),
       });
     }
   }
@@ -479,6 +506,7 @@ function normalizeIncidentFeatures(payload) {
       startTime: pickString(props, ['startTime', 'startDate']),
       lastUpdated: pickString(props, ['lastUpdated']),
       laneImpacts: Array.isArray(props.laneImpacts) ? props.laneImpacts : [],
+      points: samplePoints(feature?.geometry),
     });
   }
   return events;

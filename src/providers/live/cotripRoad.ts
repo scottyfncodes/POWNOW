@@ -19,12 +19,21 @@ import { cachedJson } from './fetchCache';
  * called a host named `manage-api.cotrip.org` from the browser, with no key,
  * and would have reported every corridor as unavailable.)
  *
- * How a corridor is matched: by CDOT's highway name (`I-70`, `US 40`...) and,
- * where the event carries mile markers, by the stretch of that highway a ski
- * drive actually uses — a crash in Grand Junction is on I-70 but is not
- * between Denver and Vail. Events with no mile markers match on name alone.
- * The marker windows in `CDOT_ROUTES` are generous on purpose: missing a
- * real closure costs more than flagging one a few miles off the route.
+ * How a corridor is matched: by CDOT's highway name (`I-70`, `US 40`...),
+ * then by *where* on that highway the event is — a crash in Grand Junction is
+ * on I-70 but is not between Denver and Vail. Where is decided by, in order:
+ * mile markers (CDOT's own fields, or the "Mile Point 241.5" CDOT writes into
+ * an incident's message when the fields are empty); else the event's
+ * geometry against the corridor's bounding box (road-condition segments
+ * carry no markers at all, only a line on the map); else the name alone.
+ * The windows in `CDOT_ROUTES` are generous on purpose: missing a real
+ * closure costs more than flagging one a few miles off the route.
+ *
+ * All of this was checked against the live feed, not only against mocks:
+ * CDOT names incidents with a direction suffix ("I-70E", "US-287N"), types a
+ * crash that shuts the road as a crash rather than a closure, and flags one
+ * direction's through lanes closed for alternating one-lane traffic. The
+ * tests in `cotripRoad.test.ts` use real events captured from the feed.
  *
  * What it will and won't claim:
  *  - `closed` only for an incident CDOT itself types as a closure whose
@@ -56,6 +65,18 @@ export interface RoadEvent {
   endMarker?: number | null;
   lastUpdated?: string | null;
   startTime?: string | null;
+  /** incidents only: CDOT's per-direction lane picture. */
+  laneImpacts?: LaneImpact[];
+  /** A few [lat, lon] points sampled from the event's geometry, when the proxy had one. */
+  points?: [number, number][];
+}
+
+export interface LaneImpact {
+  direction?: string;
+  laneCount?: number;
+  laneClosures?: string;
+  /** e.g. ["right lane"], ["left lane", "center lane", "right lane"], ["through lanes", "left shoulder"]. */
+  closedLaneTypes?: string[];
 }
 
 export interface RoadEventsResponse {
@@ -69,30 +90,47 @@ export interface CotripRoadOptions {
   apiBaseUrl: string;
 }
 
-/** A CDOT highway name plus the mile-marker stretch a ski drive on this corridor covers. */
+/** [south, west, north, east] in degrees. */
+type Bounds = [number, number, number, number];
+
+/** A CDOT highway name plus the stretch of it a ski drive on this corridor covers. */
 interface CdotRoute {
   routeName: string;
+  /** Mile-marker window, for events that carry markers. */
   markers?: [number, number];
+  /** The same stretch as a lat/lon box, for events that carry only geometry. */
+  bounds?: Bounds;
 }
 
 /**
- * Corridor → CDOT highway segments. Mile markers are approximate and wide.
- * A route without markers matches the whole highway.
+ * Corridor → CDOT highway segments. Mile markers and boxes are approximate
+ * and wide. A route with neither matches the whole highway.
  */
 export const CDOT_ROUTES: Record<string, CdotRoute[]> = {
-  'i70-west': [{ routeName: 'I-70', markers: [160, 265] }], // Vail ↔ C-470
-  'us40-berthoud': [{ routeName: 'US 40', markers: [220, 262] }], // Winter Park ↔ Empire
-  'us40-rabbitears': [{ routeName: 'US 40', markers: [120, 190] }], // Steamboat ↔ Kremmling
-  'us6-loveland': [{ routeName: 'US 6', markers: [205, 235] }], // Loveland Pass
+  // Vail ↔ C-470: Edwards to the foothills, Vail Pass, Eisenhower Tunnel, Idaho Springs.
+  'i70-west': [{ routeName: 'I-70', markers: [160, 265], bounds: [39.4, -106.65, 39.85, -105.1] }],
+  // Empire ↔ Berthoud Pass ↔ Winter Park ↔ Granby.
+  'us40-berthoud': [{ routeName: 'US 40', markers: [220, 262], bounds: [39.7, -106.0, 40.15, -105.6] }],
+  // Kremmling ↔ Rabbit Ears Pass ↔ Steamboat.
+  'us40-rabbitears': [{ routeName: 'US 40', markers: [120, 190], bounds: [40.0, -106.95, 40.55, -106.3] }],
+  // Loveland Pass, Keystone side to the Loveland valley.
+  'us6-loveland': [{ routeName: 'US 6', markers: [205, 235], bounds: [39.55, -106.0, 39.72, -105.8] }],
   'us285-hoosier': [
-    { routeName: 'US 285', markers: [175, 255] }, // Denver ↔ Fairplay
-    { routeName: 'CO 9', markers: [55, 100] }, // Fairplay ↔ Breck over Hoosier
+    // Denver ↔ Kenosha Pass ↔ Fairplay.
+    { routeName: 'US 285', markers: [175, 255], bounds: [39.15, -106.05, 39.7, -105.0] },
+    // Fairplay ↔ Hoosier Pass ↔ Breckenridge.
+    { routeName: 'CO 9', markers: [55, 100], bounds: [39.15, -106.15, 39.55, -105.95] },
   ],
-  'us24-buena-vista': [{ routeName: 'US 24', markers: [195, 325] }],
-  'us50-monarch': [{ routeName: 'US 50', markers: [185, 240] }],
-  'us550-durango': [{ routeName: 'US 550', markers: [10, 65] }],
-  'us160-wolfcreek': [{ routeName: 'US 160', markers: [135, 195] }],
-  'co119-eldora': [{ routeName: 'CO 119', markers: [10, 50] }],
+  // Colorado Springs ↔ Wilkerson Pass ↔ Buena Vista ↔ Leadville.
+  'us24-buena-vista': [{ routeName: 'US 24', markers: [195, 325], bounds: [38.75, -106.4, 39.35, -104.8] }],
+  // Cañon City ↔ Poncha Springs ↔ Monarch Pass ↔ Gunnison.
+  'us50-monarch': [{ routeName: 'US 50', markers: [185, 240], bounds: [38.35, -107.0, 38.65, -105.0] }],
+  // Durango ↔ Purgatory ↔ Coal Bank and Molas passes.
+  'us550-durango': [{ routeName: 'US 550', markers: [10, 65], bounds: [37.2, -108.0, 37.9, -107.55] }],
+  // Pagosa Springs ↔ Wolf Creek Pass ↔ South Fork.
+  'us160-wolfcreek': [{ routeName: 'US 160', markers: [135, 195], bounds: [37.2, -107.15, 37.75, -106.5] }],
+  // Boulder Canyon to Nederland.
+  'co119-eldora': [{ routeName: 'CO 119', markers: [10, 50], bounds: [39.9, -105.6, 40.08, -105.2] }],
 };
 
 export class CotripRoadProvider implements RoadConditionProvider {
@@ -156,25 +194,54 @@ export class CotripRoadProvider implements RoadConditionProvider {
   }
 }
 
-/** "I-70", "I 70", "I70" and "Interstate 70" all name the same road. */
-function normalizeRouteName(value: string): string {
+/**
+ * "I-70", "I 70", "I70", "Interstate 70" and CDOT's incident spelling
+ * "I-70E" all name the same road. A trailing N/S/E/W after the number is a
+ * direction, not a different road; a trailing A/B ("US 36B", "US 24A") is a
+ * real business or spur route and is kept.
+ */
+export function normalizeRouteName(value: string): string {
   return value
     .toUpperCase()
-    .replace(/INTERSTATE/g, 'I')
-    .replace(/HIGHWAY|HWY/g, 'US')
-    .replace(/STATE HWY|SH|CO-/g, 'CO')
-    .replace(/[^A-Z0-9]/g, '');
+    .replace(/\bINTERSTATE\b/g, 'I')
+    .replace(/\bSTATE (HIGHWAY|HWY)\b|\bSH\b/g, 'CO')
+    .replace(/[^A-Z0-9]/g, '')
+    .replace(/^([A-Z]+\d+)[NSEW]$/, '$1');
 }
+
+const MILE_POINT_RANGE = /from mile point (\d+(?:\.\d+)?) to mile point (\d+(?:\.\d+)?)/i;
+const MILE_POINT_AT = /\bmile point (\d+(?:\.\d+)?)/i;
+
+/** An event's mile markers: CDOT's fields when set, else the "Mile Point" CDOT writes into the message. */
+export function markersOf(event: RoadEvent): [number, number] | null {
+  const start = typeof event.startMarker === 'number' ? event.startMarker : null;
+  const end = typeof event.endMarker === 'number' ? event.endMarker : start;
+  if (start !== null && end !== null) return [start, end];
+  const text = event.description ?? '';
+  const range = MILE_POINT_RANGE.exec(text);
+  if (range) return [Number(range[1]), Number(range[2])];
+  const at = MILE_POINT_AT.exec(text);
+  if (at) return [Number(at[1]), Number(at[1])];
+  return null;
+}
+
+const inBounds = ([lat, lon]: [number, number], [south, west, north, east]: Bounds): boolean =>
+  lat >= south && lat <= north && lon >= west && lon <= east;
 
 export function eventMatches(event: RoadEvent, route: CdotRoute): boolean {
   if (normalizeRouteName(event.routeName ?? '') !== normalizeRouteName(route.routeName)) return false;
-  if (!route.markers) return true;
-  const start = typeof event.startMarker === 'number' ? event.startMarker : null;
-  const end = typeof event.endMarker === 'number' ? event.endMarker : start;
-  if (start === null || end === null) return true; // no markers: match on the highway alone
-  const lo = Math.min(start, end);
-  const hi = Math.max(start, end);
-  return hi >= route.markers[0] && lo <= route.markers[1];
+  const markers = markersOf(event);
+  if (markers && route.markers) {
+    const lo = Math.min(markers[0], markers[1]);
+    const hi = Math.max(markers[0], markers[1]);
+    return hi >= route.markers[0] && lo <= route.markers[1];
+  }
+  const points = Array.isArray(event.points) ? event.points : [];
+  if (points.length > 0 && route.bounds) {
+    const bounds = route.bounds;
+    return points.some((point) => Array.isArray(point) && point.length === 2 && inBounds(point, bounds));
+  }
+  return true; // nothing locates it: match on the highway alone
 }
 
 const SURFACE_RANK: Record<RoadCondition, number> = {
@@ -197,6 +264,39 @@ function surfaceFromDescription(description: string): RoadCondition | null {
 const FULL_CLOSURE_MESSAGE = /\b(road|highway|i-?\d+|us ?\d+|co ?\d+)\b[^.]*\bclosed\b|\bclosed (in )?both directions\b|\bfull(y)? clos/i;
 const LANE_ONLY = /\b(left|right|center|one|single|\d) lanes?\b[^.]*\bclosed\b|\blane closure\b|\bshoulder\b/i;
 const CHAIN_LAW = /chain law|traction law|code 1[5-8]\b|chains? required|passenger vehicle traction/i;
+const ROAD_CLOSED_TEXT = /\broad closed\b|\bclosed in both directions\b/i;
+const ALTERNATING = /alternating traffic|one lane (alternating|traffic)|flagger/i;
+
+/** Every travel lane in this direction is shut — "through lanes", or each named lane up to the lane count. */
+function directionFullyClosed(impact: LaneImpact): boolean {
+  const closed = (impact.closedLaneTypes ?? []).map((type) => type.toLowerCase());
+  if (closed.includes('through lanes')) return true;
+  const lanes = closed.filter((type) => /\blane\b/.test(type) && !/shoulder/.test(type)).length;
+  return typeof impact.laneCount === 'number' && impact.laneCount > 0 && lanes >= impact.laneCount;
+}
+
+/**
+ * Is this incident a closure of the road, not of a lane? CDOT's lane picture
+ * is the best evidence, and it needs reading with care: one direction's
+ * through lanes shut is also how alternating one-lane traffic is reported.
+ *  - every direction fully shut: closed, whatever CDOT typed it as;
+ *  - one direction fully shut and the message says the road is closed (and
+ *    doesn't describe alternating traffic): closed, in that direction;
+ *  - no lane picture at all: the old rule — CDOT typed it a closure and the
+ *    message says the road, not a lane, is closed.
+ */
+export function isFullClosure(event: RoadEvent): boolean {
+  const description = event.description ?? '';
+  const impacts = (event.laneImpacts ?? []).filter((impact) => (impact.laneCount ?? 0) > 0 || (impact.closedLaneTypes ?? []).length > 0);
+  if (impacts.length > 0) {
+    const shut = impacts.filter(directionFullyClosed);
+    if (shut.length === 0) return false;
+    if (shut.length === impacts.length) return true;
+    return ROAD_CLOSED_TEXT.test(description) && !ALTERNATING.test(description);
+  }
+  const type = (event.type ?? '').toLowerCase();
+  return /closure|closed/.test(type) && FULL_CLOSURE_MESSAGE.test(description) && !LANE_ONLY.test(description);
+}
 
 export function summarize(events: RoadEvent[]): {
   condition: RoadCondition;
@@ -231,10 +331,7 @@ export function summarize(events: RoadEvent[]): {
       continue;
     }
 
-    const type = (event.type ?? '').toLowerCase();
-    const isClosureType = /closure|closed/.test(type);
-    const saysRoadClosed = FULL_CLOSURE_MESSAGE.test(description) && !LANE_ONLY.test(description);
-    if (isClosureType && saysRoadClosed) {
+    if (isFullClosure(event)) {
       worsen('closed');
       closures.push({
         description: description || 'Road closure reported by CDOT.',
@@ -253,9 +350,8 @@ export function summarize(events: RoadEvent[]): {
 function markerLabel(event: RoadEvent): string {
   const route = event.routeName ?? 'Road';
   const direction = event.direction ? ` ${event.direction}` : '';
-  if (typeof event.startMarker === 'number' && typeof event.endMarker === 'number') {
-    return `${route}${direction}, MP ${Math.round(event.startMarker)}–${Math.round(event.endMarker)}`;
-  }
-  if (typeof event.startMarker === 'number') return `${route}${direction}, MP ${Math.round(event.startMarker)}`;
-  return `${route}${direction}`;
+  const markers = markersOf(event);
+  if (!markers) return `${route}${direction}`;
+  const [start, end] = markers;
+  return start === end ? `${route}${direction}, MP ${start}` : `${route}${direction}, MP ${start}–${end}`;
 }
