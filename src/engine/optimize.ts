@@ -6,8 +6,8 @@ import {
   type ScoringWeights,
 } from '@/config/weights';
 import type { TravelCurve } from '@/domain/conditions';
-import type { DepartureOption, ReturnOption, SnowClock } from '@/domain/plan';
-import { clamp, minuteRange, overlapMinutes, type MinuteOfDay } from '@/domain/time';
+import type { DepartureOption, ReturnOption, SnowClock, TimingIssue } from '@/domain/plan';
+import { clamp, formatDuration, minuteRange, overlapMinutes, type MinuteOfDay } from '@/domain/time';
 import type { DayInputs } from './inputs';
 import { createQualityIntegral, untrackedAt } from './snowClock';
 import { scoreDay } from './scoring';
@@ -34,8 +34,10 @@ export interface OptimizationResult {
   departureOptions: DepartureOption[];
   ret: ReturnOption | null;
   returnOptions: ReturnOption[];
-  /** Set when travel data is missing and timing could not be resolved. */
+  /** Set when the day could not be timed: the sentence that says why. */
   unavailableReason: string | null;
+  /** Which kind of "can't time it" — see `TimingIssue`. */
+  timingIssue: TimingIssue | null;
 }
 
 export interface OptimizeOptions {
@@ -68,20 +70,21 @@ export function optimizeDay(
   const preferences = options.preferences;
 
   if (inputs.outbound.status !== 'ok') {
-    return emptyResult(inputs.outbound.reason);
+    return emptyResult(inputs.outbound.reason, 'no-route');
   }
   const outbound = inputs.outbound.data;
   const inbound = inputs.inbound.status === 'ok' ? inputs.inbound.data : null;
   if (!inbound) {
     return emptyResult(
       inputs.inbound.status === 'unavailable' ? inputs.inbound.reason : 'No return route data.',
+      'no-route',
     );
   }
 
   const departureGrid = buildDepartureGrid(outbound, clock, preferences, config);
   const returnGrid = buildReturnGrid(inbound, clock, config);
   if (departureGrid.length === 0 || returnGrid.length === 0) {
-    return emptyResult('Not enough travel data to time this day.');
+    return emptyResult('Not enough travel data to time this day.', 'no-timing');
   }
 
   const gridStart = departureGrid[0] as MinuteOfDay;
@@ -153,7 +156,7 @@ export function optimizeDay(
   }
 
   if (candidates.length === 0) {
-    return emptyResult('No workable timing for this day.');
+    return whyNoTiming(inputs, outbound, departureGrid, preferences);
   }
 
   const bestByUtility = candidates.reduce((top, candidate) =>
@@ -235,7 +238,7 @@ export function optimizeDay(
       return top === null || score > top.score ? { candidate, score } : top;
     }, null)?.candidate ?? (returnCandidates[0] as Candidate | undefined);
 
-  if (!bestReturnCandidate) return emptyResult('No workable timing for this day.');
+  if (!bestReturnCandidate) return whyNoTiming(inputs, outbound, departureGrid, preferences);
 
   const returnOptions = returnCandidates.map((candidate) => {
     const option = toReturn(candidate, bestReturnCandidate);
@@ -250,17 +253,52 @@ export function optimizeDay(
     ret: returnOptions.find((option) => option.recommended) ?? returnOptions[0] ?? null,
     returnOptions,
     unavailableReason: null,
+    timingIssue: null,
   };
 }
 
-function emptyResult(reason: string): OptimizationResult {
+function emptyResult(reason: string, timingIssue: TimingIssue): OptimizationResult {
   return {
     departure: null,
     departureOptions: [],
     ret: null,
     returnOptions: [],
     unavailableReason: reason,
+    timingIssue,
   };
+}
+
+/**
+ * The route data came back fine and still no departure works. Say which of
+ * the two real reasons it is, with the real drive time, rather than letting
+ * it read as the route service being down:
+ *  - every departure is a longer drive than the rider said they'd make; or
+ *  - there is time to drive but not to ski: it's too late in the day (tonight,
+ *    after the last departure that makes the lifts), or the day is too short.
+ */
+function whyNoTiming(
+  inputs: DayInputs,
+  outbound: TravelCurve,
+  departureGrid: MinuteOfDay[],
+  preferences: RiderPreferences,
+): OptimizationResult {
+  const drives = departureGrid.map((departure) => travelAt(outbound, departure).durationMinutes);
+  const shortest = Math.min(...drives);
+  const now = drives[0] ?? shortest;
+  const mountain = inputs.mountain.shortName;
+  if (shortest > preferences.maxDriveMinutes) {
+    return emptyResult(
+      `${mountain} is a ${formatDuration(shortest)} drive — longer than the ${formatDuration(preferences.maxDriveMinutes)} you said you'd make.`,
+      'too-far',
+    );
+  }
+  const isToday = inputs.horizonDays === 0;
+  return emptyResult(
+    isToday
+      ? `Too late to ski ${mountain} today — you'd get there after the lifts are done. Right now it's a ${formatDuration(now)} drive.`
+      : `No departure gets you to ${mountain} with enough time on snow before the lifts close.`,
+    'too-late',
+  );
 }
 
 function buildDepartureGrid(

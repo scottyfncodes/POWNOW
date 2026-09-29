@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { SkiDayPlan } from '@/domain/plan';
 import { formatPrice } from '@/domain/pricing';
 import { formatClock, formatDuration } from '@/domain/time';
+import { shortTimingLabel } from './timingLabel';
 
 export interface AlternativeListProps {
   alternatives: SkiDayPlan[];
@@ -58,7 +59,7 @@ export const AlternativeList = forwardRef<HTMLElement, AlternativeListProps>(
                         : plan.ticket && ` · ${formatPrice(plan.ticket.adultDay, plan.ticket.currency)}`}
                     </>
                   ) : (
-                    <>Too far to time from here</>
+                    <>{shortTimingLabel(plan)}</>
                   )}
                 </span>
                 <span className="alt-tradeoffs">
