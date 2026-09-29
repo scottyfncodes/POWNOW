@@ -11,7 +11,7 @@ export interface Route {
 const HOME: Route = { screen: 'home', mountainId: null };
 
 /** Marks history entries this app pushed, so Back knows whether it may pop one. */
-const HISTORY_MARK = 'snownow';
+const HISTORY_MARK = 'pownow';
 
 export const routeFromHash = (hash: string): Route => {
   const path = hash.replace(/^#\/?/, '').toLowerCase();
@@ -59,7 +59,7 @@ const scrollToTop = () => {
  * Which screen is showing, mirrored into the URL hash.
  *
  * A phone's Back gesture is how people leave a screen; when navigation lived
- * only in React state, that gesture left SNOWNOW altogether. Each screen is a
+ * only in React state, that gesture left POW NOW altogether. Each screen is a
  * real history entry (`#/setup`, `#/picks`, `#/mountain/vail`, `#/map`) so
  * Back retraces the flow, and any screen can be bookmarked or shared.
  *

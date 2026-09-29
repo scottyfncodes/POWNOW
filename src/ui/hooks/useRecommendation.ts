@@ -9,7 +9,7 @@ export type AsyncState<T> =
 /**
  * A tiny async runner with an artificial floor on how fast it can finish.
  *
- * The floor is not a fake progress bar: the loading sequence is where SNOWNOW
+ * The floor is not a fake progress bar: the loading sequence is where POW NOW
  * tells you what it is doing on your behalf ("checking the roads…"), and a
  * result that flashes past in 40ms reads as if nothing was checked at all.
  */

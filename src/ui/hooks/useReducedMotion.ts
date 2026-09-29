@@ -8,7 +8,7 @@ const readPreference = (): boolean =>
     : false;
 
 /**
- * Respect the OS setting. Motion in SNOWNOW is decoration, never information.
+ * Respect the OS setting. Motion in POW NOW is decoration, never information.
  *
  * Read on the first render rather than in an effect, so a user who asked for
  * less motion never gets a frame of snow falling at them anyway.

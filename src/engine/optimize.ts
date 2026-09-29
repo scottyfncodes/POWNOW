@@ -14,7 +14,7 @@ import { scoreDay } from './scoring';
 import { travelAt, trafficLightFor } from './travel';
 
 /**
- * The optimiser. This is the part that makes SNOWNOW a decision engine rather
+ * The optimiser. This is the part that makes POW NOW a decision engine rather
  * than a dashboard.
  *
  * Morning and afternoon are not independent problems — leaving later can be

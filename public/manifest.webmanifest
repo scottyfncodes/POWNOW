@@ -1,6 +1,6 @@
 {
-  "name": "SNOWNOW",
-  "short_name": "SNOWNOW",
+  "name": "POW NOW",
+  "short_name": "POW NOW",
   "description": "Find your best mountain day.",
   "start_url": ".",
   "scope": ".",
@@ -30,8 +30,8 @@
   ],
   "shortcuts": [
     {
-      "name": "SNOW NOW — rank my mountains",
-      "short_name": "SNOW NOW",
+      "name": "POW NOW — rank my mountains",
+      "short_name": "POW NOW",
       "description": "Say how you ride, get every mountain ranked for your day.",
       "url": "./#/setup",
       "icons": [

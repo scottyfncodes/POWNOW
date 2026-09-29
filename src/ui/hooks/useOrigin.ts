@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { findOrigin, isManualCityOrigin } from '@/data/origins';
 import type { Origin } from '@/domain/mountain';
 
+/** Named for the app's old name on purpose: renaming it would wipe every saved setting. */
 export const ORIGIN_STORAGE_KEY = 'snownow.originId';
 
 const readStoredOriginId = (): string | null => {

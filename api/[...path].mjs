@@ -1,5 +1,5 @@
 /**
- * Vercel serverless adapter for the SNOWNOW data proxy.
+ * Vercel serverless adapter for the POW NOW data proxy.
  *
  * Every `/api/*` request on the deployed site lands here and is handed to the
  * same router the standalone `node server/index.mjs` process runs — one code

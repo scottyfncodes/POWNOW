@@ -4,7 +4,7 @@ import { buildSnowClock } from './snowClock';
 import { classifySnowState } from './snowState';
 
 /**
- * The bug this guards against: SNOWNOW must never say "prime snow" (or any
+ * The bug this guards against: POW NOW must never say "prime snow" (or any
  * variant of "strong conditions") when the underlying evidence doesn't
  * support it. `snowClock.prime` alone is not that evidence — it always names
  * the day's best *relative* window, even on a day with nothing on the

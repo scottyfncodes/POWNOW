@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SNOWNOW data proxy.
+ * POW NOW data proxy.
  *
  * The one server-side thing this project needs. It exists for three reasons,
  * all of them "a browser can't":
@@ -41,7 +41,7 @@ const COTRIP_API_KEY = process.env.COTRIP_API_KEY ?? '';
 const CACHE_TTL_MS = Number(process.env.TRAFFIC_CACHE_TTL_SECONDS ?? 900) * 1000;
 const ROAD_CACHE_TTL_MS = Number(process.env.ROAD_CACHE_TTL_SECONDS ?? 300) * 1000;
 const SNOTEL_CACHE_TTL_MS = Number(process.env.SNOTEL_CACHE_TTL_SECONDS ?? 1800) * 1000;
-const TIME_ZONE = process.env.SNOWNOW_TIME_ZONE ?? 'America/Denver';
+const TIME_ZONE = process.env.POWNOW_TIME_ZONE ?? process.env.SNOWNOW_TIME_ZONE ?? 'America/Denver';
 
 /**
  * Which browser origins may call this. "*" (the default, for local dev)
@@ -89,7 +89,7 @@ const cache = new Map();
  */
 const KV_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL ?? '';
 const KV_TOKEN = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN ?? '';
-const KV_PREFIX = process.env.KV_PREFIX ?? 'snownow:';
+const KV_PREFIX = process.env.KV_PREFIX ?? 'pownow:';
 
 async function kvCommand(command) {
   if (!KV_URL || !KV_TOKEN) return null;
@@ -686,7 +686,7 @@ async function handle(req, res) {
   }
 
   if (originForbidden(req)) {
-    sendJson(req, res, 403, { error: 'This origin is not allowed to use the SNOWNOW proxy.' });
+    sendJson(req, res, 403, { error: 'This origin is not allowed to use the POW NOW proxy.' });
     return;
   }
 
@@ -853,17 +853,17 @@ async function handle(req, res) {
   sendJson(req, res, 404, { error: 'Not found.' });
 }
 
-export function createSnownowServer() {
+export function createPownowServer() {
   return createServer(handleRequest);
 }
 
 // Only listen when run directly; the Vercel adapter and the tests import instead.
 const isMain = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (isMain) {
-  createSnownowServer().listen(PORT, () => {
+  createPownowServer().listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(
-      `SNOWNOW proxy on :${PORT} — Google Routes key ${API_KEY ? 'present' : 'MISSING (traffic will 503)'}; ` +
+      `POW NOW proxy on :${PORT} — Google Routes key ${API_KEY ? 'present' : 'MISSING (traffic will 503)'}; ` +
         `CDOT key ${COTRIP_API_KEY ? 'present' : 'missing (roads will 503)'}; ` +
         `shared cache ${KV_URL && KV_TOKEN ? 'on' : 'off'}; origins: ${ALLOWED_ORIGINS.join(', ')}`,
     );

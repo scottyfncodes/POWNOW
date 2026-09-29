@@ -31,7 +31,7 @@ export function planShareText(plan: SkiDayPlan, appUrl?: string): string {
 /** Try the native share sheet; fall back to the clipboard. Returns how it went, for a one-line confirmation. */
 export async function sharePlan(plan: SkiDayPlan, appUrl?: string): Promise<'shared' | 'copied' | 'failed'> {
   const text = planShareText(plan, appUrl);
-  const title = `SNOWNOW: ${plan.mountain.shortName} on ${plan.date}`;
+  const title = `POW NOW: ${plan.mountain.shortName} on ${plan.date}`;
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       await navigator.share({ title, text });
@@ -72,11 +72,11 @@ export function planCalendarIcs(plan: SkiDayPlan): string | null {
   const summary = `Ski ${plan.mountain.shortName} — leave ${formatClock(plan.departure.departure)}`;
   const description = planShareText(plan);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  const uid = `snownow-${plan.mountain.id}-${plan.date}@snownow`;
+  const uid = `pownow-${plan.mountain.id}-${plan.date}@pownow`;
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//SNOWNOW//Ski day//EN',
+    'PRODID:-//POW NOW//Ski day//EN',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
     `UID:${uid}`,

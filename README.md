@@ -1,8 +1,8 @@
-# SNOWNOW
+# POW NOW
 
 **Find your best mountain day.**
 
-SNOWNOW is a decision engine for ski days. Not a snow report, not a traffic app,
+POW NOW is a decision engine for ski days. Not a snow report, not a traffic app,
 not another conditions dashboard — an app that answers one question:
 
 > What is the best mountain day I can realistically have?
@@ -28,7 +28,7 @@ The home screen is three doors, and the first one is the product:
 
 | | Path | What you get |
 |---|---|---|
-| **SNOW NOW** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first; tap one for its whole day. |
+| **POW NOW** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first; tap one for its whole day. |
 | **Map** | A real map → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
 | **List** | A to Z → a mountain → its day | The same mountains by name, for someone who already knows where they're looking. |
 
@@ -96,7 +96,7 @@ says how old its answer is and has a **Refresh**.
 
 ## ⚠️ Data honesty
 
-SNOWNOW can run on demo data, a mix of live and demo, or (mostly) live data —
+POW NOW can run on demo data, a mix of live and demo, or (mostly) live data —
 and it is always honest about which. This is enforced structurally, not by
 convention:
 
@@ -531,7 +531,7 @@ tables and anything that needs to be studied.
   road dressed up as real, when it isn't). Every pin has a real, focusable
   button behind it for keyboard and screen-reader users
 - every plan and every mountain profile hands the destination to Google Maps
-  or Apple Maps with one tap; SNOWNOW is the decision layer, never the
+  or Apple Maps with one tap; POW NOW is the decision layer, never the
   navigator
 - status is never encoded in colour alone
 - ~145 kB gzipped, no web fonts; the only external requests in demo mode are

@@ -38,7 +38,7 @@ export function PlanActions({ plan, generatedAt, onRefresh, nowTick }: PlanActio
   const calendar = () => {
     const ics = planCalendarIcs(plan);
     if (!ics) return;
-    downloadText(`snownow-${plan.mountain.id}-${plan.date}.ics`, ics);
+    downloadText(`pownow-${plan.mountain.id}-${plan.date}.ics`, ics);
     setStatus('Calendar event saved.');
   };
 

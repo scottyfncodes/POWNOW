@@ -15,7 +15,7 @@ import type { ProviderContext, TrafficProvider } from '@/providers/types';
 import { regionalPattern } from './scenario';
 
 /**
- * Departure-time-dependent travel is the thing SNOWNOW knows that a maps app
+ * Departure-time-dependent travel is the thing POW NOW knows that a maps app
  * won't tell you until you're already late. The shapes below are the two
  * curves every Front Range skier has learned the hard way:
  *

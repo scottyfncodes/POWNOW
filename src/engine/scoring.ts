@@ -207,7 +207,7 @@ function snowFactor(
  * this is the complementary, slower signal — a mountain that just banked a
  * foot this week and one that's been dry for a week can otherwise present
  * an identical "today" and get scored identically, which is exactly the gap
- * SNOWNOW's audit called out. Incoming snow gets a much smaller credit than
+ * POW NOW's audit called out. Incoming snow gets a much smaller credit than
  * the same amount already on the ground: it isn't skiable yet, and how much
  * of it actually lands is genuinely less certain.
  */

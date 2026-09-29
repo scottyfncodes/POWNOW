@@ -23,7 +23,7 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
 };
 
 /**
- * The user's exact coordinates become the routing origin directly — SNOWNOW
+ * The user's exact coordinates become the routing origin directly — POW NOW
  * no longer snaps a GPS fix to whichever of the six manual cities is
  * closest. Permission is only ever requested here, on tap; never on mount.
  */

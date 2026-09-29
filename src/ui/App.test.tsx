@@ -5,9 +5,11 @@ import App from '@/App';
 import { DEFAULT_WEIGHTS } from '@/config/weights';
 import { MOUNTAINS } from '@/data/mountains';
 import { createDemoRegistry } from '@/providers/demo';
+import { ORIGIN_STORAGE_KEY } from '@/ui/hooks/useOrigin';
+import { PREFERENCES_STORAGE_KEY } from '@/ui/hooks/usePreferences';
 
 /**
- * These tests walk the product's actual promise: open it, tap SNOW NOW, say
+ * These tests walk the product's actual promise: open it, tap POW NOW, say
  * how you ride, get every mountain ranked, open one and get an answer you can
  * act on — and, from the same step, pick a date and get a projection that is
  * honest about being one.
@@ -15,13 +17,13 @@ import { createDemoRegistry } from '@/providers/demo';
 
 const user = () => userEvent.setup();
 
-const snowNow = () => screen.getByRole('button', { name: /^SNOW NOW/ });
+const powNow = () => screen.getByRole('button', { name: /^POW NOW/ });
 const showMe = () => screen.getByRole('button', { name: /^SHOW ME/ });
 const picksList = () => screen.getByRole('list', { name: /mountains, best first/i });
 
-/** Home → SNOW NOW → SHOW ME, and wait for the ranked cards. */
+/** Home → POW NOW → SHOW ME, and wait for the ranked cards. */
 async function tapShowMe() {
-  await user().click(snowNow());
+  await user().click(powNow());
   await user().click(showMe());
   await waitFor(() => expect(picksList()).toBeInTheDocument(), { timeout: 12_000 });
 }
@@ -37,10 +39,10 @@ async function tapNow(registry?: ReturnType<typeof createDemoRegistry>) {
 }
 
 describe('the home screen', () => {
-  it('offers three doors — SNOW NOW, the map and the list — and nothing else above the fold', () => {
+  it('offers three doors — POW NOW, the map and the list — and nothing else above the fold', () => {
     render(<App />);
     expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
-    expect(snowNow()).toBeInTheDocument();
+    expect(powNow()).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Map/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^List/ })).toBeInTheDocument();
     expect(screen.queryByText(/Snow Clock/i)).not.toBeInTheDocument();
@@ -53,9 +55,9 @@ describe('the home screen', () => {
     expect(screen.getByText(/No live weather, traffic or lift feeds/i)).toBeInTheDocument();
   });
 
-  it('SNOW NOW goes to the Your ride step first: where from, which day, how you ride', async () => {
+  it('POW NOW goes to the Your ride step first: where from, which day, how you ride', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect(screen.getByText('YOUR RIDE')).toBeInTheDocument();
     expect(screen.getByLabelText(/starting from/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Today/ })).toHaveAttribute('aria-pressed', 'true');
@@ -138,7 +140,7 @@ describe('GPS location flow', () => {
     vi.stubGlobal('navigator', { ...navigator, geolocation: { getCurrentPosition } });
 
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: /use my current location/i }));
     await waitFor(() => expect(screen.getByText(/using your current location/i)).toBeInTheDocument());
 
@@ -173,7 +175,7 @@ describe('GPS location flow', () => {
     vi.stubGlobal('navigator', { ...navigator, geolocation: { getCurrentPosition } });
 
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: /use my current location/i }));
     await waitFor(() =>
       expect(screen.getByText(/location access is off.*choose a starting city instead/i)).toBeInTheDocument(),
@@ -194,10 +196,10 @@ describe('GPS location flow', () => {
   }, 20_000);
 });
 
-describe('SNOW NOW', () => {
+describe('POW NOW', () => {
   it('shows a loading sequence that says what it is checking', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     // Synchronous click: the answer cannot possibly have arrived yet, so this
     // pins the loading state deterministically rather than racing it.
     fireEvent.click(showMe());
@@ -308,7 +310,7 @@ describe('SNOW NOW', () => {
 describe('another day', () => {
   it('ranks a future day as a projection, and says so on the cards and the plan', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: /^Tomorrow/ }));
     expect(screen.getByText(/is a projection/i)).toBeInTheDocument();
     await user().click(showMe());
@@ -322,7 +324,7 @@ describe('another day', () => {
 
   it('hands off to the range planner, which ranks a whole range and names a best bet with its confidence', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: /compare a whole range/i }));
     await waitFor(() => expect(screen.getByText(/^Projected$/i)).toBeInTheDocument(), {
       timeout: 12_000,
@@ -479,7 +481,7 @@ describe('honest empty states', () => {
 
   it('says why a mountain is out of your ranking instead of showing an empty plan', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: 'Epic Pass' }));
     await user().click(screen.getByRole('checkbox', { name: /only show mountains on my pass/i }));
     await user().click(showMe());
@@ -499,7 +501,7 @@ describe('honest empty states', () => {
 describe('navigation history', () => {
   it('puts each screen in the URL, so the phone Back gesture retraces the flow instead of leaving', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect(window.location.hash).toBe('#/setup');
     await user().click(showMe());
     expect(window.location.hash).toBe('#/picks');
@@ -518,7 +520,7 @@ describe('navigation history', () => {
 
   it('the in-app back arrow pops history rather than piling up entries', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(showMe());
     await waitFor(() => expect(picksList()).toBeInTheDocument(), { timeout: 12_000 });
     await user().click(screen.getByRole('button', { name: /back to start/i }));
@@ -573,13 +575,13 @@ describe('remembering where you start from', () => {
 
   it('keeps the chosen city for the next visit', async () => {
     const { unmount } = render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().selectOptions(screen.getByLabelText(/starting from/i), 'durango');
     unmount();
     window.history.replaceState(null, '', '/');
 
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect((screen.getByLabelText(/starting from/i) as HTMLSelectElement).value).toBe('durango');
   });
 
@@ -590,7 +592,7 @@ describe('remembering where you start from', () => {
     vi.stubGlobal('navigator', { ...navigator, geolocation: { getCurrentPosition } });
 
     const { unmount } = render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().selectOptions(screen.getByLabelText(/starting from/i), 'boulder');
     await user().click(screen.getByRole('button', { name: /use my current location/i }));
     await waitFor(() => expect(screen.getByText(/using your current location/i)).toBeInTheDocument());
@@ -599,14 +601,14 @@ describe('remembering where you start from', () => {
     window.history.replaceState(null, '', '/');
 
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect((screen.getByLabelText(/starting from/i) as HTMLSelectElement).value).toBe('boulder');
   });
 
   it('ignores a stored value that is not a known city', async () => {
-    window.localStorage.setItem('snownow.originId', 'atlantis');
+    window.localStorage.setItem(ORIGIN_STORAGE_KEY, 'atlantis');
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect((screen.getByLabelText(/starting from/i) as HTMLSelectElement).value).toBe('denver');
   });
 });
@@ -614,14 +616,14 @@ describe('remembering where you start from', () => {
 describe('your ride — the rider settings', () => {
   it('opens every knob on the Your ride step, with a one-line summary of what the engine believes about you', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect(screen.getByText(/No pass · balanced · up to 5 hours · home by 7:00 PM/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /your ride/i })).not.toBeInTheDocument();
   });
 
   it('remembers a pass between visits and shows it on every card instead of a ticket price', async () => {
     const first = render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: 'Epic Pass' }));
     expect(screen.getByText(/^Epic Pass · /)).toBeInTheDocument();
     first.unmount();
@@ -629,7 +631,7 @@ describe('your ride — the rider settings', () => {
 
     // A fresh mount reads the stored choice back.
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect(screen.getByText(/^Epic Pass · /)).toBeInTheDocument();
     await user().click(screen.getByRole('checkbox', { name: /only show mountains on my pass/i }));
     await user().click(showMe());
@@ -649,18 +651,18 @@ describe('your ride — the rider settings', () => {
 
   it('resets to defaults from the step and clears storage', async () => {
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     await user().click(screen.getByRole('button', { name: 'Ikon Pass' }));
-    expect(window.localStorage.getItem('snownow.preferences')).toContain('ikon');
+    expect(window.localStorage.getItem(PREFERENCES_STORAGE_KEY)).toContain('ikon');
     await user().click(screen.getByRole('button', { name: /reset to defaults/i }));
-    expect(window.localStorage.getItem('snownow.preferences')).toBeNull();
+    expect(window.localStorage.getItem(PREFERENCES_STORAGE_KEY)).toBeNull();
     expect(screen.getByText(/^No pass · /)).toBeInTheDocument();
   });
 
   it('ignores a poisoned stored value rather than crashing', async () => {
-    window.localStorage.setItem('snownow.preferences', '{"sleepVsSend":"banana","passes":["gold"]}');
+    window.localStorage.setItem(PREFERENCES_STORAGE_KEY, '{"sleepVsSend":"banana","passes":["gold"]}');
     render(<App />);
-    await user().click(snowNow());
+    await user().click(powNow());
     expect(screen.getByText(/No pass · balanced/i)).toBeInTheDocument();
   });
 });

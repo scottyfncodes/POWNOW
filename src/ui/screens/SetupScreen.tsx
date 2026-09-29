@@ -44,7 +44,7 @@ function presetsFor(today: DateKey): DayPreset[] {
 }
 
 /**
- * The one step between "SNOW NOW" and the answer. Where you're starting,
+ * The one step between "POW NOW" and the answer. Where you're starting,
  * which day, and how you ride — the three things the ranking is built
  * around and the only things it will ever ask. Everything here is
  * remembered (except a GPS fix), so the second visit is one tap.

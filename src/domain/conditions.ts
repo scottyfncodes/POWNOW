@@ -172,7 +172,7 @@ export interface TravelIncident {
 }
 
 /**
- * Departure-time-dependent travel. The single most important thing SNOWNOW
+ * Departure-time-dependent travel. The single most important thing POW NOW
  * knows that a navigation app does not surface: leaving 20 minutes later can
  * cost you an hour.
  */

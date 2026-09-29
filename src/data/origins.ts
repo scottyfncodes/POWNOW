@@ -1,7 +1,7 @@
 import type { Origin } from '@/domain/mountain';
 
 /**
- * Starting points. SNOWNOW optimises HOME → MOUNTAIN → SNOW → MOUNTAIN → HOME,
+ * Starting points. POW NOW optimises HOME → MOUNTAIN → SNOW → MOUNTAIN → HOME,
  * so "where you sleep" is an input to the recommendation, not a setting.
  */
 export const ORIGINS: Origin[] = [

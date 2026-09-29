@@ -1,9 +1,9 @@
 {
-  "name": "snownow",
+  "name": "pownow",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "SNOWNOW — a decision engine for ski days.",
+  "description": "POW NOW — a decision engine for ski days.",
   "engines": {
     "node": ">=20"
   },

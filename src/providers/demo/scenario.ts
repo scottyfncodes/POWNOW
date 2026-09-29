@@ -8,7 +8,7 @@ import { createRng, hashSeed, type Rng } from '@/lib/random';
  *
  * This module invents a plausible mid-season Colorado ski day for any date and
  * keeps it stable: the same date always produces the same world. It exists so
- * SNOWNOW can be evaluated end-to-end before any vendor API is wired up.
+ * POW NOW can be evaluated end-to-end before any vendor API is wired up.
  *
  * Nothing here is real. Providers stamp every value with `source: 'demo'` and
  * the UI never renders demo numbers without saying so.
