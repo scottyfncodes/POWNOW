@@ -195,10 +195,13 @@ export class CotripRoadProvider implements RoadConditionProvider {
 }
 
 /**
- * "I-70", "I 70", "I70", "Interstate 70" and CDOT's incident spelling
- * "I-70E" all name the same road. A trailing N/S/E/W after the number is a
- * direction, not a different road; a trailing A/B ("US 36B", "US 24A") is a
- * real business or spur route and is kept.
+ * "I-70", "I 70", "I70", "Interstate 70" and CDOT's spellings "I-70E" and
+ * "US 24A" all name the same road. A trailing letter after the number is
+ * either a direction (incidents: "I-70E") or CDOT's segment designation
+ * (conditions: the US 24 mainline over Tennessee Pass and Wilkerson Pass is
+ * "US 24A" in the live feed). Neither makes it a different highway, and
+ * *where* an event is — markers or geometry, below — decides whether it is
+ * on the drive.
  */
 export function normalizeRouteName(value: string): string {
   return value
@@ -206,7 +209,7 @@ export function normalizeRouteName(value: string): string {
     .replace(/\bINTERSTATE\b/g, 'I')
     .replace(/\bSTATE (HIGHWAY|HWY)\b|\bSH\b/g, 'CO')
     .replace(/[^A-Z0-9]/g, '')
-    .replace(/^([A-Z]+\d+)[NSEW]$/, '$1');
+    .replace(/^([A-Z]+\d+)[A-Z]$/, '$1');
 }
 
 const MILE_POINT_RANGE = /from mile point (\d+(?:\.\d+)?) to mile point (\d+(?:\.\d+)?)/i;
