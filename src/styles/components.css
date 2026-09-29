@@ -71,45 +71,76 @@
 }
 
 .home-logo {
-  display: inline-block;
-  padding: 18px 20px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 22px 22px 26px;
+  border: 1px solid rgba(124, 231, 255, 0.5);
   border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(124, 231, 255, 0.12), rgba(255, 255, 255, 0.02) 60%);
+  box-shadow:
+    0 0 0 1px rgba(124, 231, 255, 0.08) inset,
+    0 22px 70px -26px rgba(124, 231, 255, 0.75);
+  cursor: pointer;
   transition:
     transform 160ms var(--ease),
-    background 220ms var(--ease);
+    border-color 160ms var(--ease),
+    box-shadow 220ms var(--ease);
+  animation: home-logo-breathe 3.2s var(--ease) infinite;
+}
+
+/* Inside the button the wordmark gives up a little size to make room for the arrow. */
+.home-logo .wordmark-lg {
+  font-size: clamp(38px, 11.4vw, 84px);
+}
+
+.home-logo-go {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--ice);
+  color: var(--bg);
+  box-shadow: 0 0 22px var(--ice-glow);
+  transition: transform 160ms var(--ease);
 }
 
 .home-logo:hover,
 .home-logo:focus-visible {
-  background: var(--surface);
+  border-color: var(--ice);
+  box-shadow:
+    0 0 0 1px rgba(124, 231, 255, 0.2) inset,
+    0 26px 80px -24px rgba(124, 231, 255, 0.95);
+}
+
+.home-logo:hover .home-logo-go,
+.home-logo:focus-visible .home-logo-go {
+  transform: translateX(3px);
 }
 
 .home-logo:active {
   transform: scale(0.97);
 }
 
-.home-hint {
-  margin-top: 26px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ink-ghost);
-  animation: home-hint-pulse 2.4s var(--ease) infinite;
-}
-
-@keyframes home-hint-pulse {
+@keyframes home-logo-breathe {
   0%,
   100% {
-    opacity: 0.45;
+    box-shadow:
+      0 0 0 1px rgba(124, 231, 255, 0.08) inset,
+      0 22px 70px -26px rgba(124, 231, 255, 0.55);
   }
   50% {
-    opacity: 1;
+    box-shadow:
+      0 0 0 1px rgba(124, 231, 255, 0.16) inset,
+      0 22px 80px -20px rgba(124, 231, 255, 0.95);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hint {
+  .home-logo {
     animation: none;
   }
 }
@@ -3688,4 +3719,74 @@
 .browsebar-rank:hover,
 .browsebar-rank:focus-visible {
   background: rgba(124, 231, 255, 0.08);
+}
+
+/* ================================================================ credits */
+
+/* Where the data comes from, at the foot of the home screen: small, quiet,
+   every source named and linked. */
+.credits {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.credits-heading {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.credits-note {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.credits-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-ghost);
+}
+
+@media (min-width: 560px) {
+  .credits-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.credits-what {
+  color: var(--ink-faint);
+}
+
+.credits-what::after {
+  content: ':';
+}
+
+.credits-list a {
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 2px;
+}
+
+.credits-list a:hover,
+.credits-list a:focus-visible {
+  color: var(--ice);
+}
+
+.credits-who {
+  color: var(--ink-dim);
+}
+
+.credits-static {
+  color: var(--ink-ghost);
 }

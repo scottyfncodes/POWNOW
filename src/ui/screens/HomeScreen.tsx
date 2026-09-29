@@ -1,4 +1,5 @@
 import { resolveEnvironment } from '@/config/env';
+import { DataCredits } from '@/ui/components/DataCredits';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
 
@@ -9,7 +10,9 @@ export interface HomeScreenProps {
 }
 
 /**
- * The logo, and nothing else to decide. Tapping POW NOW opens the map, where
+ * The logo, and nothing else to decide. The logo is drawn as a button — a
+ * lit card with a go arrow — so nobody needs telling to tap it. Tapping
+ * POW NOW opens the map, where
  * every mountain is a tap away, the list is one tab over, and the ranking
  * for your day is one button more.
  */
@@ -26,12 +29,14 @@ export function HomeScreen({ onOpen, usingDemoData }: HomeScreenProps) {
           <h1 className="home-logo-heading">
             <button type="button" className="home-logo" onClick={onOpen} aria-label="POW NOW — open the map">
               <Wordmark />
+              <span className="home-logo-go" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22">
+                  <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </button>
           </h1>
           <p className="home-tagline">Find your best mountain day.</p>
-          <p className="home-hint" aria-hidden="true">
-            Tap the logo
-          </p>
         </div>
 
         <footer className="home-foot">
@@ -49,6 +54,7 @@ export function HomeScreen({ onOpen, usingDemoData }: HomeScreenProps) {
               normal, not a bug. Give it a moment or check again if it says unavailable.
             </p>
           ) : null}
+          <DataCredits usingDemoData={usingDemoData} />
         </footer>
       </div>
     </main>
