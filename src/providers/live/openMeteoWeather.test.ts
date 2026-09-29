@@ -223,20 +223,18 @@ function isMainRequest(url: URL): boolean {
 }
 
 /** A minimal single-elevation response, as the base/peak requests expect. */
-function buildElevationResponse(options: { snowDepthM?: number | null } = {}) {
+function buildElevationResponse(options: { tempC?: number } = {}) {
   const time: string[] = [];
   const temperature_2m: number[] = [];
   const windspeed_10m: number[] = [];
   const windgusts_10m: number[] = [];
-  const snow_depth: (number | null)[] = [];
   for (let h = 0; h < 24; h += 1) {
     time.push(`${TODAY}T${String(h).padStart(2, '0')}:00`);
-    temperature_2m.push(-4);
+    temperature_2m.push(options.tempC ?? -4);
     windspeed_10m.push(12);
     windgusts_10m.push(20);
-    snow_depth.push(options.snowDepthM === undefined ? 1 : options.snowDepthM);
   }
-  return { hourly: { time, temperature_2m, windspeed_10m, windgusts_10m, snow_depth } };
+  return { hourly: { time, temperature_2m, windspeed_10m, windgusts_10m } };
 }
 
 /** The main response, extended with an 11-day daily snowfall aggregate centered on `TODAY`. */
@@ -251,50 +249,76 @@ function buildResponseWithDaily(dailySnowfallCm: number[]) {
   return { ...main, daily: { time, snowfall_sum: dailySnowfallCm } };
 }
 
+/** A multi-day hourly series with a chosen amount of snow on chosen calendar days (cm per day, spread over the day). */
+function buildMultiDayResponse(snowByDate: Record<string, number>, options: { snowDepthM?: number | null } = {}) {
+  const dates = Object.keys(snowByDate).sort();
+  const time: string[] = [];
+  const snowfall: number[] = [];
+  const flat = (value: number) => Array.from({ length: dates.length * 24 }, () => value);
+  for (const date of dates) {
+    for (let h = 0; h < 24; h += 1) {
+      time.push(`${date}T${String(h).padStart(2, '0')}:00`);
+      // Day snow falls 10:00–14:00 so none of it lands in the overnight window.
+      snowfall.push(h >= 10 && h < 14 ? (snowByDate[date] ?? 0) / 4 : 0);
+    }
+  }
+  return {
+    hourly: {
+      time,
+      snowfall,
+      temperature_2m: flat(-5),
+      windspeed_10m: flat(15),
+      windgusts_10m: flat(20),
+      cloudcover: flat(60),
+      visibility: flat(12000),
+      snow_depth: options.snowDepthM === undefined ? flat(0.9) : flat(options.snowDepthM as number),
+    },
+  };
+}
+
+function stubMainAnd(main: unknown, elevation: unknown = buildElevationResponse()) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (rawUrl: string) => {
+      const url = new URL(rawUrl);
+      return new Response(JSON.stringify(isMainRequest(url) ? main : elevation), { status: 200 });
+    }),
+  );
+}
+
 describe('OpenMeteoWeatherProvider — base and peak conditions', () => {
-  it('resolves base and peak from independent, elevation-specific requests', async () => {
+  it('resolves base and peak temperature/wind from independent, elevation-specific requests', async () => {
     const fetchMock = vi.fn(async (rawUrl: string) => {
       const url = new URL(rawUrl);
       if (isMainRequest(url)) {
         return new Response(JSON.stringify(buildResponse({ date: TODAY })), { status: 200 });
       }
       const elevation = Number(url.searchParams.get('elevation'));
-      const snowDepthM = elevation === BASE_ELEVATION_M ? 1.2 : elevation === PEAK_ELEVATION_M ? 2.4 : 0;
-      return new Response(JSON.stringify(buildElevationResponse({ snowDepthM })), { status: 200 });
+      const tempC = elevation === BASE_ELEVATION_M ? -2 : elevation === PEAK_ELEVATION_M ? -11 : 0;
+      return new Response(JSON.stringify(buildElevationResponse({ tempC })), { status: 200 });
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const provider = new OpenMeteoWeatherProvider();
-    const result = await provider.getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    const result = await new OpenMeteoWeatherProvider().getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
-
-    expect(result.data.base).not.toBeNull();
-    expect(result.data.peak).not.toBeNull();
-    // Peak is colder/windier here and, crucially, never copied from base.
-    expect(result.data.base!.snowDepthIn).toBeCloseTo(1.2 * 39.3701, 0);
-    expect(result.data.peak!.snowDepthIn).toBeCloseTo(2.4 * 39.3701, 0);
-    expect(result.data.peak!.snowDepthIn).not.toBe(result.data.base!.snowDepthIn);
+    expect(result.data.base?.temperatureF).toBe(28);
+    expect(result.data.peak?.temperatureF).toBe(12);
     expect(result.data.base!.source).toBe('open-meteo');
+    // Depth is a single grid-cell model value, so it is never attributed to an elevation.
+    expect('snowDepthIn' in result.data.base!).toBe(false);
   });
 
-  it('reports snow depth as unavailable (null), never copied from the other elevation, when the provider omits it', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (rawUrl: string) => {
-        const url = new URL(rawUrl);
-        if (isMainRequest(url)) {
-          return new Response(JSON.stringify(buildResponse({ date: TODAY })), { status: 200 });
-        }
-        return new Response(JSON.stringify(buildElevationResponse({ snowDepthM: null })), { status: 200 });
-      }),
-    );
-    const provider = new OpenMeteoWeatherProvider();
-    const result = await provider.getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
-    expect(result.status).toBe('ok');
-    if (result.status !== 'ok') return;
-    expect(result.data.base!.snowDepthIn).toBeNull();
-    expect(result.data.peak!.snowDepthIn).toBeNull();
+  it('reports the model snow depth once, at the forecast point, and null when the model omits it', async () => {
+    stubMainAnd(buildMultiDayResponse({ '2026-01-16': 0, [TODAY]: 0 }, { snowDepthM: 1.2 }));
+    const withDepth = await new OpenMeteoWeatherProvider().getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    expect(withDepth.status === 'ok' && withDepth.data.modelSnowDepthIn).toBeCloseTo(47.2, 0);
+
+    const { clearProviderCaches } = await import('./fetchCache');
+    clearProviderCaches();
+    stubMainAnd(buildMultiDayResponse({ '2026-01-16': 0, [TODAY]: 0 }, { snowDepthM: null }));
+    const without = await new OpenMeteoWeatherProvider().getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    expect(without.status === 'ok' && without.data.modelSnowDepthIn).toBeNull();
   });
 
   it('leaves peak unavailable — never copied from base — when only the summit request fails', async () => {
@@ -305,21 +329,78 @@ describe('OpenMeteoWeatherProvider — base and peak conditions', () => {
         if (isMainRequest(url)) {
           return new Response(JSON.stringify(buildResponse({ date: TODAY })), { status: 200 });
         }
-        const elevation = Number(url.searchParams.get('elevation'));
-        if (elevation === PEAK_ELEVATION_M) {
+        if (Number(url.searchParams.get('elevation')) === PEAK_ELEVATION_M) {
           return new Response('rate limited', { status: 429 });
         }
-        return new Response(JSON.stringify(buildElevationResponse({ snowDepthM: 1.5 })), { status: 200 });
+        return new Response(JSON.stringify(buildElevationResponse()), { status: 200 });
       }),
     );
-    const provider = new OpenMeteoWeatherProvider();
-    const result = await provider.getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    const result = await new OpenMeteoWeatherProvider().getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
-    // The overall forecast still succeeds — one elevation point failing
-    // never takes the whole weather call down.
     expect(result.data.base).not.toBeNull();
     expect(result.data.peak).toBeNull();
+  });
+});
+
+describe('OpenMeteoWeatherProvider — days since the last storm', () => {
+  const run = async (snowByDate: Record<string, number>, date = TODAY) => {
+    stubMainAnd(buildMultiDayResponse(snowByDate));
+    const result = await new OpenMeteoWeatherProvider().getMountainWeather(mountain, makeContext(date, TODAY, at(5)));
+    expect(result.status).toBe('ok');
+    return result.status === 'ok' ? result.data : null;
+  };
+
+  it('counts the actual gap: a 5cm day three days ago is 3, not 0 and not "forever"', async () => {
+    const data = await run({ '2026-01-11': 0, '2026-01-12': 0, '2026-01-13': 0, '2026-01-14': 5, '2026-01-15': 0, '2026-01-16': 0, [TODAY]: 0 });
+    expect(data?.daysSinceStorm).toBe(3);
+  });
+
+  it('is 1 when yesterday delivered a storm and 0 when last night did', async () => {
+    expect((await run({ '2026-01-15': 0, '2026-01-16': 6, [TODAY]: 0 }))?.daysSinceStorm).toBe(1);
+    const { clearProviderCaches } = await import('./fetchCache');
+    clearProviderCaches();
+    // Overnight: the fixture puts day snow 10–14h; put snow in the 0–6h window of TODAY by hand.
+    const response = buildMultiDayResponse({ '2026-01-16': 0, [TODAY]: 0 });
+    response.hourly.snowfall = response.hourly.time.map((iso) => (iso.startsWith(`${TODAY}T0`) ? 1.5 : 0));
+    stubMainAnd(response);
+    const overnight = await new OpenMeteoWeatherProvider().getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    expect(overnight.status === 'ok' && overnight.data.daysSinceStorm).toBe(0);
+  });
+
+  it('ignores a dusting: 0.5cm does not reset the clock', async () => {
+    const data = await run({ '2026-01-13': 5, '2026-01-14': 0, '2026-01-15': 0.5, '2026-01-16': 0, [TODAY]: 0 });
+    expect(data?.daysSinceStorm).toBe(4);
+  });
+
+  it('reports the size of the window it looked at when nothing in it qualified — an honest floor, not "forever"', async () => {
+    const data = await run({ '2026-01-11': 0, '2026-01-12': 0, '2026-01-13': 0, '2026-01-14': 0, '2026-01-15': 0, '2026-01-16': 0, [TODAY]: 0 });
+    expect(data?.daysSinceStorm).toBe(6);
+  });
+
+  it('for a planned future date, counts forecast snow between now and then', async () => {
+    const data = await run({ '2026-01-16': 0, [TODAY]: 0, '2026-01-18': 7, '2026-01-19': 0, '2026-01-20': 0 }, '2026-01-20');
+    expect(data?.daysSinceStorm).toBe(2);
+  });
+});
+
+describe('OpenMeteoWeatherProvider — caching', () => {
+  it('serves a second identical request from the cache, with the original fetch time', async () => {
+    const fetchSpy = vi.fn(async (rawUrl: string) => {
+      const url = new URL(rawUrl);
+      return new Response(JSON.stringify(isMainRequest(url) ? buildResponse({ date: TODAY }) : buildElevationResponse()), {
+        status: 200,
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+    const provider = new OpenMeteoWeatherProvider();
+    const first = await provider.getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    const callsAfterFirst = fetchSpy.mock.calls.length;
+    const second = await provider.getMountainWeather(mountain, makeContext(TODAY, TODAY, at(5)));
+    expect(fetchSpy.mock.calls.length).toBe(callsAfterFirst);
+    expect(second.status === 'ok' && first.status === 'ok' && second.provenance.fetchedAt).toBe(
+      first.status === 'ok' ? first.provenance.fetchedAt : undefined,
+    );
   });
 });
 

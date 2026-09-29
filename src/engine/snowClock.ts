@@ -78,6 +78,7 @@ const FALLBACK_WEATHER: MountainWeather = {
   base: null,
   peak: null,
   snowHistory: null,
+  modelSnowDepthIn: null,
 };
 
 export function resolveOperations(inputs: DayInputs): OperationsReport {

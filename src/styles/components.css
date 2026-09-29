@@ -553,10 +553,6 @@
   font-size: 13px;
 }
 
-.reccard-ticket-note {
-  grid-column: 1 / -1;
-}
-
 .reccard-ticket-label {
   font-size: 10.5px;
   font-weight: 800;
@@ -572,6 +568,7 @@
 }
 
 .reccard-ticket-note {
+  grid-column: 1 / -1;
   color: var(--ink-faint);
   font-size: 12.5px;
 }
@@ -661,6 +658,296 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--ink-faint);
+}
+
+/* ============================================================= snowpack */
+
+.snowpack {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #080d15;
+}
+
+.snowpack-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.snowpack-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.snowpack-chip {
+  font-size: 9px;
+  padding: 2px 6px;
+}
+
+.snowpack-station {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.snowpack-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.snowpack-grid dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.snowpack-grid dd {
+  margin-top: 2px;
+  font-size: clamp(16px, 4.6vw, 20px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.snowpack-grid dd.is-up {
+  color: var(--ice);
+}
+
+.snowpack-note,
+.snowpack-model {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.snowpack-model .numeral {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ======================================================= rider settings */
+
+.ridersettings {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ridersettings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  text-align: left;
+  color: var(--ink);
+}
+
+.ridersettings-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ridersettings-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ridersettings-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ridersettings-caret {
+  flex: none;
+  font-size: 20px;
+  color: var(--ink-faint);
+}
+
+.ridersettings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 16px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.ridersettings-field {
+  margin: 0;
+  padding: 14px 0 0;
+  border: 0;
+}
+
+.ridersettings-field legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ridersettings-field .chiprow {
+  flex-wrap: wrap;
+}
+
+.ridersettings-field .pickchip {
+  min-height: 44px;
+  padding: 8px 14px;
+}
+
+.ridersettings-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+
+.ridersettings-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ice);
+}
+
+.ridersettings-hint {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.ridersettings-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ridersettings-slider-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ridersettings-slider-value {
+  color: var(--ice);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+}
+
+.ridersettings-slider input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--ice);
+}
+
+.ridersettings-slider-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-ghost);
+}
+
+.ridersettings-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ridersettings-select select {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raise);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ========================================================= plan actions */
+
+.planactions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.planactions-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.planactions-button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.planactions-button.is-quiet {
+  background: transparent;
+  color: var(--ink-dim);
+}
+
+.planactions-meta {
+  min-height: 18px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.reccard-ticket.is-pass .reccard-ticket-price {
+  color: var(--go);
 }
 
 /* ======================================================== snow timeline */
@@ -824,11 +1111,6 @@
   overflow: visible;
 }
 
-.snowclock-grid {
-  stroke: var(--line);
-  stroke-width: 1;
-  stroke-dasharray: 2 6;
-}
 
 .snowclock-line {
   fill: none;

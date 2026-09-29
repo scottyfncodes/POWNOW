@@ -4,6 +4,7 @@ import { at } from '@/domain/time';
 import {
   testCrowds,
   testInputs,
+  testMountain,
   testOperations,
   testTicket,
   testTravel,
@@ -220,6 +221,30 @@ describe('extremes', () => {
 });
 
 describe('ticket price', () => {
+  it('treats a mountain on a pass the rider holds as covered — no imputation, no walk-up price', () => {
+    const inputs = testInputs({ ticket: testTicket(289, 289), mountain: testMountain({ passAffiliations: ['epic'] }) });
+    const covered = scoreDay({
+      inputs,
+      clock: buildSnowClock(inputs),
+      departure: null,
+      ret: null,
+      preferences: { ...DEFAULT_PREFERENCES, passes: ['epic'] },
+    });
+    const paying = scoreDay({ inputs, clock: buildSnowClock(inputs), departure: null, ret: null, preferences: DEFAULT_PREFERENCES });
+    expect(factor(covered, 'ticket').value).toBeGreaterThan(factor(paying, 'ticket').value);
+    expect(factor(covered, 'ticket').imputed).toBe(false);
+    expect(factor(covered, 'ticket').note).toMatch(/Covered by your Epic Pass/);
+    // The wrong pass buys nothing.
+    const wrongPass = scoreDay({
+      inputs,
+      clock: buildSnowClock(inputs),
+      departure: null,
+      ret: null,
+      preferences: { ...DEFAULT_PREFERENCES, passes: ['ikon'] },
+    });
+    expect(factor(wrongPass, 'ticket').value).toBe(factor(paying, 'ticket').value);
+  });
+
   it('scores a cheap ticket above an expensive one', () => {
     const cheap = scoreFor(testInputs({ ticket: testTicket(99, 139) })).score;
     const dear = scoreFor(testInputs({ ticket: testTicket(289, 289) })).score;

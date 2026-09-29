@@ -38,22 +38,23 @@ export interface HourlyWeather {
 }
 
 /**
- * A single elevation's real-time reading: temperature, wind and (where the
- * provider covers it) snow depth, each anchored to a specific point in time.
- * Base and peak are reported independently — see `MountainWeather.base` /
- * `.peak` — because a mid-mountain forecast point cannot honestly stand in
- * for either end. Never derived from the other elevation's numbers.
+ * A single elevation's reading: temperature and wind, anchored to a specific
+ * point in time. Base and peak are reported independently — see
+ * `MountainWeather.base` / `.peak` — because a mid-mountain forecast point
+ * cannot honestly stand in for either end. Never derived from the other
+ * elevation's numbers.
+ *
+ * Snow depth deliberately does *not* live here. A weather model's depth is
+ * one number for a whole grid cell, however many elevations you ask it
+ * about, so presenting it per elevation would be the model's single guess
+ * wearing two labels. Modeled depth is `MountainWeather.modelSnowDepthIn`;
+ * an actually measured depth comes from a `SnowpackProvider`
+ * (`domain/snowpack.ts`), which names the station it was measured at.
  */
 export interface ElevationConditions {
   temperatureF: number;
   windMph: number;
   windGustMph: number;
-  /**
-   * Modeled or observed snow depth at this elevation, inches. `null` means
-   * the provider does not cover this metric for this point — never a
-   * silently-copied value from the other elevation, and never a guess.
-   */
-  snowDepthIn: number | null;
   /** When this reading is anchored to, ISO 8601. */
   timestamp: string;
   /** Provider that produced this specific reading. */
@@ -89,7 +90,7 @@ export interface MountainWeather {
   overnightSnowIn: number;
   /** Snow in the last 72h, for base/coverage reasoning. */
   recentSnow72hIn: number;
-  /** Days since the last meaningful (>2in) storm. */
+  /** Days since the last calendar day that delivered a meaningful refresh (about 1.5in or more). 0 when last night did. */
   daysSinceStorm: number;
   hourly: HourlyWeather[];
   summary: string;
@@ -99,6 +100,14 @@ export interface MountainWeather {
   peak: ElevationConditions | null;
   /** Five-day-back / five-day-forward snowfall. `null` when no provider covers it. */
   snowHistory: SnowHistory | null;
+  /**
+   * The weather model's own snow depth at the forecast point, inches. This is
+   * a gridded-model estimate — a 3-10 km cell smoothing over ridges and
+   * valleys — not a measurement, and the UI labels it as modeled. `null`
+   * when the provider does not report one. A measured depth is a separate
+   * thing entirely: see `SnowpackObservation`.
+   */
+  modelSnowDepthIn: number | null;
 }
 
 /** ---- Mountain operations ---------------------------------------------- */
@@ -174,8 +183,19 @@ export interface TravelCurve {
   distanceMiles: number;
   direction: 'outbound' | 'return';
   samples: TravelSample[];
-  roadCondition: RoadCondition;
+  /**
+   * Surface state as the *traffic* source reports it. `null` means the
+   * source doesn't report one (Google Routes never does) — the authoritative
+   * surface read is the `RoadConditionProvider`'s, and scoring prefers it.
+   */
+  roadCondition: RoadCondition | null;
   incidents: TravelIncident[];
+  /**
+   * True when the curve was built during the day it describes and the
+   * departure times already behind us were dropped; the first sample is
+   * "leave right now". Absent/false for a curve covering the whole grid.
+   */
+  truncatedToNow?: boolean;
 }
 
 export interface CrowdCurve {

@@ -11,6 +11,21 @@ export interface GeoPoint {
  */
 export type PassAffiliation = 'epic' | 'ikon' | 'mountain-collective' | 'indy' | 'independent';
 
+/** The passes a rider can say they hold. `independent` is a mountain fact, not a pass anyone owns. */
+export const HOLDABLE_PASSES: readonly PassAffiliation[] = ['epic', 'ikon', 'mountain-collective', 'indy'];
+
+export const PASS_LABELS: Record<PassAffiliation, string> = {
+  epic: 'Epic Pass',
+  ikon: 'Ikon Pass',
+  'mountain-collective': 'Mountain Collective',
+  indy: 'Indy Pass',
+  independent: 'Independent',
+};
+
+/** The first of the rider's passes that this mountain honors, or null. */
+export const passCovering = (mountain: Pick<Mountain, 'passAffiliations'>, passes: readonly PassAffiliation[]): PassAffiliation | null =>
+  passes.find((pass) => mountain.passAffiliations.includes(pass)) ?? null;
+
 export interface Elevations {
   baseFt: number;
   summitFt: number;

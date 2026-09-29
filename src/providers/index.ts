@@ -18,7 +18,8 @@ import type { ProviderRegistry } from './types';
 export function createProviderRegistry(env: SnownowEnvironment = resolveEnvironment()): ProviderRegistry {
   if (env.dataMode === 'demo') return createDemoRegistry();
   return createLiveRegistry({
-    trafficApiBaseUrl: env.trafficApiBaseUrl || undefined,
+    // `''` is a real value here (same-origin proxy); only "not configured" is undefined.
+    trafficApiBaseUrl: env.proxyConfigured ? env.trafficApiBaseUrl : undefined,
     enableRoadConditions: env.enableRoadConditions,
   });
 }

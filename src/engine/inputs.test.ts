@@ -203,6 +203,7 @@ describe('mixed live and demo inputs', () => {
               base: null,
               peak: null,
               snowHistory: null,
+              modelSnowDepthIn: null,
             },
             {
               source: 'live',

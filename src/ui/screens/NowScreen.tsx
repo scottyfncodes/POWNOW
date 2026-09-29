@@ -56,7 +56,7 @@ export function NowScreen({ registry, clock, origin, preferences, onBack }: NowS
         right={<span className="screenhead-date">{formatDateLabel(clock.today)}</span>}
       />
       <div className="screen-body shell">
-        <PlanView recommendation={state.data} now={clock.now} />
+        <PlanView recommendation={state.data} now={clock.now} onRefresh={state.reload} />
       </div>
     </div>
   );

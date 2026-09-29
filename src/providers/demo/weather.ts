@@ -86,7 +86,6 @@ export class DemoWeatherProvider implements WeatherProvider {
       temperatureF: Math.round(mix(pattern.baseTempF, 20, blend)),
       windMph: baseWindMph,
       windGustMph: Math.round(baseWindMph * 1.5),
-      snowDepthIn: Math.round(40 * profile.snow * oro),
       timestamp: fetchedAt,
       source: this.id,
     };
@@ -94,7 +93,6 @@ export class DemoWeatherProvider implements WeatherProvider {
       temperatureF: Math.round(mix(pattern.baseTempF, 20, blend) - 9),
       windMph: peakWindMph,
       windGustMph: Math.round(peakWindMph * 1.5),
-      snowDepthIn: Math.round(46 * profile.snow * oro),
       timestamp: fetchedAt,
       source: this.id,
     };
@@ -109,6 +107,9 @@ export class DemoWeatherProvider implements WeatherProvider {
         base,
         peak,
         snowHistory: buildSnowHistory(context, pattern.daysSinceStorm, snowMultiplier, rng),
+        // The demo "model" depth: a plausible mid-season pack scaled by the
+        // mountain's snow character. Labeled demo like everything else here.
+        modelSnowDepthIn: Math.round(42 * profile.snow * oro),
       },
       provenance,
     );

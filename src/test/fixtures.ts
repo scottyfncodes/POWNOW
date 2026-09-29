@@ -13,6 +13,7 @@ import type { Mountain, Origin } from '@/domain/mountain';
 import type { TicketPrice } from '@/domain/pricing';
 import { type Availability, ok, unavailable, type Provenance } from '@/domain/provenance';
 import type { RoadStatus } from '@/domain/road';
+import type { SnowpackObservation } from '@/domain/snowpack';
 import { at, HOUR, minuteRange, type MinuteOfDay } from '@/domain/time';
 import type { DayInputs } from '@/engine/inputs';
 
@@ -127,7 +128,6 @@ export function testWeather(spec: WeatherSpec = {}): MountainWeather {
     baseUnavailable = false,
     peakWindMph = Math.round(windMph * 1.3),
     peakTemperatureF = temperatureF - 8,
-    peakSnowDepthIn = baseSnowDepthIn === null ? null : Math.round(baseSnowDepthIn * 1.15),
     peakUnavailable = false,
     past5TotalIn = daysSinceStorm === 0 ? Math.max(overnightSnowIn * 2, 4) : Math.max(0, 12 - daysSinceStorm * 1.5),
     future5TotalIn = 0,
@@ -157,7 +157,6 @@ export function testWeather(spec: WeatherSpec = {}): MountainWeather {
           temperatureF,
           windMph,
           windGustMph: Math.round(windMph * 1.5),
-          snowDepthIn: baseSnowDepthIn,
           timestamp: '2026-01-17T08:00:00Z',
           source: 'fixture',
         },
@@ -167,11 +166,11 @@ export function testWeather(spec: WeatherSpec = {}): MountainWeather {
           temperatureF: peakTemperatureF,
           windMph: peakWindMph,
           windGustMph: Math.round(peakWindMph * 1.4),
-          snowDepthIn: peakSnowDepthIn,
           timestamp: '2026-01-17T08:00:00Z',
           source: 'fixture',
         },
     snowHistory: snowHistoryUnavailable ? null : buildFixtureSnowHistory(past5TotalIn, future5TotalIn),
+    modelSnowDepthIn: baseSnowDepthIn,
   };
 }
 
@@ -250,6 +249,23 @@ export function testRoadStatus(overrides: Partial<RoadStatus> = {}): RoadStatus 
   };
 }
 
+export function testSnowpack(overrides: Partial<SnowpackObservation> = {}): SnowpackObservation {
+  return {
+    stationId: '999:CO:SNTL',
+    stationName: 'Test Pillow',
+    stationElevationFt: 10400,
+    distanceMiles: 3.2,
+    snowDepthIn: 48,
+    sweIn: 13.1,
+    packDensity: 0.27,
+    depthChange24hIn: 4,
+    newSnow5dIn: 9,
+    observedOn: '2026-01-17',
+    sourceUrl: 'https://example.test/snotel',
+    ...overrides,
+  };
+}
+
 export function testCrowds(level = 0.4): CrowdCurve {
   return {
     samples: minuteRange(at(7), at(17), 15).map((minute) => ({ minute, crowding: level })),
@@ -300,6 +316,8 @@ export function testTravel(spec: TravelSpec): TravelCurve {
 export interface InputsSpec {
   mountain?: Mountain;
   weather?: MountainWeather | 'unavailable';
+  /** Defaults to unavailable: most engine tests are about the forecast, not the station. */
+  snowpack?: SnowpackObservation | 'unavailable';
   operations?: OperationsReport | 'unavailable';
   crowds?: CrowdCurve | 'unavailable';
   ticket?: TicketPrice | 'unavailable';
@@ -331,6 +349,7 @@ export function testInputs(spec: InputsSpec = {}): DayInputs {
     horizonDays: spec.horizonDays ?? 0,
     isToday: (spec.horizonDays ?? 0) === 0,
     weather: wrap(spec.weather ?? testWeather(), 'No forecast.'),
+    snowpack: wrap(spec.snowpack ?? 'unavailable', 'No snowpack station.'),
     operations: wrap(spec.operations ?? testOperations(), 'No lift report.'),
     crowds: wrap(spec.crowds ?? testCrowds(), 'No crowd data.'),
     ticket: wrap(spec.ticket ?? testTicket(), 'No ticket pricing.'),

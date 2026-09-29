@@ -1,11 +1,17 @@
+import { resolveEnvironment } from '@/config/env';
 import type { Origin } from '@/domain/mountain';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { Wordmark } from '@/ui/components/Wordmark';
 import { OriginPicker } from '@/ui/components/OriginPicker';
+import { RiderSettingsPanel } from '@/ui/components/RiderSettings';
+import type { RiderSettings } from '@/ui/hooks/usePreferences';
 
 export interface HomeScreenProps {
   origin: Origin;
   onOriginChange: (origin: Origin) => void;
+  settings: RiderSettings;
+  onSettingsChange: (patch: Partial<RiderSettings>) => void;
+  onSettingsReset: () => void;
   onNow: () => void;
   onLater: () => void;
   onMap: () => void;
@@ -23,11 +29,17 @@ export interface HomeScreenProps {
 export function HomeScreen({
   origin,
   onOriginChange,
+  settings,
+  onSettingsChange,
+  onSettingsReset,
   onNow,
   onLater,
   onMap,
   usingDemoData,
 }: HomeScreenProps) {
+  const environment = resolveEnvironment();
+  // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
+  const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
   return (
     <main className="home">
       <Snowfall density={38} />
@@ -57,20 +69,21 @@ export function HomeScreen({
 
         <footer className="home-foot">
           <OriginPicker origin={origin} onChange={onOriginChange} />
+          <RiderSettingsPanel settings={settings} onChange={onSettingsChange} onReset={onSettingsReset} />
           {usingDemoData ? (
             <p className="home-demo">
               <span className="chip chip-demo">DEMO DATA</span>
               <span>
-                No live weather, traffic or lift feeds are connected. Every number below is
+                No live weather, traffic or lift feeds are connected. Every number in the app is
                 simulated — and labelled as such.
               </span>
             </p>
-          ) : (
+          ) : remoteProxy ? (
             <p className="home-note">
               First traffic check in a while? It can take up to 15 seconds to wake up — that's
               normal, not a bug. Give it a moment or check again if it says unavailable.
             </p>
-          )}
+          ) : null}
         </footer>
       </div>
     </main>

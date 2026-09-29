@@ -1,10 +1,13 @@
+import { PASS_LABELS } from '@/domain/mountain';
 import type { SkiDayPlan } from '@/domain/plan';
 import { SNOW_STATE_LABEL } from '@/engine/snowState';
 import { formatPrice, savingsVsWindow } from '@/domain/pricing';
 import { formatClock, formatDuration, formatWindowLabel } from '@/domain/time';
 import { BasePeakConditions } from './BasePeakConditions';
 import { ConfidencePill, DataBadge } from './DataBadge';
+import { PlanActions } from './PlanActions';
 import { ScoreDial } from './ScoreDial';
+import { SnowpackPanel } from './SnowpackPanel';
 import { SnowTimeline } from './SnowTimeline';
 
 export interface RecommendationCardProps {
@@ -14,6 +17,12 @@ export interface RecommendationCardProps {
   /** LATER shows a projection rather than a call. */
   projected?: boolean;
   onCompare?: () => void;
+  /** When the recommendation was computed, for the "updated N min ago" line. */
+  generatedAt?: string;
+  /** Present for NOW: re-runs the recommendation. */
+  onRefresh?: () => void;
+  /** The current minute, so the age line ticks. */
+  nowTick?: number;
 }
 
 /**
@@ -47,7 +56,15 @@ function projectionNote(
  * verdict outranks the decimal — a number is only decision support, and
  * "LET'S RIDE." is the actual output of the product.
  */
-export function RecommendationCard({ plan, why, projected = false, onCompare }: RecommendationCardProps) {
+export function RecommendationCard({
+  plan,
+  why,
+  projected = false,
+  onCompare,
+  generatedAt,
+  onRefresh,
+  nowTick,
+}: RecommendationCardProps) {
   const { departure, snowClock } = plan;
   const ret = plan.return;
   const ticket = plan.ticket;
@@ -96,6 +113,11 @@ export function RecommendationCard({ plan, why, projected = false, onCompare }: 
       )}
 
       <BasePeakConditions base={plan.baseConditions} peak={plan.peakConditions} />
+      <SnowpackPanel
+        snowpack={plan.snowpack}
+        modelSnowDepthIn={plan.modelSnowDepthIn}
+        demo={plan.provenance.source === 'demo'}
+      />
       <SnowTimeline history={plan.snowHistory} />
 
       {offSeason ? null : departure && ret ? (
@@ -136,7 +158,15 @@ export function RecommendationCard({ plan, why, projected = false, onCompare }: 
         <p className="reccard-notiming">We can't time this day — see the notes below.</p>
       )}
 
+      {!offSeason && plan.passCoverage && (
+        <p className="reccard-ticket is-pass">
+          <span className="reccard-ticket-label">Lift ticket</span>
+          <span className="reccard-ticket-price">On your {PASS_LABELS[plan.passCoverage]}</span>
+          <span className="reccard-ticket-note">No day ticket to buy.</span>
+        </p>
+      )}
       {!offSeason &&
+        !plan.passCoverage &&
         (ticket ? (
           <p className="reccard-ticket">
             <span className="reccard-ticket-label">Lift ticket</span>
@@ -186,6 +216,8 @@ export function RecommendationCard({ plan, why, projected = false, onCompare }: 
           </button>
         )}
       </div>
+
+      <PlanActions plan={plan} generatedAt={generatedAt} onRefresh={onRefresh} nowTick={nowTick} />
     </section>
   );
 }

@@ -7,7 +7,7 @@ import {
   ok,
   unavailable,
 } from '@/domain/provenance';
-import { fetchJson } from '@/lib/http';
+import { cachedJson } from './fetchCache';
 import type { ProviderContext, TrafficProvider } from '@/providers/types';
 
 /**
@@ -33,9 +33,12 @@ interface TravelCurveResponse {
   routeLabel?: string;
   corridorShorthand?: string;
   samples?: { departure: number; durationMinutes: number; congestion: number }[];
-  roadCondition?: TravelCurve['roadCondition'];
+  /** The server sends null: Google Routes does not report surface condition, and this client never invents one. */
+  roadCondition?: TravelCurve['roadCondition'] | null;
   incidents?: TravelCurve['incidents'];
   sourceTimestamp?: string;
+  /** True when the server dropped departure times already in the past and anchored the curve at "now". */
+  truncatedToNow?: boolean;
   /** The server's real Google-reported distance. Preferred over `route.distanceMiles`, which is only a hand-authored figure for the six manual cities and a straight-line estimate for any other origin. */
   distanceMiles?: number | null;
 }
@@ -52,21 +55,29 @@ export class LiveTrafficProvider implements TrafficProvider {
   ): Promise<Availability<TravelCurve>> {
     const url = `${this.options.apiBaseUrl}/api/travel-curve`;
 
+    const body = JSON.stringify({
+      origin: route.originPoint,
+      destination: route.destinationPoint,
+      direction,
+      date: context.date,
+    });
+
     let payload: TravelCurveResponse;
+    let fetchedAtMs: number;
     try {
-      payload = await fetchJson<TravelCurveResponse>(url, {
+      const result = await cachedJson<TravelCurveResponse>(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          origin: route.originPoint,
-          destination: route.destinationPoint,
-          direction,
-          date: context.date,
-        }),
+        body,
         // Real routing calls take longer than a JSON GET; the server itself
         // also caches, so a slow *first* request for a corridor is expected.
         timeoutMs: 15000,
+        // Mirrors the server's own cache window; the client-side copy exists
+        // so NOW → LATER → NOW within a session doesn't re-ask.
+        ttlMs: 5 * 60 * 1000,
       });
+      payload = result.value;
+      fetchedAtMs = result.fetchedAt;
     } catch (error) {
       return unavailable(this.id, describeError(error));
     }
@@ -75,7 +86,7 @@ export class LiveTrafficProvider implements TrafficProvider {
       return unavailable(this.id, 'Traffic service returned no departure samples.');
     }
 
-    const fetchedAt = new Date();
+    const fetchedAt = new Date(fetchedAtMs);
     return ok(
       {
         routeId: route.id,
@@ -85,8 +96,12 @@ export class LiveTrafficProvider implements TrafficProvider {
           typeof payload.distanceMiles === 'number' ? payload.distanceMiles : route.distanceMiles,
         direction,
         samples: payload.samples,
-        roadCondition: payload.roadCondition ?? 'clear',
+        // Google reports travel time, not surface state. `null` here means
+        // "not reported"; the authoritative surface read comes from the
+        // CDOT provider through `engine/inputs.ts`, never from this slot.
+        roadCondition: payload.roadCondition ?? null,
         incidents: payload.incidents ?? [],
+        truncatedToNow: payload.truncatedToNow === true,
       },
       {
         source: 'live',

@@ -290,7 +290,7 @@ describe('base/peak conditions and off-season handling on the plan', () => {
       testInputs({ weather: testWeather({ baseSnowDepthIn: 55, peakUnavailable: true, past5TotalIn: 12 }) }),
     );
     expect(built.baseConditions).not.toBeNull();
-    expect(built.baseConditions!.snowDepthIn).toBe(55);
+    expect(built.modelSnowDepthIn).toBe(55);
     // Peak was unavailable on the source — never backfilled from base.
     expect(built.peakConditions).toBeNull();
     expect(built.snowHistory!.pastTotalIn).toBe(12);

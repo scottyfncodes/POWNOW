@@ -10,6 +10,7 @@ import type {
   SnowClock,
 } from '@/domain/plan';
 import { type ConfidenceLevel, weakestConfidence } from '@/domain/provenance';
+import { PASS_LABELS, passCovering } from '@/domain/mountain';
 import { formatPrice, savingsVsWindow } from '@/domain/pricing';
 import { clamp, formatDuration, type MinuteOfDay } from '@/domain/time';
 import { sampleCurve, saturate, scoreBetween } from '@/lib/curve';
@@ -81,7 +82,7 @@ export function scoreDay(input: ScoreInput): DayScore {
     roads: roadsFactor(inputs),
     crowds: crowdsFactor(crowds, skiWindow, preferences),
     usableTime: usableTimeFactor(departure, ret),
-    ticket: ticketFactor(inputs),
+    ticket: ticketFactor(inputs, preferences),
   };
 
   const factors: ScoreFactor[] = (Object.keys(raw) as ScoreFactorKey[]).map((key) => {
@@ -410,20 +411,44 @@ function trafficFactor(departure: DepartureOption | null, ret: ReturnOption | nu
 }
 
 function roadsFactor(inputs: DayInputs): RawFactor {
-  if (inputs.outbound.status !== 'ok') {
+  /*
+   * Two sources can speak to the road surface. The authoritative one is the
+   * corridor's road-condition feed (CDOT), which reports what the pavement
+   * is actually like and whether a chain law is in force. The secondary one
+   * is whatever the traffic source inferred — the demo model derives a
+   * surface from its own storm; Google Routes reports none at all (`null`).
+   * A route the feed says is *closed* never reaches this function: it was
+   * removed from consideration upstream (`engine/inputs.ts`).
+   */
+  const authoritative =
+    inputs.primaryRoadStatus && inputs.primaryRoadStatus.status === 'ok' ? inputs.primaryRoadStatus.data : null;
+  if (authoritative) {
+    const value = ROAD_SCORE[authoritative.condition];
+    const closures = authoritative.closures.length;
+    return {
+      value: clamp(value - closures * 5, 0, 100),
+      note: authoritative.tractionLawInEffect
+        ? 'Traction law in effect — snow tires or chains required.'
+        : authoritative.condition === 'clear'
+          ? 'Roads reported clear.'
+          : `Roads: ${authoritative.condition.replace('-', ' ')}.`,
+    };
+  }
+
+  if (inputs.outbound.status !== 'ok' || inputs.outbound.data.roadCondition === null) {
     return { value: NEUTRAL, note: 'No road condition data.', imputed: true };
   }
   const outbound = inputs.outbound.data;
+  const outboundCondition = outbound.roadCondition as RoadCondition;
   const inboundCondition =
-    inputs.inbound.status === 'ok' ? inputs.inbound.data.roadCondition : outbound.roadCondition;
-  const value = Math.min(ROAD_SCORE[outbound.roadCondition], ROAD_SCORE[inboundCondition]);
+    inputs.inbound.status === 'ok' && inputs.inbound.data.roadCondition !== null
+      ? inputs.inbound.data.roadCondition
+      : outboundCondition;
+  const value = Math.min(ROAD_SCORE[outboundCondition], ROAD_SCORE[inboundCondition]);
   const incidents = outbound.incidents.length + (inputs.inbound.status === 'ok' ? inputs.inbound.data.incidents.length : 0);
   return {
     value: clamp(value - incidents * 5, 0, 100),
-    note:
-      outbound.roadCondition === 'clear'
-        ? 'Roads clear.'
-        : `Roads: ${outbound.roadCondition.replace('-', ' ')}.`,
+    note: outboundCondition === 'clear' ? 'Roads clear.' : `Roads: ${outboundCondition.replace('-', ' ')}.`,
   };
 }
 
@@ -464,7 +489,14 @@ function crowdsFactor(
 const EXPENSIVE_TICKET = 320;
 const CHEAP_TICKET = 80;
 
-function ticketFactor(inputs: DayInputs): RawFactor {
+/** A pass-covered day scores like the cheapest ticket on the market — because for this rider it is. */
+const PASS_COVERED_VALUE = 96;
+
+function ticketFactor(inputs: DayInputs, preferences: RiderPreferences): RawFactor {
+  const pass = passCovering(inputs.mountain, preferences.passes);
+  if (pass) {
+    return { value: PASS_COVERED_VALUE, note: `Covered by your ${PASS_LABELS[pass]}.` };
+  }
   if (inputs.ticket.status !== 'ok') {
     return { value: NEUTRAL, note: 'No ticket pricing available.', imputed: true };
   }

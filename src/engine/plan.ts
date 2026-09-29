@@ -7,7 +7,7 @@ import {
 } from '@/config/weights';
 import type { DateKey } from '@/domain/dates';
 import { resortSourceFor } from '@/data/resortSources';
-import type { Mountain, Origin } from '@/domain/mountain';
+import { type Mountain, type Origin, passCovering } from '@/domain/mountain';
 import { NON_SKIABLE_STATES } from '@/domain/mountainStatus';
 import type {
   DataSourceStatus,
@@ -94,10 +94,13 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     baseConditions: inputs.weather.status === 'ok' ? inputs.weather.data.base : null,
     peakConditions: inputs.weather.status === 'ok' ? inputs.weather.data.peak : null,
     snowHistory: inputs.weather.status === 'ok' ? inputs.weather.data.snowHistory : null,
+    modelSnowDepthIn: inputs.weather.status === 'ok' ? inputs.weather.data.modelSnowDepthIn : null,
+    snowpack: inputs.snowpack.status === 'ok' ? inputs.snowpack.data : null,
     operationalState,
     offSeasonMessage,
     ticket: inputs.ticket.status === 'ok' ? inputs.ticket.data : null,
     ticketPurchaseUrl: resortSourceFor(inputs.mountain.id).officialPurchaseUrl,
+    passCoverage: passCovering(inputs.mountain, preferences.passes),
     alerts: inputs.alerts.status === 'ok' ? inputs.alerts.data : [],
     dataSources: buildDataSources(inputs),
     departure: optimized.departure,
@@ -141,8 +144,11 @@ function buildDataSources(inputs: DayInputs): DataSourceStatus[] {
 
   const opsSourceUrl = inputs.operations.status === 'ok' ? inputs.operations.data.sourceUrl : undefined;
 
+  const snowpackUrl = inputs.snowpack.status === 'ok' ? inputs.snowpack.data.sourceUrl : undefined;
+
   const rows = [
     row('Weather', inputs.weather),
+    row('Snowpack', inputs.snowpack, snowpackUrl),
     row('Traffic', inputs.outbound),
     row('Lift operations', inputs.operations, opsSourceUrl),
     row('Ticket price', inputs.ticket),
@@ -281,9 +287,16 @@ export async function recommend(
   options: RecommendOptions,
 ): Promise<Recommendation> {
   const context: ProviderContext = makeContext(options.date, options.today, options.now);
-  const candidates = options.mountains.filter(
+  const preferences = options.preferences ?? DEFAULT_PREFERENCES;
+  const reachable = options.mountains.filter(
     (mountain) => resolveAccessRoutes(mountain, options.origin).length > 0,
   );
+  // "Only my passes" narrows the field to mountains the rider can ski on a
+  // pass they hold. If that leaves nothing, the filter is ignored rather
+  // than answering with an error — a rider with an Epic Pass in Durango
+  // still deserves an answer, just not one that pretends Purgatory is free.
+  const onPass = reachable.filter((mountain) => passCovering(mountain, preferences.passes) !== null);
+  const candidates = preferences.onlyMyPasses && preferences.passes.length > 0 && onPass.length > 0 ? onPass : reachable;
 
   const inputs = await Promise.all(
     candidates.map((mountain) => loadDayInputs(registry, mountain, options.origin, context)),

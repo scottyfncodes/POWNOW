@@ -5,9 +5,11 @@ import { LiveMountainProvider } from './mountainStatus';
 import { NwsAlertsProvider } from './nwsAlerts';
 import { OpenMeteoWeatherProvider } from './openMeteoWeather';
 import { LivePricingProvider } from './pricing';
+import { SnotelSnowpackProvider } from './snotelSnowpack';
 import {
   UnavailablePlacesProvider,
   UnavailableRoadConditionProvider,
+  UnavailableSnowpackProvider,
   UnavailableTrafficProvider,
 } from './unavailable';
 
@@ -18,10 +20,17 @@ export {
   LiveTrafficProvider,
   NwsAlertsProvider,
   OpenMeteoWeatherProvider,
+  SnotelSnowpackProvider,
 };
 
 export interface LiveRegistryOptions {
-  /** Base URL of the traffic proxy server (see `server/index.mjs`). */
+  /**
+   * Base URL of the data proxy (see `server/index.mjs`). It carries traffic
+   * (Google Routes), road conditions (CDOT) and measured snowpack (SNOTEL) —
+   * everything a browser can't fetch itself. `''` means same-origin (the
+   * proxy is deployed under `/api` beside the frontend); `undefined` means
+   * no proxy, and all three report `unavailable`.
+   */
   trafficApiBaseUrl?: string;
   /** CDOT/COtrip road conditions — on by default, see `config/env.ts`. */
   enableRoadConditions?: boolean;
@@ -41,7 +50,8 @@ export interface LiveRegistryOptions {
  * |---|---|---|
  * | weather, alerts | always | (no fallback — these have no config knob) |
  * | traffic | `trafficApiBaseUrl` set | `unavailable` |
- * | roads | `enableRoadConditions` (default true) | `unavailable` |
+ * | roads | proxy set and `enableRoadConditions` (default true) | `unavailable` |
+ * | snowpack | `trafficApiBaseUrl` set (SNOTEL via the proxy) | `unavailable` |
  * | mountain (operations) | Liftie covers the resort | `unavailable` |
  * | mountain (crowds) | never — retired, see `mountainStatus.ts` | `unavailable` |
  * | pricing | never — no verifiable source, see `pricing.ts` | `unavailable` |
@@ -52,22 +62,26 @@ export interface LiveRegistryOptions {
  * never returns a `Demo*Provider` instance in any slot.
  */
 export function createLiveRegistry(options: LiveRegistryOptions = {}): ProviderRegistry {
-  const hasTrafficServer = Boolean(options.trafficApiBaseUrl);
+  const apiBaseUrl = options.trafficApiBaseUrl;
+  // `''` is same-origin (the Vercel layout); only `undefined` means no proxy.
+  const hasProxy = apiBaseUrl !== undefined;
   const roadConditionsEnabled = options.enableRoadConditions ?? true;
 
   return {
     weather: new OpenMeteoWeatherProvider(),
-    traffic: hasTrafficServer
-      ? new LiveTrafficProvider({ apiBaseUrl: options.trafficApiBaseUrl! })
-      : new UnavailableTrafficProvider(),
+    traffic: hasProxy ? new LiveTrafficProvider({ apiBaseUrl: apiBaseUrl! }) : new UnavailableTrafficProvider(),
     mountain: new LiveMountainProvider(),
     pricing: new LivePricingProvider(),
     places: new UnavailablePlacesProvider(),
     alerts: new NwsAlertsProvider(),
-    roads: roadConditionsEnabled ? new CotripRoadProvider() : new UnavailableRoadConditionProvider(),
+    roads:
+      hasProxy && roadConditionsEnabled
+        ? new CotripRoadProvider({ apiBaseUrl: apiBaseUrl! })
+        : new UnavailableRoadConditionProvider(),
+    snowpack: hasProxy ? new SnotelSnowpackProvider({ apiBaseUrl: apiBaseUrl! }) : new UnavailableSnowpackProvider(),
     // No slot in this registry is ever a demo implementation — a config-time
     // gap reports `unavailable`, not demo data. See the module docblock.
     usingDemoData: false,
-    label: hasTrafficServer ? 'Live data' : 'Live data (traffic unavailable — no server configured)',
+    label: hasProxy ? 'Live data' : 'Live data (traffic, roads and snowpack unavailable — no proxy configured)',
   };
 }
