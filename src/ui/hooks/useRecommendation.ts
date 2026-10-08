@@ -29,6 +29,10 @@ export function useAsync<T>(
   const [nonce, setNonce] = useState(0);
   const runRef = useRef(run);
   runRef.current = run;
+  // Read when a run starts, not a dependency: a screen change that only
+  // alters the floor must not throw away an answer already computed.
+  const minimumRef = useRef(minimumMs);
+  minimumRef.current = minimumMs;
 
   useEffect(() => {
     if (!enabled) {
@@ -43,8 +47,9 @@ export function useAsync<T>(
       .current()
       .then(async (data) => {
         const elapsed = Date.now() - startedAt;
-        if (elapsed < minimumMs) {
-          await new Promise((resolve) => setTimeout(resolve, minimumMs - elapsed));
+        const floor = minimumRef.current;
+        if (elapsed < floor) {
+          await new Promise((resolve) => setTimeout(resolve, floor - elapsed));
         }
         if (!cancelled) setState({ status: 'ready', data });
       })
@@ -60,7 +65,7 @@ export function useAsync<T>(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, enabled, minimumMs, nonce]);
+  }, [...deps, enabled, nonce]);
 
   const reload = useCallback(() => setNonce((value) => value + 1), []);
   return { ...state, reload };

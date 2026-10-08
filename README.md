@@ -24,13 +24,18 @@ Head home 2:42 PM · Home 4:28 PM
 
 ## The flow
 
-The home screen is the POW NOW logo, and the logo is the button: it opens the
-map. On every other screen the logo in the header is the home button, and home
-is the map.
+The home screen is the answer: today's pick from your starting point — the
+mountain, the verdict and score, and the three facts behind it (snow, lifts,
+the drive) — with **SEE WHY** opening that mountain's whole day and **All
+mountains** opening the map. It shows a skeleton of the same layout while the
+call is made, and a one-line error under the hero if it fails. Where the data
+comes from is behind **Sources**. On every other screen the logo in the header
+is the home button, and home is the map.
 
 | | Path | What you get |
 |---|---|---|
-| **Map** | The logo → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
+| **Today's pick** | Home → SEE WHY | The engine's winner for today, straight from the home screen. |
+| **Map** | All mountains → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
 | **List** | The map's other tab → a mountain → its day | The same mountains by name, A to Z. |
 | **POW PLANNER** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first. |
 

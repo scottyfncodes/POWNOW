@@ -9,20 +9,22 @@ import { ORIGIN_STORAGE_KEY } from '@/ui/hooks/useOrigin';
 import { PREFERENCES_STORAGE_KEY } from '@/ui/hooks/usePreferences';
 
 /**
- * These tests walk the product's actual promise: open it, tap POW NOW, say
- * how you ride, get every mountain ranked, open one and get an answer you can
+ * These tests walk the product's actual promise: open it and get today's
+ * call, browse every mountain, say how you ride, get every mountain ranked, open one and get an answer you can
  * act on — and, from the same step, pick a date and get a projection that is
  * honest about being one.
  */
 
 const user = () => userEvent.setup();
 
-const logo = () => screen.getByRole('button', { name: /^POW NOW — open the map/ });
+/** Home's secondary action: every mountain, on the map. */
+const allMountains = () => screen.getByRole('button', { name: /^All mountains/ });
+const seeWhy = () => screen.getByRole('button', { name: /^See why/ });
 const rankButton = () => screen.getByRole('button', { name: /^POW PLANNER/ });
 
-/** Home → the logo → the map → POW PLANNER: the Your ride step. */
+/** Home → All mountains → the map → POW PLANNER: the Your ride step. */
 async function openSetup() {
-  await user().click(logo());
+  await user().click(allMountains());
   await user().click(rankButton());
 }
 const showMe = () => screen.getByRole('button', { name: /^SHOW ME/ });
@@ -46,35 +48,91 @@ async function tapNow(registry?: ReturnType<typeof createDemoRegistry>) {
 }
 
 describe('the home screen', () => {
-  it('is the POW NOW logo, and the logo is the button', () => {
+  it("leads with today's answer: the pick, its verdict and score, and why", async () => {
     render(<App />);
     expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
-    expect(logo()).toBeInTheDocument();
-    expect(logo().textContent).toBe('POWNOW');
-    // Nothing else to decide on the home screen.
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
+    const pick = screen.getByRole('heading', { level: 1 });
+    expect(MOUNTAINS.map((mountain) => mountain.shortName)).toContain(pick.textContent);
+    expect(screen.getByText(/^TODAY · from Denver$/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/out of 10/i).length).toBeGreaterThan(0);
+    const why = screen.getByRole('list', { name: 'Why' });
+    expect(within(why).getByText('Snow')).toBeInTheDocument();
+    expect(within(why).getByText('Lifts')).toBeInTheDocument();
+    expect(within(why).getByText(/^Leave /)).toBeInTheDocument();
+  }, 15_000);
+
+  it('the wordmark is the header, not a button: one primary action and one secondary', async () => {
+    render(<App />);
+    expect(screen.getByRole('banner').textContent).toMatch(/^POWNOW/);
+    expect(screen.queryByRole('button', { name: /POWNOW/ })).not.toBeInTheDocument();
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
+    expect(allMountains()).toBeInTheDocument();
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Sources', 'SEE WHY', 'All mountains']);
   });
 
-  it('names where the data comes from at the bottom, and says the numbers are demo when they are', () => {
+  it('shows a skeleton of the same layout while the call is being made, and SEE WHY waits for it', () => {
     render(<App />);
-    const credits = screen.getByRole('region', { name: /where the data comes from/i });
+    expect(screen.getByRole('status')).toHaveTextContent(/checking the mountain/i);
+    expect(screen.getByRole('heading', { level: 1 }).querySelector('.home-skel')).not.toBeNull();
+    expect(seeWhy()).toBeDisabled();
+  });
+
+  it('says a failed call in one line under the hero, with a way to try again', async () => {
+    const registry = createDemoRegistry();
+    // Every feed failure is absorbed per mountain; only a broken registry fails the whole call.
+    Object.defineProperty(registry, 'weather', {
+      get: () => {
+        throw new Error('The forecast service fell over.');
+      },
+    });
+    render(<App registry={registry} />);
+    const alert = await screen.findByRole('alert', {}, { timeout: 12_000 });
+    expect(alert).toHaveTextContent('The forecast service fell over.');
+    expect(within(alert).getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    expect(alert.closest('section')!.querySelector('h1')).not.toBeNull();
+    expect(allMountains()).toBeEnabled();
+  }, 15_000);
+
+  it('SEE WHY opens the pick\'s whole day, and back returns home', async () => {
+    render(<App />);
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
+    const name = screen.getByRole('heading', { level: 1 }).textContent;
+    await user().click(seeWhy());
+    await waitFor(() => expect(window.location.hash).toMatch(/^#\/mountain\//));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(name), { timeout: 12_000 });
+    expect(screen.getByRole('heading', { name: /when to leave/i })).toBeInTheDocument();
+    await user().click(screen.getByRole('button', { name: /back to start/i }));
+    await waitFor(() => expect(seeWhy()).toBeInTheDocument());
+  }, 20_000);
+
+  it('keeps where the data comes from one tap away, in a Sources sheet', async () => {
+    render(<App />);
+    expect(screen.queryByRole('region', { name: /where the data comes from/i })).not.toBeInTheDocument();
+    await user().click(screen.getByRole('button', { name: 'Sources' }));
+    const sheet = screen.getByRole('dialog', { name: /where the data comes from/i });
+    const credits = within(sheet).getByRole('region', { name: /where the data comes from/i });
     for (const who of ['Open-Meteo', 'USDA NRCS SNOTEL', 'National Weather Service', 'Google Maps Routes', 'CDOT COtrip']) {
       expect(within(credits).getByRole('link', { name: new RegExp(who) })).toHaveAttribute('href', expect.stringMatching(/^https:\/\//));
     }
     expect(within(credits).getByText(/demo data right now/i)).toBeInTheDocument();
     expect(within(credits).getByText(/reference, not live/i)).toBeInTheDocument();
+    await user().click(within(sheet).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/starting from/i)).not.toBeInTheDocument();
   });
 
-  it('says plainly that it is running on demo data', () => {
+  it('says plainly, beside the answer, that it is running on demo data', async () => {
     render(<App />);
-    expect(screen.getByText('DEMO DATA')).toBeInTheDocument();
+    const hero = screen.getByRole('heading', { level: 1 }).closest('section')!;
+    expect(within(hero).getByText('DEMO DATA')).toBeInTheDocument();
     expect(screen.getByText(/No live weather, traffic or lift feeds/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^LIVE$/)).not.toBeInTheDocument();
   });
 
-  it('the logo opens the map, with every mountain selectable and a List tab beside it', async () => {
+  it('All mountains opens the map, with every mountain selectable and a List tab beside it', async () => {
     render(<App />);
-    await user().click(logo());
+    await user().click(allMountains());
     expect(window.location.hash).toBe('#/map');
     expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'false');
@@ -87,7 +145,7 @@ describe('the home screen', () => {
 
   it('switches to the list, alphabetical, and a row lands on that mountain\'s day', async () => {
     render(<App />);
-    await user().click(logo());
+    await user().click(allMountains());
     await user().click(screen.getByRole('button', { name: 'List' }));
     expect(window.location.hash).toBe('#/list');
     expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
@@ -108,7 +166,7 @@ describe('the home screen', () => {
 
   it('switching back to the map tab pops history instead of stacking tabs', async () => {
     render(<App />);
-    await user().click(logo());
+    await user().click(allMountains());
     await user().click(screen.getByRole('button', { name: 'List' }));
     await user().click(screen.getByRole('button', { name: 'Map' }));
     await waitFor(() => expect(window.location.hash).toBe('#/map'));
@@ -118,7 +176,7 @@ describe('the home screen', () => {
 
   it('the map\'s "full day plan" lands on the same mountain screen', async () => {
     render(<App />);
-    await user().click(logo());
+    await user().click(allMountains());
     await user().click(screen.getByRole('button', { name: /^Keystone\. Tap to view/i }));
     await user().click(screen.getByRole('button', { name: /full day plan for keystone/i }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('KEYSTONE'), {
@@ -546,7 +604,7 @@ describe('honest empty states', () => {
 describe('navigation history', () => {
   it('puts each screen in the URL, so the phone Back gesture retraces the flow instead of leaving', async () => {
     render(<App />);
-    await user().click(logo());
+    await user().click(allMountains());
     expect(window.location.hash).toBe('#/map');
     await user().click(rankButton());
     expect(window.location.hash).toBe('#/setup');

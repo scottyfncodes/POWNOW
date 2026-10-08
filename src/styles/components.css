@@ -43,113 +43,340 @@
   z-index: 1;
 }
 
+/* Header, the answer, then the actions at the bottom where a thumb is. */
 .home-inner {
   position: relative;
   z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 28px;
-  padding-top: max(48px, env(safe-area-inset-top));
-  padding-bottom: max(28px, env(safe-area-inset-bottom));
+  padding-top: max(28px, env(safe-area-inset-top));
+  padding-bottom: max(22px, env(safe-area-inset-bottom));
 }
 
-/* The logo is the home screen's one button: centered, big, and it opens the map. */
-.home-center {
-  flex: 1;
+.home-head {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 4px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.home-logo-heading {
-  margin: 0;
-}
-
-.home-logo {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 16px;
-  padding: 22px 22px 22px 26px;
-  border: 1px solid rgba(124, 231, 255, 0.5);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, rgba(124, 231, 255, 0.12), rgba(255, 255, 255, 0.02) 60%);
-  box-shadow:
-    0 0 0 1px rgba(124, 231, 255, 0.08) inset,
-    0 22px 70px -26px rgba(124, 231, 255, 0.75);
-  cursor: pointer;
-  transition:
-    transform 160ms var(--ease),
-    border-color 160ms var(--ease),
-    box-shadow 220ms var(--ease);
-  animation: home-logo-breathe 3.2s var(--ease) infinite;
-}
-
-/* Inside the button the wordmark gives up a little size to make room for the arrow. */
-.home-logo .wordmark-lg {
-  font-size: clamp(38px, 11.4vw, 84px);
-}
-
-.home-logo-go {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: var(--ice);
-  color: var(--bg);
-  box-shadow: 0 0 22px var(--ice-glow);
-  transition: transform 160ms var(--ease);
-}
-
-.home-logo:hover,
-.home-logo:focus-visible {
-  border-color: var(--ice);
-  box-shadow:
-    0 0 0 1px rgba(124, 231, 255, 0.2) inset,
-    0 26px 80px -24px rgba(124, 231, 255, 0.95);
-}
-
-.home-logo:hover .home-logo-go,
-.home-logo:focus-visible .home-logo-go {
-  transform: translateX(3px);
-}
-
-.home-logo:active {
-  transform: scale(0.97);
-}
-
-@keyframes home-logo-breathe {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 1px rgba(124, 231, 255, 0.08) inset,
-      0 22px 70px -26px rgba(124, 231, 255, 0.55);
-  }
-  50% {
-    box-shadow:
-      0 0 0 1px rgba(124, 231, 255, 0.16) inset,
-      0 22px 80px -20px rgba(124, 231, 255, 0.95);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-logo {
-    animation: none;
-  }
+.home-brand .wordmark-lg {
+  font-size: clamp(34px, 9.6vw, 52px);
 }
 
 .home-tagline {
-  margin-top: 14px;
-  font-size: clamp(16px, 4.4vw, 20px);
+  margin-top: 8px;
+  font-size: 14px;
   color: var(--ink-dim);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
+}
+
+.home-sources {
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.home-sources:hover,
+.home-sources:focus-visible {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+/* The answer: today's pick, set like a summit sign against the night. */
+.home-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+
+.home-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ice);
+}
+
+.home-pick {
+  margin: 0;
+  min-height: 0.9em;
+  font-size: clamp(58px, 18vw, 112px);
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  color: var(--ink);
+  text-shadow: 0 0 60px rgba(124, 231, 255, 0.18);
+  overflow-wrap: anywhere;
+}
+
+.home-pick.is-muted {
+  color: var(--ink-faint);
+  text-shadow: none;
+}
+
+.home-call {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-verdict {
+  min-height: 1em;
+  font-size: clamp(26px, 7.6vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--ice);
+  text-shadow: 0 0 34px var(--ice-glow);
+}
+
+.home-verdict.is-offseason {
+  color: var(--ink-dim);
+  text-shadow: none;
+  font-size: clamp(20px, 5.8vw, 28px);
+}
+
+.home-offseason {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.home-reasons {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.home-reasons li {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  min-height: 46px;
+  padding: 13px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.home-reason-key {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.home-reason-val {
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* The skeleton is the same layout with the words not in yet — so the answer
+   lands in place rather than pushing the page around. */
+.home-skel {
+  display: inline-block;
+  vertical-align: middle;
+  height: 0.78em;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 45%, var(--surface) 90%);
+  background-size: 220% 100%;
+  animation: home-skel-sheen 1.4s var(--ease) infinite;
+}
+
+.home-skel-name {
+  width: 62%;
+}
+
+.home-skel-verdict {
+  width: 46%;
+}
+
+.home-skel-reason {
+  width: 72%;
+  height: 15px;
+}
+
+@keyframes home-skel-sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+/* A failed call is one line under the hero, not a box in front of it. */
+.home-error {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--wait);
+}
+
+.home-error-retry {
+  font-weight: 800;
+  color: var(--ice);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 62px;
+  padding: 0 10px 0 24px;
+  border-radius: 999px;
+  background: var(--ice);
+  color: var(--bg);
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  box-shadow: 0 18px 60px -22px rgba(124, 231, 255, 0.85);
+  transition:
+    transform 160ms var(--ease),
+    opacity 200ms var(--ease);
+}
+
+.home-cta:disabled {
+  cursor: default;
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+.home-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.home-cta-go {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(4, 6, 10, 0.14);
+}
+
+.home-browse {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.home-browse:hover,
+.home-browse:focus-visible {
+  border-color: rgba(124, 231, 255, 0.45);
+}
+
+.home-note {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.home-note strong {
+  color: var(--wait);
+  letter-spacing: 0.06em;
+}
+
+/* Sources: the credits, a sheet up from the bottom over the home. */
+.home-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(1, 2, 4, 0.72);
+}
+
+.home-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding-top: 14px;
+  padding-bottom: max(22px, env(safe-area-inset-bottom));
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg-raise);
+}
+
+.home-sheet-close {
+  align-self: flex-end;
+  min-height: 40px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ice);
+}
+
+.home-sheet .credits {
+  border-top: 0;
+  padding-top: 0;
+}
+
+@media (min-width: 720px) {
+  .home-inner {
+    padding-top: 44px;
+    padding-bottom: 44px;
+  }
+
+  .home-actions {
+    flex-direction: row;
+  }
+
+  .home-cta {
+    flex: 2;
+  }
+
+  .home-browse {
+    flex: 1;
+    min-height: 62px;
+  }
+
+  .home-note {
+    flex-basis: 100%;
+  }
+
+  .home-actions {
+    flex-wrap: wrap;
+  }
 }
 
 .bigbutton {
@@ -211,31 +438,6 @@
 
 .bigbutton-now .bigbutton-word {
   color: var(--ice);
-}
-
-.home-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.home-demo {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--ink-faint);
-}
-
-.home-demo .chip {
-  flex: none;
-}
-
-.home-note {
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--ink-faint);
 }
 
 /* ========================================================= origin picker */
