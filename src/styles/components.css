@@ -117,13 +117,16 @@
 .home-pick {
   margin: 0;
   min-height: 0.9em;
-  font-size: clamp(58px, 18vw, 112px);
+  /* --chars is the name's longest word: a heavy capital is ~0.72em wide here,
+     so the word always fits the column instead of breaking mid-word. */
+  --chars: 6;
+  font-size: max(40px, min(18vw, 112px, calc(min(100vw - 2 * var(--gutter), var(--shell) - 2 * var(--gutter)) / (var(--chars) * 0.72))));
   font-weight: 900;
   letter-spacing: -0.055em;
   line-height: 0.9;
   color: var(--ink);
   text-shadow: 0 0 60px rgba(124, 231, 255, 0.18);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .home-pick.is-muted {

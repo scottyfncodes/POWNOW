@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import { resolveEnvironment } from '@/config/env';
 import { type DateKey, relativeDateLabel } from '@/domain/dates';
 import type { Origin } from '@/domain/mountain';
@@ -152,9 +152,11 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
 /** The winner: name, verdict, score, and the three facts a skier asks for first. */
 function Pick({ plan }: { plan: SkiDayPlan }) {
   const offSeason = plan.offSeasonMessage;
+  // The name is sized to its longest word, so KEYSTONE or TELLURIDE never breaks mid-word on a phone.
+  const longestWord = Math.max(...plan.mountain.shortName.split(/\s+/).map((word) => word.length));
   return (
     <>
-      <h1 id="home-pick" className="home-pick">
+      <h1 id="home-pick" className="home-pick" style={{ '--chars': longestWord } as CSSProperties}>
         {plan.mountain.shortName}
       </h1>
       <div className="home-call">
