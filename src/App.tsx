@@ -30,8 +30,9 @@ import { SetupScreen } from '@/ui/screens/SetupScreen';
  * one. Swapping the demo bundle for live integrations happens on this line and
  * nowhere else.
  *
- * Home is the logo, and the logo opens the map — on every screen, the POW
- * NOW logo in the header is the home button. The map and the list are two
+ * Home is today's answer — the engine's pick, why, and SEE WHY — with All
+ * mountains one tap over to the map; on every other screen the POW NOW logo
+ * in the header is the home button. The map and the list are two
  * tabs of the same browse screen; from either, one button starts
  * YOUR RIDE → YOUR MOUNTAINS (ranked for your day), and every path lands on
  * the same mountain screen. One `recommend()` call, owned here, feeds both
@@ -78,7 +79,9 @@ export default function App({ registry: injected }: AppProps = {}) {
   const date = chosenDate < clock.today ? clock.today : chosenDate;
   const isToday = date === clock.today;
 
-  const wantsPlans = route.screen === 'picks' || route.screen === 'mountain';
+  // Home leads with the answer, so it runs the same call the picks and the
+  // mountain screens read — tapping SEE WHY costs no second ranking.
+  const wantsPlans = route.screen === 'home' || route.screen === 'picks' || route.screen === 'mountain';
   const plans = useAsync(
     () =>
       recommend(registry, {
@@ -94,7 +97,9 @@ export default function App({ registry: injected }: AppProps = {}) {
     // `clock.now` is read inside but deliberately not a dependency: the
     // ranking must not re-run every minute the tab is open.
     [origin.id, origin.coordinates.lat, origin.coordinates.lon, date, clock.today, preferences],
-    { enabled: wantsPlans, minimumMs: 1900 },
+    // The home skeleton is already the waiting state; the "checking the
+    // roads…" sequence only earns its floor on the picks screen.
+    { enabled: wantsPlans, minimumMs: route.screen === 'home' ? 0 : 1900 },
   );
 
   const openMountain = (from: Screen) => (mountainId: string) => {
@@ -186,7 +191,15 @@ export default function App({ registry: injected }: AppProps = {}) {
         );
       default:
         return (
-          <HomeScreen onOpen={() => navigate('map')} usingDemoData={registry.usingDemoData} />
+          <HomeScreen
+            state={plans}
+            clock={clock}
+            date={date}
+            origin={origin}
+            usingDemoData={registry.usingDemoData}
+            onOpenMountain={openMountain('home')}
+            onBrowse={() => navigate('map')}
+          />
         );
     }
   }
