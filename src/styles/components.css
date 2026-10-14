@@ -982,7 +982,7 @@
 
 .snowpack-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
@@ -996,7 +996,7 @@
 }
 
 .snowpack-grid dd {
-  margin-top: 2px;
+  margin: 2px 0 0;
   font-size: clamp(16px, 4.6vw, 20px);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -2905,24 +2905,147 @@
   margin: 0;
 }
 
-.mapscreen-fullplan {
-  margin: 4px 0 10px;
-}
-
 .mapscreen-profile {
   margin-top: 4px;
 }
 
-/* On a phone the profile behaves like a real bottom sheet: fixed to the
-   viewport (never part of document scroll, so it can never overlap or push
-   around the map above it), collapsible so the map is never permanently
-   shoved out of view. `position: sticky` was tried first and rejected — a
-   sticky element tall enough to need scrolling fights its own static-flow
-   position at the top of the page and ends up overlapping the map instead
-   of sitting below it. `fixed` sidesteps that entirely. */
+/* Leaflet stacks its panes at z-index 400–1000 inside a container that
+   doesn't form its own stacking context, so pins, tooltips and the legend
+   used to float *above* the bottom sheet and swallow the swipes meant to
+   scroll it. Isolating the map keeps all of that inside the map's own box. */
+.mountainmap {
+  isolation: isolate;
+}
+
+/* -- the peek card: always the top of the sheet -- */
+
+.mapscreen-sheet-handle {
+  display: none;
+}
+
+.mapscreen-peek {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  padding-bottom: 14px;
+}
+
+.mapscreen-peek-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mapscreen-peek-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mapscreen-peek-name {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.mapscreen-peek-sub {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ice);
+}
+
+.mapscreen-peek-score {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  font-size: 21px;
+  font-weight: 900;
+  color: var(--bg);
+  background: var(--ice);
+  box-shadow: 0 10px 30px -14px currentColor;
+}
+
+.mapscreen-peek-score.is-go {
+  background: var(--go);
+}
+
+.mapscreen-peek-score.is-mixed {
+  background: var(--wait);
+}
+
+.mapscreen-peek-score.is-skip {
+  background: var(--stop);
+}
+
+.mapscreen-peek-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.mapscreen-peek-facts > div {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.mapscreen-peek-facts dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mapscreen-peek-facts dd {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.mapscreen-peek-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapscreen-peek-actions .button {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.mapscreen-peek-more {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-dim);
+}
+
+.mapscreen-sheet-body {
+  padding-bottom: 24px;
+}
+
+/* On a phone the profile is a real bottom sheet: fixed to the viewport,
+   opening as a short peek card so the map stays in view, and pulling up into
+   a tall panel whose body — and only its body — scrolls. The head never
+   scrolls away, so Profile / Full day plan / Less are always one tap off. */
 @media (max-width: 720px) {
   .mapscreen-body.mapscreen-split {
-    padding-bottom: 110px;
+    padding-bottom: 260px;
   }
 
   .mapscreen-sheet {
@@ -2930,38 +3053,76 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 20;
-    background: var(--bg);
-    border-top: 1px solid var(--line);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    max-height: 88dvh;
+    margin: 0;
+    background: rgba(8, 12, 19, 0.96);
+    backdrop-filter: blur(18px);
+    border-top: 1px solid var(--line-strong);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
-    max-height: 48dvh;
-    overflow-y: auto;
-    padding-top: 6px;
+    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.55);
     padding-bottom: env(safe-area-inset-bottom);
+    animation: sheet-in 260ms var(--ease);
   }
 
-  .mapscreen-sheet.is-collapsed {
-    max-height: 104px;
-    overflow: hidden;
+  .mapscreen-sheet.is-expanded {
+    height: 88dvh;
+  }
+
+  .mapscreen-sheet-head {
+    flex: none;
+  }
+
+  .mapscreen-sheet.is-expanded .mapscreen-sheet-head {
+    border-bottom: 1px solid var(--line);
   }
 
   .mapscreen-sheet-handle {
-    position: sticky;
-    top: 0;
     display: flex;
     justify-content: center;
-    padding: 8px 0 4px;
-    background: var(--bg);
+    width: 100%;
+    padding: 10px 0 8px;
   }
 
-  .mapscreen-sheet-handle button {
+  .mapscreen-sheet-handle span {
     width: 44px;
     height: 5px;
     border-radius: 999px;
     background: var(--line-strong);
-    border: none;
-    padding: 0;
+  }
+
+  .mapscreen-sheet-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding-top: 14px;
+  }
+
+  .mapscreen-sheet.is-peek .mapscreen-sheet-body {
+    display: none;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Mid-width screens: the profile simply follows the map in the page. */
+@media (min-width: 721px) {
+  .mapscreen-peek-more {
+    display: none;
   }
 }
 
@@ -2980,12 +3141,32 @@
 
   .mapscreen-split .mountainmap {
     position: sticky;
-    top: 16px;
+    top: 86px;
   }
 
   .mapscreen-split .mapscreen-profile {
-    max-height: calc(100dvh - 32px);
+    max-height: calc(100dvh - 100px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raise);
+    position: sticky;
+    top: 86px;
+  }
+
+  .mapscreen-split .mapscreen-sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-top: 16px;
+    background: rgba(10, 15, 24, 0.94);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .mapscreen-split .mapscreen-sheet-body {
+    padding-top: 16px;
   }
 }
 
@@ -3772,56 +3953,205 @@
 
 /* ============================================================ mountain list */
 
+.listscreen-head {
+  margin: 22px 0 16px;
+}
+
+.listscreen-title {
+  margin: 0 0 6px;
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.listscreen-title .numeral {
+  color: var(--ice);
+}
+
 .listscreen-intro {
-  margin: 18px 0 14px;
+  margin: 0;
   font-size: 14px;
   line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.listscreen-filters {
+  position: sticky;
+  top: 64px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 calc(var(--gutter) * -1) 14px;
+  padding: 10px var(--gutter);
+  background: linear-gradient(180deg, rgba(4, 6, 10, 0.94) 70%, rgba(4, 6, 10, 0));
+  backdrop-filter: blur(10px);
+}
+
+.listscreen-search {
+  position: relative;
+  display: block;
+}
+
+.listscreen-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-52%);
+  font-size: 18px;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.listscreen-search input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px 0 40px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 150ms var(--ease), background 150ms var(--ease);
+}
+
+.listscreen-search input::placeholder {
+  color: var(--ink-ghost);
+}
+
+.listscreen-search input:focus {
+  border-color: rgba(124, 231, 255, 0.55);
+  background: var(--surface-2);
+}
+
+.listscreen-passes {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+
+.filterchip {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  transition: background 150ms var(--ease), color 150ms var(--ease), border-color 150ms var(--ease);
+}
+
+.filterchip.is-active {
+  background: rgba(124, 231, 255, 0.14);
+  border-color: rgba(124, 231, 255, 0.5);
+  color: var(--ice);
+}
+
+.listscreen-empty {
+  padding: 30px 0;
+  text-align: center;
   color: var(--ink-dim);
 }
 
 .mountainlist {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .mountainlist-row {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  align-items: stretch;
+  gap: 8px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 16px 44px 16px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(124, 231, 255, 0.07), transparent 55%),
+    var(--surface);
   text-align: left;
+  overflow: hidden;
   transition:
-    background 150ms var(--ease),
-    border-color 150ms var(--ease);
+    background 180ms var(--ease),
+    border-color 180ms var(--ease),
+    transform 180ms var(--ease),
+    box-shadow 180ms var(--ease);
 }
 
 .mountainlist-row:hover,
 .mountainlist-row:focus-visible {
-  background: var(--surface-2);
-  border-color: var(--line-strong);
+  border-color: rgba(124, 231, 255, 0.35);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(124, 231, 255, 0.13), transparent 55%),
+    var(--surface-2);
+  box-shadow: 0 18px 40px -26px rgba(124, 231, 255, 0.55);
+}
+
+.mountainlist-row:active {
+  transform: scale(0.99);
+}
+
+.mountainlist-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
 }
 
 .mountainlist-name {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
-.mountainlist-meta {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.mountainlist-region {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--ink-faint);
+}
+
+.mountainlist-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.mountainlist-stats strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.mountainlist-bar {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.mountainlist-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ice-deep), var(--ice));
 }
 
 .mountainlist-character {
@@ -3834,7 +4164,44 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 4px;
+}
+
+.mountainlist-chevron {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink-ghost);
+  transition: color 180ms var(--ease), transform 180ms var(--ease);
+}
+
+.mountainlist-row:hover .mountainlist-chevron,
+.mountainlist-row:focus-visible .mountainlist-chevron {
+  color: var(--ice);
+  transform: translate(3px, -50%);
+}
+
+/* Pass chips wear their network's colour, quietly. */
+.passchip-epic {
+  color: #8fb6ff;
+  border-color: rgba(143, 182, 255, 0.35);
+}
+
+.passchip-ikon {
+  color: #ffb27a;
+  border-color: rgba(255, 178, 122, 0.35);
+}
+
+.passchip-indy {
+  color: #b9f08a;
+  border-color: rgba(185, 240, 138, 0.35);
+}
+
+.passchip-mountain-collective {
+  color: #e7a6ff;
+  border-color: rgba(231, 166, 255, 0.35);
 }
 
 /* ========================================================== mountain screen */
@@ -3887,26 +4254,47 @@
   padding-top: 14px;
 }
 
+/* A segmented control with a sliding thumb: List (the default) on the left. */
 .browsebar-tabs {
-  display: inline-flex;
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
   padding: 3px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
 }
 
+.browsebar-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 999px;
+  background: var(--ice);
+  box-shadow: 0 6px 20px -8px rgba(124, 231, 255, 0.8);
+  transition: transform 260ms var(--ease);
+}
+
+.browsebar-tabs.is-map .browsebar-thumb {
+  transform: translateX(100%);
+}
+
 .browsebar-tab {
+  position: relative;
   min-height: 38px;
+  min-width: 76px;
   padding: 0 18px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: var(--ink-dim);
+  transition: color 200ms var(--ease);
 }
 
 .browsebar-tab.is-active {
-  background: var(--ice);
   color: var(--bg);
 }
 
@@ -3994,4 +4382,414 @@
 
 .credits-static {
   color: var(--ink-ghost);
+}
+
+/* ========================================================= profile screen */
+
+/* A mountain on its own terms — no score, no verdict. The hero leads with
+   identity and shape; everything below is facts and logistics. */
+.profilescreen-body {
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.profilehero {
+  position: relative;
+  padding: 22px 18px 18px;
+  border: 1px solid rgba(124, 231, 255, 0.22);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(110% 90% at 100% 0%, rgba(124, 231, 255, 0.16), transparent 60%),
+    radial-gradient(80% 70% at 0% 100%, rgba(31, 143, 189, 0.16), transparent 70%),
+    var(--bg-raise);
+  overflow: hidden;
+  animation: rise-in 420ms var(--ease);
+}
+
+.profilehero-region {
+  color: var(--ice);
+}
+
+.profilehero-name {
+  margin: 6px 0 8px;
+  font-size: clamp(34px, 10vw, 52px);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.profilehero-character {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.profilehero-passes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profilehero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.profilehero-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.profilehero-call {
+  box-shadow: 0 14px 34px -16px rgba(124, 231, 255, 0.9);
+}
+
+/* -- elevation silhouette -- */
+
+.elevation {
+  position: relative;
+  margin: 18px -18px 0;
+  height: 150px;
+}
+
+.elevation-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.elevation-guide {
+  stroke: rgba(243, 247, 255, 0.22);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.elevation-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.elevation-label {
+  position: absolute;
+  right: 18px;
+  transform: translateY(-110%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.elevation-label .numeral {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.elevation-vertical {
+  position: absolute;
+  left: 18px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ice);
+}
+
+.elevation-vertical .numeral {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+/* -- the mountain, by the numbers -- */
+
+.profilestats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.profilestat {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.profilestat dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.profilestat dd {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 0;
+}
+
+.profilestat-value {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.profilestat-note {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.profilestats-hours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.profilestats-hours dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.profilestats-hours dd {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* -- on the ground today -- */
+
+.profilenow {
+  gap: 14px;
+}
+
+.profilenow-snow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.profilenow-snow > div {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.profilenow-snow > div.is-fresh {
+  border-color: rgba(124, 231, 255, 0.45);
+  background: rgba(124, 231, 255, 0.08);
+}
+
+.profilenow-snow dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.profilenow-snow dd {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.profilenow-snow .is-fresh dd {
+  color: var(--ice);
+}
+
+.profilenow-summary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.profilenow-unavailable {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
+.profilenow-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.profilenow-skeleton span {
+  height: 68px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* -- getting there, tickets -- */
+
+.profileroute-label {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profileroute-note {
+  margin: 10px 0 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.profileticket-passes {
+  margin: 10px 0;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+
+.profileticket-buy {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* -- the bridge to the engine -- */
+
+.profilescreen-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid rgba(124, 231, 255, 0.35);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(100% 120% at 100% 0%, rgba(124, 231, 255, 0.16), transparent 60%),
+    var(--surface);
+  text-align: left;
+  transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+
+.profilescreen-callout:hover,
+.profilescreen-callout:focus-visible {
+  border-color: rgba(124, 231, 255, 0.6);
+  box-shadow: 0 18px 40px -24px rgba(124, 231, 255, 0.7);
+}
+
+.profilescreen-callout-line {
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ice);
+}
+
+.profilescreen-callout-note {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* The day plan's way over to the full profile. */
+.profilelink {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  font-size: 16px;
+  font-weight: 800;
+  transition: border-color 180ms var(--ease), background 180ms var(--ease);
+}
+
+.profilelink:hover,
+.profilelink:focus-visible {
+  border-color: rgba(124, 231, 255, 0.4);
+  background: var(--surface-2);
+}
+
+.profilelink-note {
+  grid-column: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.profilelink-arrow {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 20px;
+  color: var(--ice);
+}
+
+@media (min-width: 560px) {
+  .elevation {
+    height: 180px;
+  }
+}
+
+/* On the map, the demo notice is a single quiet line so the map sits higher. */
+.mapscreen-demo {
+  font-size: 13px;
+  align-items: center;
+}
+
+/* Inside the map sheet the peek card already shows the name, verdict and
+   score, so the profile's own copies are kept for screen readers only. */
+.mapscreen-sheet-body .mountainprofile-name,
+.mapscreen-sheet-body .mountainprofile-verdict,
+.mapscreen-sheet-body .mountainprofile-scorewrap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

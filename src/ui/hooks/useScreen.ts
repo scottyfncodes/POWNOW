@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type Screen = 'home' | 'setup' | 'picks' | 'mountain' | 'list' | 'map' | 'later';
+export type Screen = 'home' | 'setup' | 'picks' | 'mountain' | 'profile' | 'list' | 'map' | 'later';
+
+/** The screens that carry a mountain id in their URL. */
+const takesMountain = (screen: Screen): boolean => screen === 'mountain' || screen === 'profile';
 
 /** Where the app is: a screen, plus the one parameter a screen can carry (which mountain). */
 export interface Route {
@@ -26,7 +29,8 @@ export const routeFromHash = (hash: string): Route => {
     case 'later':
       return { screen: head, mountainId: null };
     case 'mountain':
-      return param ? { screen: 'mountain', mountainId: param } : HOME;
+    case 'profile':
+      return param ? { screen: head, mountainId: param } : HOME;
     // The old NOW screen — its bookmark lands on today's ranked picks.
     case 'now':
       return { screen: 'picks', mountainId: null };
@@ -37,7 +41,7 @@ export const routeFromHash = (hash: string): Route => {
 
 export const hashFor = (route: Route): string => {
   if (route.screen === 'home') return '';
-  if (route.screen === 'mountain') return `#/mountain/${route.mountainId ?? ''}`;
+  if (takesMountain(route.screen)) return `#/${route.screen}/${route.mountainId ?? ''}`;
   return `#/${route.screen}`;
 };
 
@@ -96,7 +100,7 @@ export function useScreen(): [Route, (screen: Screen, mountainId?: string | null
   useEffect(scrollToTop, [route.screen, route.mountainId]);
 
   const navigate = useCallback((screen: Screen, mountainId: string | null = null) => {
-    const next: Route = { screen, mountainId: screen === 'mountain' ? mountainId : null };
+    const next: Route = { screen, mountainId: takesMountain(screen) ? mountainId : null };
     const target = hashFor(next);
     const stack = stackRef.current;
     const top = stack.length - 1;

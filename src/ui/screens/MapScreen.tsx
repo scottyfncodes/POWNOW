@@ -34,6 +34,8 @@ export interface MapScreenProps {
   onBack: () => void;
   /** Leave the map for the mountain's whole day on its own screen. */
   onOpenMountain: (mountainId: string) => void;
+  /** Leave the map for the mountain's own profile — facts and logistics, no ranking. */
+  onOpenProfile?: (mountainId: string) => void;
   /** The map's other tab: every mountain by name. */
   onShowList?: () => void;
   /** Into the Your ride step, then every mountain ranked for your day. */
@@ -67,11 +69,14 @@ export function MapScreen({
   preferences,
   onBack,
   onOpenMountain,
+  onOpenProfile,
   onShowList,
   onRank,
 }: MapScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [sheetExpanded, setSheetExpanded] = useState(true);
+  // On a phone the sheet opens as a short peek card over the map; the rider
+  // pulls it up for everything else. Wider screens always show it in full.
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const selectedMountain = selectedId ? (findMountain(selectedId) ?? null) : null;
   const environment = resolveEnvironment();
   const apiBaseUrl = environment.trafficApiBaseUrl;
@@ -212,17 +217,16 @@ export function MapScreen({
       <div className="mapscreen-top shell">
         {onShowList && onRank && <BrowseBar view="map" onShowMap={() => {}} onShowList={onShowList} onRank={onRank} />}
         <p className="mapscreen-intro">
-          Every supported mountain on a real map, relative to{' '}
-          {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive, the route and the
-          profile.
+          Every mountain, relative to {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive,
+          today's snow and its profile.
         </p>
 
         <OriginPicker origin={origin} onChange={onOriginChange} />
 
         {registry.usingDemoData ? (
-          <p className="home-demo">
+          <p className="home-demo mapscreen-demo">
             <span className="chip chip-demo">DEMO DATA</span>
-            <span>No live weather, traffic or lift feeds are connected. Every number in the app is simulated — and labelled as such.</span>
+            <span>No live feeds connected — every number is simulated.</span>
           </p>
         ) : remoteProxy ? (
           <p className="home-note">
@@ -238,7 +242,7 @@ export function MapScreen({
           selectedMountainId={selectedId}
           onSelectMountain={(id) => {
             setSelectedId(id);
-            setSheetExpanded(true);
+            setSheetExpanded(false);
           }}
           route={mapRoute}
           markerInfo={markerInfo}
@@ -246,60 +250,119 @@ export function MapScreen({
         />
 
         {selectedMountain && (
-          <div className={`mapscreen-profile mapscreen-sheet${sheetExpanded ? '' : ' is-collapsed'}`}>
-            <div className="mapscreen-sheet-handle">
+          <div
+            className={`mapscreen-profile mapscreen-sheet${sheetExpanded ? ' is-expanded' : ' is-peek'}`}
+            role="region"
+            aria-label={`${selectedMountain.name} on the map`}
+          >
+            <div className="mapscreen-sheet-head">
               <button
                 type="button"
-                aria-label={sheetExpanded ? 'Collapse mountain profile' : 'Expand mountain profile'}
+                className="mapscreen-sheet-handle"
+                aria-label={sheetExpanded ? 'Collapse mountain details' : 'Expand mountain details'}
                 aria-expanded={sheetExpanded}
                 onClick={() => setSheetExpanded((value) => !value)}
-              />
-            </div>
-            <div className="shell">
-              <button
-                type="button"
-                className="linkbutton mapscreen-fullplan"
-                onClick={() => onOpenMountain(selectedMountain.id)}
               >
-                Full day plan for {selectedMountain.shortName} →
+                <span aria-hidden="true" />
               </button>
-              {selectedPlan ? (
-                <MountainProfile plan={selectedPlan} reference={mountainProfileFor(selectedMountain.id)} now={clock.now} />
-              ) : (
-                <section className="panel mapscreen-route" aria-live="polite">
-                  <h2 className="section-title">Route to {selectedMountain.shortName}</h2>
-                  {mapRoute === 'loading' && <p className="faint">Checking the route…</p>}
-                  {mapRoute === 'error' && (
-                    <p className="mapscreen-route-error">
-                      Couldn't get a route right now. {fallbackFailure?.message} We won't guess at a time or distance.
-                      {fallbackFailure?.likelySlowWake && ' Give it a moment and try again.'}
-                    </p>
+              <div className="shell mapscreen-peek">
+                <div className="mapscreen-peek-top">
+                  <div className="mapscreen-peek-identity">
+                    <span className="mapscreen-peek-name">{selectedMountain.name}</span>
+                    <span className="mapscreen-peek-sub">
+                      {selectedPlan && !selectedPlan.offSeasonMessage ? selectedPlan.verdict : selectedMountain.region}
+                    </span>
+                  </div>
+                  {selectedPlan && !selectedPlan.offSeasonMessage && (
+                    <span className={`mapscreen-peek-score is-${tierFor(selectedPlan.score.score)}`}>
+                      <span className="numeral">{selectedPlan.score.score.toFixed(1)}</span>
+                      <span className="visually-hidden"> out of 10</span>
+                    </span>
                   )}
-                  {mapRoute && mapRoute !== 'loading' && mapRoute !== 'error' && (
-                    <dl className="mapscreen-route-stats">
-                      <div>
-                        <dt>Drive time</dt>
-                        <dd className="numeral">{formatDuration(mapRoute.durationMinutes)}</dd>
-                      </div>
-                      <div>
-                        <dt>Distance</dt>
-                        <dd className="numeral">
-                          {mapRoute.distanceMiles != null ? `${Math.round(mapRoute.distanceMiles)} mi` : '—'}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Traffic</dt>
-                        <dd>{mapRoute.trafficAware ? 'Traffic-aware' : 'Demo estimate'}</dd>
-                      </div>
-                    </dl>
+                </div>
+                <dl className="mapscreen-peek-facts">
+                  <div>
+                    <dt>Drive</dt>
+                    <dd className="numeral">
+                      {mapRoute && mapRoute !== 'loading' && mapRoute !== 'error'
+                        ? formatDuration(mapRoute.durationMinutes)
+                        : mapRoute === 'loading'
+                          ? '…'
+                          : '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>New snow</dt>
+                    <dd className="numeral">
+                      {selectedPlan?.freshSnowIn != null ? `${selectedPlan.freshSnowIn.toFixed(1)}″` : '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Vertical</dt>
+                    <dd className="numeral">{selectedMountain.elevations.verticalFt.toLocaleString()}′</dd>
+                  </div>
+                </dl>
+                <div className="mapscreen-peek-actions">
+                  {onOpenProfile && (
+                    <button type="button" className="button button-quiet" onClick={() => onOpenProfile(selectedMountain.id)}>
+                      Profile
+                    </button>
                   )}
-                  <NavigateLinks
-                    destination={selectedMountain.coordinates}
-                    destinationLabel={selectedMountain.name}
-                    origin={origin.coordinates}
-                  />
-                </section>
-              )}
+                  <button type="button" className="button mapscreen-fullplan" onClick={() => onOpenMountain(selectedMountain.id)}>
+                    Full day plan<span className="visually-hidden"> for {selectedMountain.name}</span>{' '}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mapscreen-peek-more"
+                    aria-expanded={sheetExpanded}
+                    onClick={() => setSheetExpanded((value) => !value)}
+                  >
+                    {sheetExpanded ? 'Less' : 'More'} <span aria-hidden="true">{sheetExpanded ? '↓' : '↑'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mapscreen-sheet-body">
+              <div className="shell">
+                {selectedPlan ? (
+                  <MountainProfile plan={selectedPlan} reference={mountainProfileFor(selectedMountain.id)} now={clock.now} />
+                ) : (
+                  <section className="panel mapscreen-route" aria-live="polite">
+                    <h2 className="section-title">Route to {selectedMountain.shortName}</h2>
+                    {mapRoute === 'loading' && <p className="faint">Checking the route…</p>}
+                    {mapRoute === 'error' && (
+                      <p className="mapscreen-route-error">
+                        Couldn't get a route right now. {fallbackFailure?.message} We won't guess at a time or distance.
+                        {fallbackFailure?.likelySlowWake && ' Give it a moment and try again.'}
+                      </p>
+                    )}
+                    {mapRoute && mapRoute !== 'loading' && mapRoute !== 'error' && (
+                      <dl className="mapscreen-route-stats">
+                        <div>
+                          <dt>Drive time</dt>
+                          <dd className="numeral">{formatDuration(mapRoute.durationMinutes)}</dd>
+                        </div>
+                        <div>
+                          <dt>Distance</dt>
+                          <dd className="numeral">
+                            {mapRoute.distanceMiles != null ? `${Math.round(mapRoute.distanceMiles)} mi` : '—'}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Traffic</dt>
+                          <dd>{mapRoute.trafficAware ? 'Traffic-aware' : 'Demo estimate'}</dd>
+                        </div>
+                      </dl>
+                    )}
+                    <NavigateLinks
+                      destination={selectedMountain.coordinates}
+                      destinationLabel={selectedMountain.name}
+                      origin={origin.coordinates}
+                    />
+                  </section>
+                )}
+              </div>
             </div>
           </div>
         )}

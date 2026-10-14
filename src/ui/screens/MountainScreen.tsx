@@ -21,6 +21,8 @@ export interface MountainScreenProps {
   onBack: () => void;
   /** Switching to another mountain's day, from the alternatives. */
   onSelectMountain: (mountainId: string) => void;
+  /** The mountain on its own terms — facts, conditions, logistics — without the ranking. */
+  onOpenProfile?: (mountainId: string) => void;
 }
 
 /**
@@ -31,7 +33,16 @@ export interface MountainScreenProps {
  * all three land here, on the same `SkiDayPlan` the ranking computed, so a
  * mountain never has two different days depending on the door you came in.
  */
-export function MountainScreen({ mountainId, state, clock, date, settings, onBack, onSelectMountain }: MountainScreenProps) {
+export function MountainScreen({
+  mountainId,
+  state,
+  clock,
+  date,
+  settings,
+  onBack,
+  onSelectMountain,
+  onOpenProfile,
+}: MountainScreenProps) {
   const mountain = findMountain(mountainId) ?? null;
   const isToday = date === clock.today;
 
@@ -45,6 +56,16 @@ export function MountainScreen({ mountainId, state, clock, date, settings, onBac
       title={mountain.shortName}
       right={<span className="screenhead-date">{isToday ? formatDateLabel(date) : relativeDateLabel(date, clock.today)}</span>}
     />
+  );
+
+  const profileLink = onOpenProfile && (
+    <button type="button" className="profilelink" onClick={() => onOpenProfile(mountain.id)}>
+      <span>Full {mountain.name} profile</span>
+      <span className="profilelink-note">Terrain, snow, parking, grub &amp; brews</span>
+      <span aria-hidden="true" className="profilelink-arrow">
+        →
+      </span>
+    </button>
   );
 
   if (state.status === 'loading' || state.status === 'idle') {
@@ -78,6 +99,7 @@ export function MountainScreen({ mountainId, state, clock, date, settings, onBac
               Back to your mountains
             </button>
           </section>
+          {profileLink}
           <MountainProfilePanel mountain={mountain} profile={mountainProfileFor(mountain.id)} />
         </div>
       </div>
@@ -97,6 +119,7 @@ export function MountainScreen({ mountainId, state, clock, date, settings, onBac
           onSelectMountain={onSelectMountain}
           profile={mountainProfileFor(mountain.id)}
         />
+        {profileLink}
       </div>
     </div>
   );

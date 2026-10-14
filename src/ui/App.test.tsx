@@ -17,12 +17,12 @@ import { PREFERENCES_STORAGE_KEY } from '@/ui/hooks/usePreferences';
 
 const user = () => userEvent.setup();
 
-/** Home's secondary action: every mountain, on the map. */
+/** Home's secondary action: every mountain, as a list. */
 const allMountains = () => screen.getByRole('button', { name: /^All mountains/ });
 const seeWhy = () => screen.getByRole('button', { name: /^See why/ });
 const rankButton = () => screen.getByRole('button', { name: /^POW PLANNER/ });
 
-/** Home → All mountains → the map → POW PLANNER: the Your ride step. */
+/** Home → All mountains → the list → POW PLANNER: the Your ride step. */
 async function openSetup() {
   await user().click(allMountains());
   await user().click(rankButton());
@@ -30,7 +30,7 @@ async function openSetup() {
 const showMe = () => screen.getByRole('button', { name: /^SHOW ME/ });
 const picksList = () => screen.getByRole('list', { name: /mountains, best first/i });
 
-/** Home → the map → Your ride → SHOW ME, and wait for the ranked cards. */
+/** Home → the list → Your ride → SHOW ME, and wait for the ranked cards. */
 async function tapShowMe() {
   await openSetup();
   await user().click(showMe());
@@ -130,25 +130,25 @@ describe('the home screen', () => {
     expect(screen.queryByText(/^LIVE$/)).not.toBeInTheDocument();
   });
 
-  it('All mountains opens the map, with every mountain selectable and a List tab beside it', async () => {
+  it('All mountains opens the list first, with the Map tab beside it', async () => {
     render(<App />);
     await user().click(allMountains());
+    expect(window.location.hash).toBe('#/list');
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'false');
+    const tabs = within(screen.getByRole('group', { name: 'View' })).getAllByRole('button');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['List', 'Map']);
+
+    await user().click(screen.getByRole('button', { name: 'Map' }));
     expect(window.location.hash).toBe('#/map');
-    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'false');
     for (const mountain of MOUNTAINS) {
       expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') })).toBeInTheDocument();
     }
-    await user().click(screen.getByRole('button', { name: /back to start/i }));
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
   });
 
-  it('switches to the list, alphabetical, and a row lands on that mountain\'s day', async () => {
+  it('lists every mountain alphabetically, and a row opens its profile — no ranking', async () => {
     render(<App />);
     await user().click(allMountains());
-    await user().click(screen.getByRole('button', { name: 'List' }));
-    expect(window.location.hash).toBe('#/list');
-    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
     const list = screen.getByRole('list', { name: /colorado mountains, alphabetical/i });
     const names = within(list)
       .getAllByRole('button')
@@ -157,19 +157,55 @@ describe('the home screen', () => {
     expect(names.length).toBe(MOUNTAINS.length);
 
     await user().click(within(list).getByRole('button', { name: /^Copper Mountain/ }));
+    expect(window.location.hash).toBe('#/profile/copper');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Copper Mountain');
+    expect(screen.getByRole('heading', { name: /the mountain/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /trail map/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /getting there/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /parking/i })).toBeInTheDocument(), { timeout: 12_000 });
+    // Facts, not a verdict: no score anywhere on the profile.
+    expect(screen.queryByText(/out of 10/i)).not.toBeInTheDocument();
+
+    await user().click(screen.getByRole('button', { name: /back to start/i }));
+    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+  }, 15_000);
+
+  it('narrows the list by name and by pass', async () => {
+    render(<App />);
+    await user().click(allMountains());
+    await user().type(screen.getByRole('searchbox', { name: /search mountains/i }), 'wolf');
+    const list = screen.getByRole('list', { name: /1 of \d+ colorado mountains/i });
+    expect(within(list).getAllByRole('button')).toHaveLength(1);
+    await user().clear(screen.getByRole('searchbox', { name: /search mountains/i }));
+
+    await user().click(screen.getByRole('button', { name: 'Epic Pass' }));
+    const epic = MOUNTAINS.filter((mountain) => mountain.passAffiliations.includes('epic'));
+    const filtered = screen.getByRole('list', { name: new RegExp(`^${epic.length} of`, 'i') });
+    expect(within(filtered).getAllByRole('button')).toHaveLength(epic.length);
+  });
+
+  it("a profile's Today's call opens the engine's day for it, and the two link back without looping", async () => {
+    render(<App />);
+    await user().click(allMountains());
+    await user().click(screen.getByRole('button', { name: /^Copper Mountain/ }));
+    await user().click(screen.getByRole('button', { name: /^Today's call/ }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('COPPER'), {
       timeout: 12_000,
     });
-    expect(screen.getByRole('heading', { name: /parking/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /trail map/i })).toBeInTheDocument();
-  }, 15_000);
+    expect(window.location.hash).toBe('#/mountain/copper');
+    // Over to the profile again is a step back, not a new entry.
+    await user().click(screen.getByRole('button', { name: /full copper mountain profile/i }));
+    await waitFor(() => expect(window.location.hash).toBe('#/profile/copper'));
+    await user().click(screen.getByRole('button', { name: /back to start/i }));
+    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+  }, 20_000);
 
-  it('switching back to the map tab pops history instead of stacking tabs', async () => {
+  it('switching back to the list tab pops history instead of stacking tabs', async () => {
     render(<App />);
     await user().click(allMountains());
-    await user().click(screen.getByRole('button', { name: 'List' }));
     await user().click(screen.getByRole('button', { name: 'Map' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/map'));
+    await user().click(screen.getByRole('button', { name: 'List' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/list'));
     await user().click(screen.getByRole('button', { name: /back to start/i }));
     await waitFor(() => expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument());
   });
@@ -177,6 +213,7 @@ describe('the home screen', () => {
   it('the map\'s "full day plan" lands on the same mountain screen', async () => {
     render(<App />);
     await user().click(allMountains());
+    await user().click(screen.getByRole('button', { name: 'Map' }));
     await user().click(screen.getByRole('button', { name: /^Keystone\. Tap to view/i }));
     await user().click(screen.getByRole('button', { name: /full day plan for keystone/i }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('KEYSTONE'), {
@@ -185,14 +222,14 @@ describe('the home screen', () => {
     expect(window.location.hash).toBe('#/mountain/keystone');
   }, 15_000);
 
-  it('the logo in every header is the home button, and home is the map', async () => {
+  it('the logo in every header goes to every mountain, as a list', async () => {
     render(<App />);
     await tapShowMe();
     await user().click(within(picksList()).getAllByRole('button')[0]!);
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument(), { timeout: 12_000 });
     await user().click(screen.getByRole('button', { name: /POW NOW home/i }));
-    await waitFor(() => expect(window.location.hash).toBe('#/map'));
-    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
   }, 20_000);
 
   it('POW PLANNER goes to the Your ride step: where from, which day, how you ride', async () => {
@@ -208,7 +245,7 @@ describe('the home screen', () => {
     expect(showMe()).toBeInTheDocument();
     // Its back arrow returns to the tab it came from.
     await user().click(screen.getByRole('button', { name: /back to start/i }));
-    await waitFor(() => expect(window.location.hash).toBe('#/map'));
+    await waitFor(() => expect(window.location.hash).toBe('#/list'));
   });
 
   it('then ranks every reachable mountain as a card, winner first, and opens the one you tap', async () => {
@@ -605,7 +642,7 @@ describe('navigation history', () => {
   it('puts each screen in the URL, so the phone Back gesture retraces the flow instead of leaving', async () => {
     render(<App />);
     await user().click(allMountains());
-    expect(window.location.hash).toBe('#/map');
+    expect(window.location.hash).toBe('#/list');
     await user().click(rankButton());
     expect(window.location.hash).toBe('#/setup');
     await user().click(showMe());
@@ -619,7 +656,7 @@ describe('navigation history', () => {
     act(() => {
       window.history.back();
     });
-    await waitFor(() => expect(window.location.hash).toBe('#/map'));
+    await waitFor(() => expect(window.location.hash).toBe('#/list'));
     act(() => {
       window.history.back();
     });
