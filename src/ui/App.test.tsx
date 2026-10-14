@@ -142,7 +142,7 @@ describe('the home screen', () => {
     await user().click(screen.getByRole('button', { name: 'Map' }));
     expect(window.location.hash).toBe('#/map');
     for (const mountain of MOUNTAINS) {
-      expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name.replace(/[()]/g, '\\$&')}\\. Tap to view`, 'i') })).toBeInTheDocument();
     }
   });
 

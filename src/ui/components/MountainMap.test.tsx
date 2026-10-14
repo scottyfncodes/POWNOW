@@ -21,7 +21,7 @@ describe('MountainMap', () => {
     const group = screen.getByRole('group', { name: /mountains/i });
     for (const mountain of MOUNTAINS) {
       expect(
-        within(group).getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') }),
+        within(group).getByRole('button', { name: new RegExp(`^${mountain.name.replace(/[()]/g, '\\$&')}\\. Tap to view`, 'i') }),
       ).toBeInTheDocument();
     }
     expect(within(group).getAllByRole('button')).toHaveLength(MOUNTAINS.length);

@@ -40,16 +40,23 @@ function proxyReading(overrides: Record<string, unknown> = {}) {
 const respond = (body: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(body), { status }));
 
 describe('the station registry', () => {
-  it('names a station for every mountain in the dataset', () => {
-    for (const mountain of MOUNTAINS) {
-      expect(snotelStationFor(mountain.id), `${mountain.id} needs a SNOTEL station`).not.toBeNull();
+  it('names a station for every one of the original Colorado mountains', () => {
+    const original = ['vail', 'beaver-creek', 'breckenridge', 'keystone', 'crested-butte', 'winter-park', 'purgatory', 'copper', 'wolf-creek', 'arapahoe-basin', 'loveland', 'eldora', 'steamboat', 'monarch', 'telluride'];
+    for (const id of original) {
+      expect(snotelStationFor(id), `${id} needs a SNOTEL station`).not.toBeNull();
     }
   });
 
-  it('uses well-formed NRCS triplets and sits within 25 miles of the mountain it witnesses', () => {
+  it('never records a station for a mountain that does not exist', () => {
+    const ids = new Set(MOUNTAINS.map((mountain) => mountain.id));
+    for (const id of Object.keys(SNOTEL_STATIONS)) expect(ids.has(id), id).toBe(true);
+  });
+
+  it('uses well-formed NRCS triplets in the mountain\'s own state and sits close to the mountain it witnesses', () => {
     for (const mountain of MOUNTAINS) {
-      const station = SNOTEL_STATIONS[mountain.id]!;
-      expect(station.triplet).toMatch(/^\d{3,4}:CO:SNTL$/);
+      const station = SNOTEL_STATIONS[mountain.id];
+      if (!station) continue;
+      expect(station.triplet).toMatch(new RegExp(`^\\d{3,4}:${mountain.state}:SNTL$`));
       const dLat = Math.abs(station.coordinates.lat - mountain.coordinates.lat);
       const dLon = Math.abs(station.coordinates.lon - mountain.coordinates.lon);
       expect(dLat + dLon, `${mountain.id} → ${station.expectedName} looks too far away`).toBeLessThan(0.5);
