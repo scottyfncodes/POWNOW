@@ -134,6 +134,8 @@ export interface Origin {
   name: string;
   shortName: string;
   coordinates: GeoPoint;
+  /** Two-letter state, for grouping the starting-city list. Absent for a GPS fix. */
+  state?: string;
 }
 
 export const routesFrom = (mountain: Mountain, originId: string): AccessRoute[] =>

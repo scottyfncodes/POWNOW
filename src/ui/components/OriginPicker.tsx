@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GPS_ORIGIN_ID, ORIGINS, findOrigin, gpsOrigin } from '@/data/origins';
+import { GPS_ORIGIN_ID, ORIGINS, ORIGIN_STATE_LABELS, findOrigin, gpsOrigin } from '@/data/origins';
 import type { Origin } from '@/domain/mountain';
 
 export interface OriginPickerProps {
@@ -24,7 +24,7 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
 
 /**
  * The user's exact coordinates become the routing origin directly — POW NOW
- * no longer snaps a GPS fix to whichever of the six manual cities is
+ * no longer snaps a GPS fix to whichever of the manual cities is
  * closest. Permission is only ever requested here, on tap; never on mount.
  */
 function useLocate(onChange: (origin: Origin) => void) {
@@ -71,7 +71,7 @@ function useLocate(onChange: (origin: Origin) => void) {
   return { state, locate };
 }
 
-/** Minimal typing: where you're starting from is a tap, not a text field. */
+/** Minimal typing: where you're starting from is a tap, not a text field. Cities are grouped by state. */
 export function OriginPicker({ origin, onChange }: OriginPickerProps) {
   const { state, locate } = useLocate(onChange);
   const isGps = origin.id === GPS_ORIGIN_ID;
@@ -93,10 +93,14 @@ export function OriginPicker({ origin, onChange }: OriginPickerProps) {
                 Your current location
               </option>
             )}
-            {ORIGINS.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
-              </option>
+            {Object.entries(ORIGIN_STATE_LABELS).map(([state, label]) => (
+              <optgroup key={state} label={label}>
+                {ORIGINS.filter((city) => city.state === state).map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <span aria-hidden="true" className="originpicker-chevron">

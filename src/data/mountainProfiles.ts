@@ -1,5 +1,6 @@
 import type { MountainProfile } from '@/domain/mountainProfile';
 import { TBD_DATE } from '@/domain/mountainProfile';
+import { REGION_DATASETS } from '@/data/regions';
 
 /**
  * Researched from each resort's own public pages/press materials via web
@@ -42,7 +43,7 @@ import { TBD_DATE } from '@/domain/mountainProfile';
  * open/closed signals during research and were left out rather than guessed
  * into the list), never padded with a weak or irrelevant pick just to hit 5.
  */
-export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
+const CORE_MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
   vail: {
     officialWebsite: 'https://www.vail.com',
     snowReportUrl: 'https://www.vail.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
@@ -668,6 +669,12 @@ export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       'CORRECTED: this entry previously said Telluride "joined the Epic Pass for 2026-27" — that was wrong. Telluride and Vail Resorts jointly announced Telluride joining Epic Pass on Jan 29, 2018, effective the 2018-19 season (the same year it left Mountain Collective), with the partnership extended via a separate press release in Oct 2022. The Epic Pass affiliation itself is still correct today, just not a 2026-27 change — there was no evidence for that date, it was a fabricated detail that slipped into an earlier pass. Opening (Nov 26, 2026) and closing (Apr 4, 2027) dates can now be sourced directly to Telluride Ski & Golf\'s own FAQ page ("Telluride\'s targeted opening day is November 26, 2026... with a closing day of April 4, 2027"), not just secondary ski-trade coverage — still explicitly "targeted" by the resort itself, so "projected" status stays accurate. Trail map: only a prior-season (2024-25) PDF could be confirmed, so it links the official site rather than an out-of-date map. Removed Cosmopolitan (Hotel Columbia) from Grub — it closed after 29 years around April 2025, and Hotel Columbia itself is closed for renovation until late 2027, so there\'s no restaurant there to list for this season. Smugglers Brewery and Pub renamed to its current name, Smuggler Union Restaurant & Brewery (same address, same on-site brewery). Not fetch-verified — see module note.',
   },
 };
+
+export const MOUNTAIN_PROFILES: Record<string, MountainProfile> = Object.assign(
+  {},
+  CORE_MOUNTAIN_PROFILES,
+  ...REGION_DATASETS.map((dataset) => dataset.profiles),
+);
 
 export const mountainProfileFor = (mountainId: string): MountainProfile | null =>
   MOUNTAIN_PROFILES[mountainId] ?? null;

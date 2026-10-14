@@ -93,7 +93,7 @@ function describePack(snowpack: SnowpackObservation): string {
   const density = snowpack.packDensity;
   if (density === null) return '';
   if (density < 0.2) return 'A light, unsettled pack.';
-  if (density < 0.3) return 'A typical settled Colorado pack.';
+  if (density < 0.3) return 'A typical settled mid-winter pack.';
   if (density < 0.4) return 'A dense, well-settled pack.';
   return 'A very dense pack — spring-like.';
 }

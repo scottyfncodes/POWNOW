@@ -131,6 +131,10 @@ export const CDOT_ROUTES: Record<string, CdotRoute[]> = {
   'us160-wolfcreek': [{ routeName: 'US 160', markers: [135, 195], bounds: [37.2, -107.15, 37.75, -106.5] }],
   // Boulder Canyon to Nederland.
   'co119-eldora': [{ routeName: 'CO 119', markers: [10, 50], bounds: [39.9, -105.6, 40.08, -105.2] }],
+  // Glenwood Springs ↔ Carbondale ↔ Snowmass Village ↔ Aspen (Independence Pass is closed all winter).
+  'co82-roaring-fork': [{ routeName: 'CO 82', markers: [0, 45], bounds: [39.15, -107.35, 39.56, -106.8] }],
+  // Pueblo ↔ Walsenburg ↔ Trinidad ↔ Raton Pass, the Colorado half of the drive to northern New Mexico.
+  'i25-raton': [{ routeName: 'I-25', markers: [0, 100], bounds: [36.99, -104.95, 38.3, -104.4] }],
 };
 
 export class CotripRoadProvider implements RoadConditionProvider {
@@ -144,7 +148,9 @@ export class CotripRoadProvider implements RoadConditionProvider {
     }
     const routes = CDOT_ROUTES[corridorId];
     if (!routes || routes.length === 0) {
-      return unavailable(this.id, `No CDOT route mapping for corridor "${corridorId}".`);
+      // CDOT reports Colorado highways only. Utah, New Mexico and California
+      // roads have no live feed wired up yet, and say so rather than "clear".
+      return unavailable(this.id, `No live road feed for ${corridorFor(corridorId).name} — CDOT covers Colorado roads only.`);
     }
     if (context.horizonDays > 0) {
       return unavailable(this.id, 'Road status is a right-now fact; CDOT does not report future days.');

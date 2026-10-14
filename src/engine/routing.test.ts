@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ORIGINS, findOrigin, gpsOrigin } from '@/data/origins';
 import { MOUNTAINS, findMountain } from '@/data/mountains';
-import { resolveAccessRoutes } from './routing';
+import { GPS_REACH_MILES, mountainsInReach, resolveAccessRoutes } from './routing';
+import { haversineMiles } from '@/lib/geo';
 
 describe('resolveAccessRoutes — origin resolution', () => {
   it('resolves a manual city origin to its exact hand-authored coordinates', () => {
@@ -14,7 +15,7 @@ describe('resolveAccessRoutes — origin resolution', () => {
     }
   });
 
-  it('resolves every one of the six manual cities', () => {
+  it('resolves every one of the manual cities', () => {
     const vail = findMountain('vail')!;
     for (const city of ORIGINS) {
       const routes = resolveAccessRoutes(vail, city);
@@ -63,5 +64,36 @@ describe('resolveAccessRoutes — origin resolution', () => {
     const routes = resolveAccessRoutes(vail, kansas);
     expect(routes).toHaveLength(1);
     expect(routes[0]!.distanceMiles).toBeGreaterThan(300);
+  });
+});
+
+describe('mountainsInReach — which mountains compete for a day', () => {
+  it('competes exactly the mountains a manual city has routes to', () => {
+    const denver = findOrigin('denver');
+    const inReach = mountainsInReach(MOUNTAINS, denver);
+    expect(inReach.map((m) => m.id)).toContain('vail');
+    expect(inReach.map((m) => m.id)).not.toContain('purgatory');
+    for (const mountain of inReach) {
+      expect(resolveAccessRoutes(mountain, denver).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps a GPS rider in Denver to Colorado-and-nearby, not the whole West', () => {
+    const lakewood = gpsOrigin(39.7047, -105.0814);
+    const inReach = mountainsInReach(MOUNTAINS, lakewood);
+    expect(inReach.map((m) => m.id)).toContain('vail');
+    expect(inReach.map((m) => m.id)).toContain('telluride');
+    expect(inReach.every((m) => m.state !== 'CA')).toBe(true);
+    for (const mountain of inReach) {
+      expect(haversineMiles(lakewood.coordinates, mountain.coordinates)).toBeLessThanOrEqual(GPS_REACH_MILES);
+    }
+  });
+
+  it('still answers a GPS rider nowhere near a mountain, with the nearest few', () => {
+    const kansas = gpsOrigin(39.0, -98.0);
+    const inReach = mountainsInReach(MOUNTAINS, kansas);
+    expect(inReach.length).toBeGreaterThan(0);
+    expect(inReach.length).toBeLessThanOrEqual(5);
+    expect(inReach.every((m) => m.state === 'CO')).toBe(true);
   });
 });

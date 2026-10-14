@@ -348,9 +348,19 @@ export function planDepartureMinutes(gridMinutes, dateKey, nowMs, timeZone) {
   ];
 }
 
-async function buildTravelCurve(origin, destination, direction, date) {
+/**
+ * The zones a client may ask a travel curve to be built in. Every mountain in
+ * the dataset runs on one of these two; anything else falls back to the
+ * server's own TIME_ZONE rather than being trusted as-is.
+ */
+const ALLOWED_TIME_ZONES = new Set(['America/Denver', 'America/Los_Angeles']);
+
+export const resolveTimeZone = (requested) =>
+  typeof requested === 'string' && ALLOWED_TIME_ZONES.has(requested) ? requested : TIME_ZONE;
+
+async function buildTravelCurve(origin, destination, direction, date, timeZone = TIME_ZONE) {
   const grid = direction === 'outbound' ? OUTBOUND_MINUTES : RETURN_MINUTES;
-  const plan = planDepartureMinutes(grid, date, Date.now(), TIME_ZONE);
+  const plan = planDepartureMinutes(grid, date, Date.now(), timeZone);
   const samplesRaw = await Promise.all(
     plan.map(async ({ minute, departureIso }) => {
       const sample = await fetchOneSample(origin, destination, departureIso);
@@ -779,6 +789,7 @@ async function handle(req, res) {
       return;
     }
     const { origin, destination, direction, date } = body ?? {};
+    const timeZone = resolveTimeZone(body?.timeZone);
     if (!isPoint(origin) || !isPoint(destination)) {
       sendJson(req, res, 400, { error: 'origin and destination must each be { lat, lon }.' });
       return;
@@ -795,11 +806,11 @@ async function handle(req, res) {
     // Today's curve is anchored to "now", so its cache key includes the
     // quarter-hour: a curve built at 6:03 shouldn't be served at 9:40 as if
     // 6:03 were still an option.
-    const local = localParts(Date.now(), TIME_ZONE);
+    const local = localParts(Date.now(), timeZone);
     const slot = date === local.dateKey ? `:${Math.floor(local.minuteOfDay / 15)}` : '';
-    const cacheKey = [origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3), direction, date].join(':') + slot;
+    const cacheKey = [origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3), direction, date, timeZone].join(':') + slot;
 
-    const curve = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => buildTravelCurve(origin, destination, direction, date));
+    const curve = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => buildTravelCurve(origin, destination, direction, date, timeZone));
     if (!curve) {
       sendJson(req, res, 502, { error: 'No route data returned by Google Routes for any sampled departure time.' });
       return;

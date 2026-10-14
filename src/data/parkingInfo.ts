@@ -1,4 +1,5 @@
 import type { ParkingInfo } from '@/domain/parking';
+import { REGION_DATASETS } from '@/data/regions';
 
 /**
  * Each resort's own published parking structure — researched via web search
@@ -15,7 +16,7 @@ import type { ParkingInfo } from '@/domain/parking';
  * `providers/live/parking.ts` for why that is honest rather than a gap to
  * paper over.
  */
-export const PARKING_INFO: Record<string, ParkingInfo> = {
+const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
   vail: {
     status: 'unknown',
     occupied: null,
@@ -197,5 +198,11 @@ export const PARKING_INFO: Record<string, ParkingInfo> = {
     infoUrl: 'https://www.steamboat.com/plan-your-trip/getting-here-and-around',
   },
 };
+
+export const PARKING_INFO: Record<string, ParkingInfo> = Object.assign(
+  {},
+  CORE_PARKING_INFO,
+  ...REGION_DATASETS.map((dataset) => dataset.parking),
+);
 
 export const parkingInfoFor = (mountainId: string): ParkingInfo | null => PARKING_INFO[mountainId] ?? null;

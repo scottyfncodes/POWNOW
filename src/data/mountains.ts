@@ -1,47 +1,20 @@
-import { findOrigin } from '@/data/origins';
-import type { AccessRoute, GeoPoint, Mountain } from '@/domain/mountain';
+import { buildRoutes } from '@/data/buildRoutes';
+import { REGION_DATASETS } from '@/data/regions';
+import type { Mountain } from '@/domain/mountain';
 import { at } from '@/domain/time';
 
 /**
- * Fifteen Colorado mountains, across four pass networks and two snow regions, so the generic
- * model is exercised from day one. Adding a mountain, a pass network, or a
- * country is a data change — the engine, the scoring and the UI never learn a
- * mountain's name.
+ * The original fifteen Colorado mountains live here; every mountain added
+ * since — the rest of Colorado, Utah, New Mexico, California — lives in its
+ * state's file under `data/regions/`, with its profile, parking, pricing and
+ * demo character alongside, and is merged in below. Adding a mountain, a pass
+ * network, or a state is a data change — the engine, the scoring and the UI
+ * never learn a mountain's name.
  *
  * Drive distances and free-flow times are representative demo values.
  */
 
-interface RouteSpec {
-  originId: string;
-  label: string;
-  corridorId: string;
-  miles: number;
-  freeFlow: number;
-  stormPenalty: number;
-  weatherSensitivity: number;
-  primary?: boolean;
-}
-
-const buildRoutes = (
-  mountainId: string,
-  destinationPoint: GeoPoint,
-  specs: RouteSpec[],
-): AccessRoute[] =>
-  specs.map((spec, index) => ({
-    id: `${mountainId}:${spec.originId}:${index}`,
-    originId: spec.originId,
-    label: spec.label,
-    corridorId: spec.corridorId,
-    originPoint: findOrigin(spec.originId).coordinates,
-    destinationPoint,
-    distanceMiles: spec.miles,
-    freeFlowMinutes: spec.freeFlow,
-    stormPenaltyMinutes: spec.stormPenalty,
-    weatherSensitivity: spec.weatherSensitivity,
-    isPrimary: spec.primary ?? index === 0,
-  }));
-
-export const MOUNTAINS: Mountain[] = [
+const CORE_MOUNTAINS: Mountain[] = [
   {
     id: 'vail',
     name: 'Vail',
@@ -71,6 +44,7 @@ export const MOUNTAINS: Mountain[] = [
       { originId: 'fort-collins', label: 'I-25 to I-70 west', corridorId: 'i70-west', miles: 145, freeFlow: 148, stormPenalty: 26, weatherSensitivity: 0.68 },
       { originId: 'colorado-springs', label: 'I-25 to I-70 west', corridorId: 'i70-west', miles: 168, freeFlow: 168, stormPenalty: 26, weatherSensitivity: 0.65 },
       { originId: 'frisco', label: 'I-70 over Vail Pass', corridorId: 'i70-west', miles: 30, freeFlow: 33, stormPenalty: 16, weatherSensitivity: 0.75 },
+      { originId: 'grand-junction', label: 'I-70 east through Glenwood Canyon', corridorId: 'i70-west', miles: 150, freeFlow: 140, stormPenalty: 22, weatherSensitivity: 0.6 },
     ]),
     passAffiliations: ['epic'],
     popularity: 0.95,
@@ -105,6 +79,7 @@ export const MOUNTAINS: Mountain[] = [
       { originId: 'fort-collins', label: 'I-25 to I-70 west', corridorId: 'i70-west', miles: 157, freeFlow: 160, stormPenalty: 26, weatherSensitivity: 0.64 },
       { originId: 'colorado-springs', label: 'I-25 to I-70 west', corridorId: 'i70-west', miles: 180, freeFlow: 180, stormPenalty: 26, weatherSensitivity: 0.62 },
       { originId: 'frisco', label: 'I-70 over Vail Pass', corridorId: 'i70-west', miles: 42, freeFlow: 46, stormPenalty: 16, weatherSensitivity: 0.7 },
+      { originId: 'grand-junction', label: 'I-70 east through Glenwood Canyon', corridorId: 'i70-west', miles: 138, freeFlow: 128, stormPenalty: 20, weatherSensitivity: 0.58 },
     ]),
     passAffiliations: ['epic'],
     popularity: 0.6,
@@ -210,6 +185,7 @@ export const MOUNTAINS: Mountain[] = [
       { originId: 'colorado-springs', label: 'US-50 over Monarch Pass', corridorId: 'us50-monarch', miles: 162, freeFlow: 178, stormPenalty: 30, weatherSensitivity: 0.78 },
       { originId: 'frisco', label: 'CO-91 to US-24 to US-50', corridorId: 'us24-buena-vista', miles: 148, freeFlow: 164, stormPenalty: 30, weatherSensitivity: 0.76 },
       { originId: 'durango', label: 'US-550 to US-50 west', corridorId: 'us550-durango', miles: 168, freeFlow: 214, stormPenalty: 32, weatherSensitivity: 0.82 },
+      { originId: 'grand-junction', label: 'US-50 to Gunnison, then CO-135', corridorId: 'us50-monarch', miles: 160, freeFlow: 185, stormPenalty: 28, weatherSensitivity: 0.65 },
     ]),
     passAffiliations: ['epic'],
     popularity: 0.35,
@@ -309,6 +285,7 @@ export const MOUNTAINS: Mountain[] = [
       { originId: 'fort-collins', label: 'I-25 to I-70 west', corridorId: 'i70-west', miles: 120, freeFlow: 124, stormPenalty: 22, weatherSensitivity: 0.58 },
       { originId: 'colorado-springs', label: 'I-25 to I-70 west', corridorId: 'i70-west', miles: 143, freeFlow: 144, stormPenalty: 24, weatherSensitivity: 0.58 },
       { originId: 'frisco', label: 'I-70 west, one exit', corridorId: 'local', miles: 8, freeFlow: 12, stormPenalty: 6, weatherSensitivity: 0.45 },
+      { originId: 'grand-junction', label: 'I-70 east over Vail Pass', corridorId: 'i70-west', miles: 172, freeFlow: 160, stormPenalty: 26, weatherSensitivity: 0.66 },
     ]),
     passAffiliations: ['ikon'],
     popularity: 0.8,
@@ -549,11 +526,17 @@ export const MOUNTAINS: Mountain[] = [
       // Part of the real San Juan Skyway loop this corridor already models —
       // Lizard Head Pass (10,222 ft) is the exposed, weather-sensitive point.
       { originId: 'durango', label: 'US-160 to CO-145 over Lizard Head Pass', corridorId: 'us550-durango', miles: 111, freeFlow: 150, stormPenalty: 35, weatherSensitivity: 0.85 },
+      { originId: 'grand-junction', label: 'US-50 to Montrose, then CO-62 & CO-145', corridorId: 'local', miles: 127, freeFlow: 150, stormPenalty: 25, weatherSensitivity: 0.6 },
     ]),
     passAffiliations: ['epic'],
     popularity: 0.45,
     character: 'A box canyon at the end of a dead-end road, extreme terrain off Gold Hill and Palmyra Peak, and Alpino Vino — the highest restaurant in North America — waiting at the bottom of it.',
   },
+];
+
+export const MOUNTAINS: Mountain[] = [
+  ...CORE_MOUNTAINS,
+  ...REGION_DATASETS.flatMap((dataset) => dataset.mountains),
 ];
 
 export const findMountain = (id: string): Mountain | undefined =>

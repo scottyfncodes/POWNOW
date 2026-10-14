@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CORRIDORS } from '@/data/corridors';
+import { CORRIDOR_REGION, CORRIDORS } from '@/data/corridors';
 import { at } from '@/domain/time';
 import { makeContext } from '@/engine/inputs';
 import { CDOT_ROUTES, CotripRoadProvider, eventMatches, summarize, type RoadEvent } from './cotripRoad';
@@ -60,9 +60,13 @@ describe('CotripRoadProvider — calls the proxy, never CDOT directly, and never
     expect(url).not.toContain('cotrip.org'); // the key lives on the server
   });
 
-  it('has a CDOT route mapping for every corridor in the dataset except local roads', () => {
+  it('has a CDOT route mapping for every Colorado corridor in the dataset except local roads', () => {
+    // CDOT only reports Colorado roads; Utah, New Mexico and California
+    // corridors are honestly unavailable from this provider.
+    const coloradoRegions = new Set(['i70-corridor', 'san-juans']);
     for (const corridorId of Object.keys(CORRIDORS)) {
       if (corridorId === 'local') continue;
+      if (!coloradoRegions.has(CORRIDOR_REGION[corridorId] ?? '')) continue;
       expect(CDOT_ROUTES[corridorId], `${corridorId} needs a CDOT mapping`).toBeTruthy();
     }
   });

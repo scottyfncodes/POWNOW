@@ -36,7 +36,7 @@ describe('MapScreen', () => {
       />,
     );
     for (const mountain of MOUNTAINS) {
-      expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name.replace(/[()]/g, '\\$&')}\\. Tap to view`, 'i') })).toBeInTheDocument();
     }
     expect(fetchSpy).not.toHaveBeenCalled();
     // Let the background ranking settle before the test ends, so its state

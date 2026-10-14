@@ -6,8 +6,12 @@ export interface ElevationSilhouetteProps {
   aboveTreelineShare: number;
 }
 
-/** Colorado's highest summit sits near 14.4k; every bar is drawn against the same scale so mountains compare honestly. */
-const SCALE_FLOOR_FT = 6000;
+/**
+ * One scale for every mountain in the dataset, so they compare honestly: the
+ * floor sits under the lowest bases (Mt. Shasta, the Tahoe valleys), the
+ * ceiling just over the highest lift-served summits (Breck, Taos, Telluride).
+ */
+const SCALE_FLOOR_FT = 5000;
 const SCALE_CEIL_FT = 13500;
 
 const yFor = (ft: number) => {
@@ -17,7 +21,7 @@ const yFor = (ft: number) => {
 
 /**
  * The mountain's real base, summit and vertical, drawn as a ridge on a fixed
- * Colorado-wide scale — so Vail's 3,450′ and Eldora's 1,600′ look as
+ * dataset-wide scale — so Vail's 3,450′ and Eldora's 1,600′ look as
  * different as they are. Decorative only in shape; every number it labels is
  * the mountain's own data.
  */

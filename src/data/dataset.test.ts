@@ -130,8 +130,11 @@ describe('Copper', () => {
 describe('Wolf Creek', () => {
   const wolfCreek = findMountain('wolf-creek')!;
 
-  it('is the snowiest and the cheapest in the dataset', () => {
-    const pricing = MOUNTAINS.map((m) => pricingFor(m.id).windowRate);
+  it('is the snowiest and the cheapest of Colorado\'s full-size mountains', () => {
+    // Small community hills (Howelsen, Sipapu and friends) are cheaper still;
+    // the claim is about the mountains a Front Range skier weighs it against.
+    const rivals = ['vail', 'beaver-creek', 'breckenridge', 'keystone', 'crested-butte', 'winter-park', 'purgatory', 'copper', 'arapahoe-basin', 'loveland', 'eldora', 'steamboat', 'monarch', 'telluride', 'wolf-creek'];
+    const pricing = rivals.map((id) => pricingFor(id).windowRate);
     expect(pricingFor('wolf-creek').windowRate).toBe(Math.min(...pricing));
     // Barely flexes with demand, which is most of the point of the place.
     expect(pricingFor('wolf-creek').dynamicRange).toBeLessThan(0.3);

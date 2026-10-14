@@ -7,6 +7,7 @@ import { createDemoRegistry } from '@/providers/demo';
 import { testInputs, testMountain, testOperations, testTravel, testWeather } from '@/test/fixtures';
 import { sampleCurve } from '@/lib/curve';
 import { buildPlan, recommend, stayOrGo, stayOrGoLadder } from './plan';
+import { mountainsInReach } from './routing';
 
 const TODAY = '2026-01-17';
 const origin = findOrigin('denver');
@@ -183,7 +184,7 @@ describe('recommend — GPS origin', () => {
   // and not the center of any of the six manual cities.
   const gps = gpsOrigin(39.7047, -105.0814);
 
-  it('routes every mountain from the one GPS fix, not just the ones reachable from a manual city', async () => {
+  it('routes every mountain in reach of the one GPS fix, not just the ones reachable from a manual city', async () => {
     const result = await recommend(createDemoRegistry(), {
       mountains: MOUNTAINS,
       origin: gps,
@@ -191,10 +192,11 @@ describe('recommend — GPS origin', () => {
       today: TODAY,
       now: at(4, 47),
     });
-    // Purgatory has no manual route from Denver, but every mountain is
-    // reachable from a live GPS fix.
+    // Purgatory has no manual route from Denver, but every mountain within
+    // GPS reach is routed from a live GPS fix — and nothing in California is.
     expect(result.all.some((plan) => plan.mountain.id === 'purgatory')).toBe(true);
-    expect(result.all.length).toBe(MOUNTAINS.length);
+    expect(result.all.length).toBe(mountainsInReach(MOUNTAINS, gps).length);
+    expect(result.all.every((plan) => plan.mountain.state !== 'CA')).toBe(true);
     for (const plan of result.all) {
       expect(plan.origin.coordinates).toEqual({ lat: 39.7047, lon: -105.0814 });
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { haversineMiles, nearest } from './geo';
+import { haversineMiles, nearest, timeZoneForPoint } from './geo';
 
 const DENVER = { lat: 39.7392, lon: -104.9903 };
 const BOULDER = { lat: 40.015, lon: -105.2705 };
@@ -35,5 +35,18 @@ describe('nearest', () => {
 
   it('throws on an empty candidate list rather than returning something wrong', () => {
     expect(() => nearest(DENVER, [])).toThrow();
+  });
+});
+
+describe('timeZoneForPoint', () => {
+  it('puts Colorado, Utah and New Mexico mountains on Mountain time', () => {
+    expect(timeZoneForPoint({ lat: 39.64, lon: -106.37 })).toBe('America/Denver');
+    expect(timeZoneForPoint({ lat: 37.7, lon: -112.85 })).toBe('America/Denver');
+    expect(timeZoneForPoint({ lat: 36.6, lon: -105.45 })).toBe('America/Denver');
+  });
+
+  it('puts California mountains on Pacific time', () => {
+    expect(timeZoneForPoint({ lat: 37.65, lon: -119.03 })).toBe('America/Los_Angeles');
+    expect(timeZoneForPoint({ lat: 34.24, lon: -116.89 })).toBe('America/Los_Angeles');
   });
 });

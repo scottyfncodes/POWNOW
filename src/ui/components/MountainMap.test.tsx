@@ -21,7 +21,7 @@ describe('MountainMap', () => {
     const group = screen.getByRole('group', { name: /mountains/i });
     for (const mountain of MOUNTAINS) {
       expect(
-        within(group).getByRole('button', { name: new RegExp(`^${mountain.name}\\. Tap to view`, 'i') }),
+        within(group).getByRole('button', { name: new RegExp(`^${mountain.name.replace(/[()]/g, '\\$&')}\\. Tap to view`, 'i') }),
       ).toBeInTheDocument();
     }
     expect(within(group).getAllByRole('button')).toHaveLength(MOUNTAINS.length);
@@ -78,7 +78,7 @@ describe('MountainMap', () => {
         onSelectMountain={() => {}}
       />,
     );
-    const labelled = container.querySelector('[aria-label*="Colorado mountains relative to Denver"]');
+    const labelled = container.querySelector('[aria-label*="mountains relative to Denver"]');
     expect(labelled).toBeInTheDocument();
     expect(labelled?.getAttribute('aria-label')).toContain(String(MOUNTAINS.length));
   });
