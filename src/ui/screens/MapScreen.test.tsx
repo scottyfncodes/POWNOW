@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clearProviderCaches } from '@/providers/live/fetchCache';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MOUNTAINS } from '@/data/mountains';
 import { findOrigin, gpsOrigin } from '@/data/origins';
@@ -181,6 +181,30 @@ describe('MapScreen', () => {
     await user().click(screen.getByRole('button', { name: /full day plan for copper/i }));
     expect(onOpenMountain).toHaveBeenCalledWith('copper');
     // Let the background ranking settle inside this test's act() scope.
+    await waitFor(() => expect(screen.getAllByText(/best now/i).length).toBeGreaterThan(0), { timeout: 12_000 });
+  }, 15_000);
+
+  it("offers the mountain's own profile from the peek card, beside its day plan", async () => {
+    const onOpenProfile = vi.fn();
+    render(
+      <MapScreen
+        registry={createDemoRegistry()}
+        clock={clock}
+        origin={findOrigin('denver')}
+        onOriginChange={noop}
+        onBack={noop}
+        onOpenMountain={noop}
+        onOpenProfile={onOpenProfile}
+      />,
+    );
+    const eldora = MOUNTAINS.find((m) => m.id === 'eldora')!;
+    await user().click(screen.getByRole('button', { name: new RegExp(`^${eldora.name}\\. Tap to view`, 'i') }));
+    const sheet = screen.getByRole('region', { name: `${eldora.name} on the map` });
+    expect(within(sheet).getByRole('button', { name: /expand mountain details/i })).toHaveAttribute('aria-expanded', 'false');
+    await user().click(within(sheet).getByRole('button', { name: /^More/ }));
+    expect(within(sheet).getByRole('button', { name: /collapse mountain details/i })).toHaveAttribute('aria-expanded', 'true');
+    await user().click(within(sheet).getByRole('button', { name: 'Profile' }));
+    expect(onOpenProfile).toHaveBeenCalledWith('eldora');
     await waitFor(() => expect(screen.getAllByText(/best now/i).length).toBeGreaterThan(0), { timeout: 12_000 });
   }, 15_000);
 });
