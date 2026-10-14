@@ -14,6 +14,7 @@ import { describeRoutePreviewFailure, fetchRoutePreview } from '@/providers/live
 import type { ProviderRegistry } from '@/providers/types';
 import type { ClockState } from '@/ui/hooks/useClock';
 import { useAsync } from '@/ui/hooks/useRecommendation';
+import { tierFor } from '@/ui/scoreTier';
 import { BrowseBar } from '@/ui/components/BrowseBar';
 import { MountainMap, type MapRoutePreview, type MountainMarkerInfo } from '@/ui/components/MountainMap';
 import { MountainProfile } from '@/ui/components/MountainProfile';
@@ -41,9 +42,6 @@ export interface MapScreenProps {
   /** Into the Your ride step, then every mountain ranked for your day. */
   onRank?: () => void;
 }
-
-const tierFor = (score: number): MountainMarkerInfo['tier'] =>
-  score >= 7.2 ? 'go' : score >= 4.8 ? 'mixed' : 'skip';
 
 /**
  * The browsing path: MAP → SELECT MOUNTAIN → MOUNTAIN PROFILE, with the map

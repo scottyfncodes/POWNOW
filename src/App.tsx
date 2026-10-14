@@ -16,6 +16,7 @@ import { useAsync } from '@/ui/hooks/useRecommendation';
 import { type Route, type Screen, useScreen } from '@/ui/hooks/useScreen';
 import { HomeScreen } from '@/ui/screens/HomeScreen';
 import { LaterScreen } from '@/ui/screens/LaterScreen';
+import type { ListScore, ListScores } from '@/ui/components/MountainList';
 import { ListScreen } from '@/ui/screens/ListScreen';
 import { MapScreen } from '@/ui/screens/MapScreen';
 import { MountainScreen } from '@/ui/screens/MountainScreen';
@@ -84,9 +85,11 @@ export default function App({ registry: injected }: AppProps = {}) {
   const date = chosenDate < clock.today ? clock.today : chosenDate;
   const isToday = date === clock.today;
 
-  // Home leads with the answer, so it runs the same call the picks and the
-  // mountain screens read — tapping SEE WHY costs no second ranking.
-  const wantsPlans = route.screen === 'home' || route.screen === 'picks' || route.screen === 'mountain';
+  // Home leads with the answer, so it runs the same call the picks, the
+  // mountain screens and the list's scores read — tapping SEE WHY or All
+  // mountains costs no second ranking.
+  const wantsPlans =
+    route.screen === 'home' || route.screen === 'picks' || route.screen === 'mountain' || route.screen === 'list';
   const plans = useAsync(
     () =>
       recommend(registry, {
@@ -104,8 +107,20 @@ export default function App({ registry: injected }: AppProps = {}) {
     [origin.id, origin.coordinates.lat, origin.coordinates.lon, date, clock.today, preferences],
     // The home skeleton is already the waiting state; the "checking the
     // roads…" sequence only earns its floor on the picks screen.
-    { enabled: wantsPlans, minimumMs: route.screen === 'home' ? 0 : 1900 },
+    { enabled: wantsPlans, minimumMs: route.screen === 'home' || route.screen === 'list' ? 0 : 1900 },
   );
+
+  // The list shows each mountain's score from that same ranking.
+  const listScores = useMemo((): ListScores => {
+    if (plans.status === 'ready') {
+      const byId: Record<string, ListScore> = {};
+      for (const plan of plans.data.all) {
+        byId[plan.mountain.id] = { score: plan.score.score, offSeason: Boolean(plan.offSeasonMessage) };
+      }
+      return { status: 'ready', byId, originName: origin.shortName };
+    }
+    return plans.status === 'error' ? { status: 'error' } : { status: 'loading' };
+  }, [plans, origin.shortName]);
 
   const goBackTo = (target: Route) => navigate(target.screen, target.mountainId);
 
@@ -197,6 +212,7 @@ export default function App({ registry: injected }: AppProps = {}) {
       case 'list':
         return (
           <ListScreen
+            scores={listScores}
             onBack={() => navigate('home')}
             onOpenMountain={openProfile('list')}
             onShowMap={() => navigate('map')}
