@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localToUtcIso, planDepartureMinutes, readBody } from '../../server/index.mjs';
+import { localToUtcIso, planDepartureMinutes, readBody, resolveTimeZone } from '../../server/index.mjs';
 import type { IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
 
@@ -23,6 +23,23 @@ describe('localToUtcIso', () => {
 
   it('converts Mountain Daylight Time (UTC−6) in April', () => {
     expect(localToUtcIso('2026-04-11', 5 * 60, TZ)).toBe('2026-04-11T11:00:00.000Z');
+  });
+
+  it('converts Pacific Standard Time (UTC−8) for a California mountain', () => {
+    expect(localToUtcIso('2026-01-17', 5 * 60, 'America/Los_Angeles')).toBe('2026-01-17T13:00:00.000Z');
+  });
+});
+
+describe('resolveTimeZone', () => {
+  it('honors the two zones the dataset uses', () => {
+    expect(resolveTimeZone('America/Los_Angeles')).toBe('America/Los_Angeles');
+    expect(resolveTimeZone('America/Denver')).toBe('America/Denver');
+  });
+
+  it('falls back to the server default for anything else', () => {
+    expect(resolveTimeZone('Europe/Paris')).toBe('America/Denver');
+    expect(resolveTimeZone(undefined)).toBe('America/Denver');
+    expect(resolveTimeZone(42)).toBe('America/Denver');
   });
 });
 

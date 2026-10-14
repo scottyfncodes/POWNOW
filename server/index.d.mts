@@ -11,6 +11,8 @@ export function planDepartureMinutes(
   nowMs: number,
   timeZone: string,
 ): PlannedDeparture[];
+/** A client-requested zone if it's one the dataset uses, else the server's default. */
+export function resolveTimeZone(requested: unknown): string;
 export function createPownowServer(): import('node:http').Server;
 export function handleRequest(
   req: import('node:http').IncomingMessage & { body?: unknown },

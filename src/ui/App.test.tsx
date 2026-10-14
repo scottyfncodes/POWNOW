@@ -149,7 +149,7 @@ describe('the home screen', () => {
   it('lists every mountain alphabetically, and a row opens its profile — no ranking', async () => {
     render(<App />);
     await user().click(allMountains());
-    const list = screen.getByRole('list', { name: /colorado mountains, alphabetical/i });
+    const list = screen.getByRole('list', { name: /\d+ mountains, alphabetical/i });
     const names = within(list)
       .getAllByRole('button')
       .map((row) => row.querySelector('.mountainlist-name')!.textContent!);
@@ -174,7 +174,7 @@ describe('the home screen', () => {
     render(<App />);
     await user().click(allMountains());
     await user().type(screen.getByRole('searchbox', { name: /search mountains/i }), 'wolf');
-    const list = screen.getByRole('list', { name: /1 of \d+ colorado mountains/i });
+    const list = screen.getByRole('list', { name: /1 of \d+ mountains/i });
     expect(within(list).getAllByRole('button')).toHaveLength(1);
     await user().clear(screen.getByRole('searchbox', { name: /search mountains/i }));
 
@@ -182,6 +182,14 @@ describe('the home screen', () => {
     const epic = MOUNTAINS.filter((mountain) => mountain.passAffiliations.includes('epic'));
     const filtered = screen.getByRole('list', { name: new RegExp(`^${epic.length} of`, 'i') });
     expect(within(filtered).getAllByRole('button')).toHaveLength(epic.length);
+    await user().click(screen.getByRole('button', { name: 'All passes' }));
+
+    for (const [code, label] of [['UT', 'Utah'], ['CA', 'California']] as const) {
+      await user().click(screen.getByRole('button', { name: label }));
+      const inState = MOUNTAINS.filter((mountain) => mountain.state === code);
+      const byState = screen.getByRole('list', { name: new RegExp(`^${inState.length} of`, 'i') });
+      expect(within(byState).getAllByRole('button')).toHaveLength(inState.length);
+    }
   });
 
   it("a profile's Today's call opens the engine's day for it, and the two link back without looping", async () => {

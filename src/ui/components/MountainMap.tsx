@@ -6,6 +6,7 @@ import type { GeoPoint, Mountain, Origin } from '@/domain/mountain';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { mountainsInReach } from '@/engine/routing';
 
 export interface MapRoutePreview {
   durationMinutes: number;
@@ -191,8 +192,8 @@ function MountainClusterLayer({
 }
 
 /**
- * Keeps the map framed on whatever's relevant: Colorado (plus the origin, if
- * it's off in another state) when nothing is selected, or the origin and the
+ * Keeps the map framed on whatever's relevant: the mountains in reach of the
+ * origin (plus the origin itself) when nothing is selected, or the origin and the
  * selected mountain — and the real route between them, when one exists —
  * once a mountain is tapped. Runs inside `MapContainer` so it can reach the
  * live Leaflet map instance via `useMap()`.
@@ -275,7 +276,7 @@ function MapAutoResize() {
 }
 
 /**
- * A real, pannable, zoomable Colorado map — Esri's keyless World Dark Gray
+ * A real, pannable, zoomable map of every mountain — Esri's keyless World Dark Gray
  * basemap (no API key, same "no secrets in the client" rule the traffic
  * proxy already follows), rendered as its own dark cartography rather than a
  * CSS filter faking one from light tiles (that was the OpenStreetMap
@@ -305,12 +306,18 @@ export function MountainMap({
 
   const originIcon = useMemo(() => originDivIcon(isGps), [isGps]);
 
-  // The default view frames every supported mountain, not the whole state
-  // rectangle — Colorado has a lot of empty plains a resort map has no
-  // reason to show, and a tighter default fit is also what keeps closely
-  // spaced resorts (Summit County) far enough apart in screen pixels to stay
-  // out of the same cluster at first glance.
-  const homeBounds = useMemo(() => L.latLngBounds(mountains.map((m) => toLatLng(m.coordinates))), [mountains]);
+  // The default view frames the mountains in reach of where you're starting,
+  // not every pin on the map — the dataset spans four states now, and Denver
+  // zoomed out far enough to show Tahoe is a map of nothing useful. Every
+  // other mountain stays pinned, one pan away. A tight fit is also what
+  // keeps closely spaced resorts (Summit County, the Cottonwoods) far enough
+  // apart in screen pixels to stay out of the same cluster at first glance.
+  const homeBounds = useMemo(() => {
+    const inReach = mountainsInReach(mountains, origin);
+    const framed = inReach.length > 0 ? inReach : mountains;
+    return L.latLngBounds(framed.map((m) => toLatLng(m.coordinates)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mountains, origin.id, origin.coordinates.lat, origin.coordinates.lon]);
 
   return (
     <figure className={`mountainmap mountainmap-${variant}`}>
@@ -330,7 +337,7 @@ export function MountainMap({
           maxZoom={16}
         />
 
-        <MapAccessibleLabel label={`Map of ${mountains.length} Colorado mountains relative to ${origin.name}`} />
+        <MapAccessibleLabel label={`Map of ${mountains.length} mountains relative to ${origin.name}`} />
         <MapAutoResize />
         <MapFraming origin={origin} selectedMountain={selected} routePoints={routePoints} homeBounds={homeBounds} />
 

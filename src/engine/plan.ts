@@ -31,7 +31,7 @@ import { type DayInputs, loadDayInputs, makeContext } from './inputs';
 import { buildOffSeasonMessage } from './offSeasonMessages';
 import { classifyOperationalState } from './operationalState';
 import { optimizeDay } from './optimize';
-import { resolveAccessRoutes } from './routing';
+import { mountainsInReach } from './routing';
 import { scoreDay } from './scoring';
 import { buildSnowClock, resolveOperations, resolveWeather } from './snowClock';
 import { classifySnowState } from './snowState';
@@ -310,9 +310,7 @@ export async function recommend(
 ): Promise<Recommendation> {
   const context: ProviderContext = makeContext(options.date, options.today, options.now);
   const preferences = options.preferences ?? DEFAULT_PREFERENCES;
-  const reachable = options.mountains.filter(
-    (mountain) => resolveAccessRoutes(mountain, options.origin).length > 0,
-  );
+  const reachable = mountainsInReach(options.mountains, options.origin);
   // "Only my passes" narrows the field to mountains the rider can ski on a
   // pass they hold. If that leaves nothing, the filter is ignored rather
   // than answering with an error — a rider with an Epic Pass in Durango

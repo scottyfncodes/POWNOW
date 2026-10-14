@@ -21,13 +21,15 @@ export function MountainList({ mountains, onSelectMountain, label }: MountainLis
   const tallest = maxVertical(sorted);
 
   return (
-    <ul className="mountainlist" aria-label={label ?? `${sorted.length} Colorado mountains, alphabetical`}>
+    <ul className="mountainlist" aria-label={label ?? `${sorted.length} mountains, alphabetical`}>
       {sorted.map((mountain) => (
         <li key={mountain.id}>
           <button type="button" className="mountainlist-row" onClick={() => onSelectMountain(mountain.id)}>
             <span className="mountainlist-top">
               <span className="mountainlist-name">{mountain.name}</span>
-              <span className="mountainlist-region">{mountain.region}</span>
+              <span className="mountainlist-region">
+                {mountain.region}, {mountain.state}
+              </span>
             </span>
             <span className="mountainlist-stats">
               <span>

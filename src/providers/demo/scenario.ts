@@ -2,13 +2,15 @@ import { type DateKey, holidayName, isWeekend } from '@/domain/dates';
 import type { Mountain } from '@/domain/mountain';
 import { at, clamp, clamp01, type MinuteOfDay } from '@/domain/time';
 import { createRng, hashSeed, type Rng } from '@/lib/random';
+import { REGION_DATASETS, type DemoCharacter } from '@/data/regions';
 
 /**
  * The demo world.
  *
- * This module invents a plausible mid-season Colorado ski day for any date and
- * keeps it stable: the same date always produces the same world. It exists so
- * POW NOW can be evaluated end-to-end before any vendor API is wired up.
+ * This module invents a plausible mid-season ski day for any date, in every
+ * snow region the dataset covers, and keeps it stable: the same date always
+ * produces the same world. It exists so POW NOW can be evaluated end-to-end
+ * before any vendor API is wired up.
  *
  * Nothing here is real. Providers stamp every value with `source: 'demo'` and
  * the UI never renders demo numbers without saying so.
@@ -22,20 +24,7 @@ import { createRng, hashSeed, type Rng } from '@/lib/random';
  */
 
 /** Fixed per-mountain character. These biases are what make the demo *mean* something. */
-export interface MountainProfile {
-  /** Multiplier on regional snowfall. */
-  snow: number;
-  /** Multiplier on regional wind, before terrain exposure. */
-  wind: number;
-  /** Multiplier on lift/terrain reliability, >1 is more dependable. */
-  operations: number;
-  /** Multiplier on crowding. */
-  crowds: number;
-  /** How much of the open terrain gets groomed overnight, 0..1. */
-  grooming: number;
-  /** Typical avalanche-control delay on a big storm, minutes. */
-  controlDelay: number;
-}
+export type MountainProfile = DemoCharacter;
 
 /*
  * Identity — and the condition that punishes it:
@@ -52,7 +41,7 @@ export interface MountainProfile {
  *  Monarch       divide-top storms, no lines  · small, slow lifts, three hours out
  *  Telluride     deep and steep, Alpino Vino  · the end of a dead-end road
  */
-const PROFILES: Record<string, MountainProfile> = {
+const CORE_PROFILES: Record<string, MountainProfile> = {
   vail: { snow: 1.34, wind: 1.3, operations: 0.96, crowds: 1.06, grooming: 0.78, controlDelay: 35 },
   'beaver-creek': { snow: 0.78, wind: 0.5, operations: 1.06, crowds: 0.58, grooming: 0.88, controlDelay: 10 },
   breckenridge: { snow: 1.14, wind: 1.5, operations: 0.94, crowds: 1.0, grooming: 0.74, controlDelay: 40 },
@@ -67,6 +56,13 @@ const PROFILES: Record<string, MountainProfile> = {
   // Telluride: deep San Juan snow, a lot of steep terrain that needs control work, a long way from Denver.
   telluride: { snow: 1.25, wind: 1.1, operations: 0.95, crowds: 0.5, grooming: 0.72, controlDelay: 35 },
 };
+
+/** Every mountain added under `data/regions/` brings its own character with it. */
+const PROFILES: Record<string, MountainProfile> = Object.assign(
+  {},
+  CORE_PROFILES,
+  ...REGION_DATASETS.map((dataset) => dataset.demo),
+);
 
 const NEUTRAL_PROFILE: MountainProfile = {
   snow: 1,
@@ -110,6 +106,36 @@ export interface RegionalPattern {
 }
 
 const SEED_SALT = 'snownow-demo-v2';
+
+/**
+ * How each snow region's climate leans, relative to Colorado's I-70 corridor.
+ * Wasatch snow is colder and deeper for its elevation; Sierra snow is wetter,
+ * warmer and falls lower down; Southern California's ranges sit at the edge
+ * of what snows at all. `referenceElevationFt` is where a mountain stops
+ * getting an elevation penalty — a Sierra mountain at 8,000 ft is high for
+ * the Sierra, not low for Colorado.
+ */
+interface RegionClimate {
+  tempOffsetF: number;
+  snowBias: number;
+  referenceElevationFt: number;
+}
+
+const COLORADO_CLIMATE: RegionClimate = { tempOffsetF: 0, snowBias: 1, referenceElevationFt: 10400 };
+
+const REGION_CLIMATE: Record<string, RegionClimate> = {
+  wasatch: { tempOffsetF: -2, snowBias: 1.25, referenceElevationFt: 9000 },
+  'southern-utah': { tempOffsetF: 2, snowBias: 0.95, referenceElevationFt: 10000 },
+  'northern-new-mexico': { tempOffsetF: 3, snowBias: 0.85, referenceElevationFt: 10500 },
+  'southern-new-mexico': { tempOffsetF: 6, snowBias: 0.7, referenceElevationFt: 10000 },
+  'sierra-tahoe': { tempOffsetF: 8, snowBias: 1.25, referenceElevationFt: 7800 },
+  'central-sierra': { tempOffsetF: 8, snowBias: 1.05, referenceElevationFt: 7800 },
+  'eastern-sierra': { tempOffsetF: 3, snowBias: 1.15, referenceElevationFt: 9500 },
+  'southern-california': { tempOffsetF: 11, snowBias: 0.55, referenceElevationFt: 7500 },
+  'mount-shasta': { tempOffsetF: 6, snowBias: 1.0, referenceElevationFt: 6000 },
+};
+
+export const climateFor = (region: string): RegionClimate => REGION_CLIMATE[region] ?? COLORADO_CLIMATE;
 
 /**
  * Day zero is deliberately shaped into a storm day somewhere in the state: the
@@ -156,7 +182,13 @@ export function regionalPattern(
 
   // The San Juans sit lower and further south: warmer, sunnier, drier snow is rarer.
   const south = region === 'san-juans';
-  const baseTempF = rng.around(storming ? (south ? 21 : 17) : south ? 26 : 21, 7, 2, 36);
+  const climate = climateFor(region);
+  const baseTempF = rng.around(
+    (storming ? (south ? 21 : 17) : south ? 26 : 21) + climate.tempOffsetF,
+    7,
+    2,
+    36,
+  );
   const density = clamp(0.045 + (baseTempF - 5) * 0.0022 + rng.range(-0.006, 0.006), 0.04, 0.13);
 
   // Wind events are their own thing, and they are what wreck high alpine days.
@@ -229,7 +261,9 @@ export const exposedWind = (regionalMph: number, exposure: number): number =>
 
 /** Aspect and elevation modulate how much of a regional storm each mountain sees. */
 export function orographicFactor(mountain: Mountain, pattern: RegionalPattern): number {
-  const elevationBoost = 1 + (mountain.weatherLocation.forecastElevationFt - 10400) / 9000;
+  const climate = climateFor(pattern.region);
+  const elevationBoost =
+    1 + (mountain.weatherLocation.forecastElevationFt - climate.referenceElevationFt) / 9000;
   const aspectBoost = {
     'west-facing': 1.12,
     divide: 1.02,
@@ -237,7 +271,11 @@ export function orographicFactor(mountain: Mountain, pattern: RegionalPattern): 
     'south-facing': 0.86,
   }[mountain.weatherLocation.aspect];
   const rng = createRng(hashSeed(SEED_SALT, pattern.date, mountain.id, 'oro'));
-  return clamp(elevationBoost * aspectBoost * rng.around(1, 0.17, 0.62, 1.42), 0.5, 1.7);
+  return clamp(
+    elevationBoost * aspectBoost * climate.snowBias * rng.around(1, 0.17, 0.62, 1.42),
+    0.5,
+    1.7,
+  );
 }
 
 export const mountainRng = (mountain: Mountain, date: DateKey, salt: string): Rng =>

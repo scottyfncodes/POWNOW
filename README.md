@@ -22,6 +22,17 @@ Head home 2:42 PM · Home 4:28 PM
 
 ---
 
+## Where it covers
+
+Colorado, Utah, New Mexico and California — every lift-served mountain worth
+a ski-day decision in those four states, from Vail and Alta to Taos and
+Mammoth. Starting cities are grouped by state (Denver, Salt Lake City,
+Albuquerque, Los Angeles, the Bay Area, Reno for Tahoe, and more), and each
+city competes only the mountains it can realistically reach in a day. A GPS
+fix competes everything within 300 miles.
+
+---
+
 ## The flow
 
 The home screen is the answer: today's pick from your starting point — the
@@ -361,8 +372,12 @@ src/
     snow.ts       Snow-density physics shared by demo and live weather
 
   data/         Content, not code
-    mountains.ts  Fifteen Colorado mountains, four pass networks, two snow regions
-    origins.ts    Six starting cities, plus `gpsOrigin()` for a live GPS fix
+    mountains.ts  The original fifteen Colorado mountains, merged with every regions/ batch
+    regions/      One file per state batch — the rest of Colorado, Utah, New Mexico,
+                  California — each carrying its mountains, profiles, parking,
+                  pricing and demo character together
+    buildRoutes.ts  The hand-authored route spec → AccessRoute helper
+    origins.ts    Starting cities grouped by state, plus `gpsOrigin()` for a live GPS fix
     corridors.ts  Shared traffic corridors, their severity and weather region
     resortSources.ts  Per-resort Liftie id, official ops page, official ticket page
     mountainProfiles.ts Researched reference per resort: links, season dates,
@@ -610,9 +625,23 @@ cold instances don't each pay the cold-cache cost, and keep the rate limit on.
   the morning grid has passed, the outbound curve is a single "now" sample
   and the optimiser's departure choice collapses to it — which is the honest
   answer at 9am.
-- **Colorado/`America/Denver` only.** The proxy's local→UTC conversion is
-  DST-aware and tested; a mountain outside that zone needs the zone threaded
-  through, not hard-coded.
+- **Two time zones.** The proxy's local→UTC conversion is DST-aware and
+  tested; the client sends each travel curve's zone (Pacific for California
+  mountains, Mountain everywhere else, from `timeZoneForPoint`) and the proxy
+  honors only those two. The app's clock is the browser's, so a rider in
+  Denver looking at Mammoth sees Mammoth's lift times as if they were
+  Denver's — no manual city routes across zones, so the ranked paths never
+  mix them.
+- **Live road status is Colorado-only.** CDOT is the only road feed wired
+  up; Utah (UDOT), New Mexico and California (Caltrans) corridors report
+  road status as unavailable, by name, rather than clear.
+- **Live snowpack and lift status are Colorado-only for now.** No SNOTEL
+  station or Liftie id is recorded yet for the Utah, New Mexico or
+  California mountains (or the newer Colorado ones), so those panels say
+  unavailable rather than borrow a neighbor's reading.
+- **A GPS fix competes mountains within 300 miles** (`GPS_REACH_MILES`), or
+  the nearest five if nothing is that close — so a rider in Denver isn't
+  planned a day in Tahoe.
 - **No official resort feeds, no crowds, no pricing** — see the sections
   above for why each is `unavailable` by design rather than by gap.
 

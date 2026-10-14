@@ -9,6 +9,7 @@ import {
 } from '@/domain/provenance';
 import { cachedJson } from './fetchCache';
 import type { ProviderContext, TrafficProvider } from '@/providers/types';
+import { timeZoneForPoint } from '@/lib/geo';
 
 /**
  * Production traffic via Google Routes — from the browser's side of the fence.
@@ -60,6 +61,10 @@ export class LiveTrafficProvider implements TrafficProvider {
       destination: route.destinationPoint,
       direction,
       date: context.date,
+      // The engine's clock is the mountain's own wall clock, so departure
+      // minutes are converted to instants in the mountain's zone — Pacific
+      // for California, Mountain everywhere else.
+      timeZone: timeZoneForPoint(route.destinationPoint),
     });
 
     let payload: TravelCurveResponse;

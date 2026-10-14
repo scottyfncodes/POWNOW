@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MOUNTAINS } from '@/data/mountains';
+import { ORIGIN_STATE_LABELS } from '@/data/origins';
 import { PASS_LABELS, type PassAffiliation } from '@/domain/mountain';
 import { BrowseBar } from '@/ui/components/BrowseBar';
 import { MountainList } from '@/ui/components/MountainList';
@@ -18,23 +19,36 @@ const PASS_FILTERS: PassAffiliation[] = (['epic', 'ikon', 'indy', 'mountain-coll
   MOUNTAINS.some((mountain) => mountain.passAffiliations.includes(pass)),
 );
 
+/** Only the states some mountain in the dataset is actually in, in the starting-city list's order. */
+const STATE_FILTERS: string[] = Object.keys(ORIGIN_STATE_LABELS).filter((state) =>
+  MOUNTAINS.some((mountain) => mountain.state === state),
+);
+
+/** "Colorado, Utah, New Mexico and California" — whatever the dataset covers. */
+const STATES_SENTENCE = ((names: string[]) =>
+  names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)(
+  STATE_FILTERS.map((state) => ORIGIN_STATE_LABELS[state] ?? state),
+);
+
 /**
  * Every supported mountain by name — the primary way to browse, with the
- * map one tab over. A search box and pass chips narrow it; a row opens that
+ * map one tab over. A search box, state chips and pass chips narrow it; a row opens that
  * mountain's profile, separate from any ranking.
  */
 export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
   const [query, setQuery] = useState('');
   const [pass, setPass] = useState<PassAffiliation | null>(null);
+  const [state, setState] = useState<string | null>(null);
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return MOUNTAINS.filter(
       (mountain) =>
         (!pass || mountain.passAffiliations.includes(pass)) &&
+        (!state || mountain.state === state) &&
         (!needle || `${mountain.name} ${mountain.shortName} ${mountain.region}`.toLowerCase().includes(needle)),
     );
-  }, [query, pass]);
+  }, [query, pass, state]);
   const filtered = shown.length !== MOUNTAINS.length;
 
   return (
@@ -45,9 +59,9 @@ export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListSc
 
         <header className="listscreen-head">
           <h1 className="listscreen-title">
-            <span className="numeral">{MOUNTAINS.length}</span> Colorado mountains
+            <span className="numeral">{MOUNTAINS.length}</span> mountains
           </h1>
-          <p className="listscreen-intro">Open any one for its full profile — the terrain, today's snow, the drive, parking and where to eat. No ranking unless you ask for it.</p>
+          <p className="listscreen-intro">Across {STATES_SENTENCE}. Open any one for its full profile — the terrain, today's snow, the drive, parking and where to eat. No ranking unless you ask for it.</p>
         </header>
 
         <div className="listscreen-filters">
@@ -58,9 +72,25 @@ export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListSc
             </span>
             <input type="search" placeholder="Search by name or region" value={query} onChange={(event) => setQuery(event.target.value)} />
           </label>
+          <div className="listscreen-passes scroll-x" role="group" aria-label="Filter by state">
+            <button type="button" className={`filterchip${state === null ? ' is-active' : ''}`} aria-pressed={state === null} onClick={() => setState(null)}>
+              All states
+            </button>
+            {STATE_FILTERS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`filterchip${state === option ? ' is-active' : ''}`}
+                aria-pressed={state === option}
+                onClick={() => setState(state === option ? null : option)}
+              >
+                {ORIGIN_STATE_LABELS[option]}
+              </button>
+            ))}
+          </div>
           <div className="listscreen-passes scroll-x" role="group" aria-label="Filter by pass">
             <button type="button" className={`filterchip${pass === null ? ' is-active' : ''}`} aria-pressed={pass === null} onClick={() => setPass(null)}>
-              All
+              All passes
             </button>
             {PASS_FILTERS.map((option) => (
               <button
@@ -80,7 +110,7 @@ export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListSc
           <MountainList
             mountains={shown}
             onSelectMountain={onOpenMountain}
-            label={filtered ? `${shown.length} of ${MOUNTAINS.length} Colorado mountains, alphabetical` : undefined}
+            label={filtered ? `${shown.length} of ${MOUNTAINS.length} mountains, alphabetical` : undefined}
           />
         ) : (
           <p className="listscreen-empty">
@@ -91,6 +121,7 @@ export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListSc
               onClick={() => {
                 setQuery('');
                 setPass(null);
+                setState(null);
               }}
             >
               Clear filters

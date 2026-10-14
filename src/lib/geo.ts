@@ -20,3 +20,16 @@ export function nearest<T extends { coordinates: GeoPoint }>(from: GeoPoint, can
     haversineMiles(from, candidate.coordinates) < haversineMiles(from, closest.coordinates) ? candidate : closest,
   );
 }
+
+/**
+ * The IANA zone a ski day at this point runs on. Every mountain in the
+ * dataset is in either Mountain time (Colorado, Utah, New Mexico) or Pacific
+ * time (California, and Reno/Tahoe's Nevada side), and the Utah–Nevada line
+ * at 114.05°W is the one boundary between them that matters here — Arizona
+ * and Idaho, where it wouldn't hold, have no mountains in the dataset.
+ */
+export const PACIFIC_TIME_WEST_OF_LON = -114.05;
+
+export function timeZoneForPoint(point: GeoPoint): 'America/Denver' | 'America/Los_Angeles' {
+  return point.lon < PACIFIC_TIME_WEST_OF_LON ? 'America/Los_Angeles' : 'America/Denver';
+}

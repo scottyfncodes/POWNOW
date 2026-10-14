@@ -1,4 +1,5 @@
 import type { Currency } from '@/domain/pricing';
+import { REGION_DATASETS } from '@/data/regions';
 
 /**
  * Representative lift-ticket rates, as data.
@@ -20,7 +21,7 @@ export interface TicketPricingProfile {
   dynamicRange: number;
 }
 
-export const TICKET_PRICING: Record<string, TicketPricingProfile> = {
+const CORE_TICKET_PRICING: Record<string, TicketPricingProfile> = {
   vail: { mountainId: 'vail', currency: 'USD', windowRate: 289, advanceFloor: 159, dynamicRange: 0.95 },
   'beaver-creek': { mountainId: 'beaver-creek', currency: 'USD', windowRate: 279, advanceFloor: 155, dynamicRange: 0.9 },
   breckenridge: { mountainId: 'breckenridge', currency: 'USD', windowRate: 259, advanceFloor: 142, dynamicRange: 0.9 },
@@ -39,6 +40,12 @@ export const TICKET_PRICING: Record<string, TicketPricingProfile> = {
   monarch: { mountainId: 'monarch', currency: 'USD', windowRate: 99, advanceFloor: 65, dynamicRange: 0.4 },
   telluride: { mountainId: 'telluride', currency: 'USD', windowRate: 269, advanceFloor: 149, dynamicRange: 0.88 },
 };
+
+export const TICKET_PRICING: Record<string, TicketPricingProfile> = Object.assign(
+  {},
+  CORE_TICKET_PRICING,
+  ...REGION_DATASETS.map((dataset) => dataset.pricing),
+);
 
 /** A mountain with no published profile still gets a plausible, clearly-generic rate. */
 export const DEFAULT_PRICING: Omit<TicketPricingProfile, 'mountainId'> = {

@@ -21,6 +21,35 @@ export function resolveAccessRoutes(mountain: Mountain, origin: Origin): AccessR
   return [buildLiveRoute(mountain, origin)];
 }
 
+/**
+ * How far, as the crow flies, a GPS rider's candidate mountains can be. A
+ * route can be synthesized to *any* mountain, but the dataset now spans four
+ * states, and a rider standing in Denver should not have every California
+ * resort planned (and, live, routed through Google) to be told the drive is
+ * long. 300 miles keeps everything a Colorado day trip has ever meant —
+ * Denver to Telluride or Taos — and leaves Salt Lake and the Sierra out.
+ */
+export const GPS_REACH_MILES = 300;
+/** A GPS fix nowhere near any mountain still gets an answer: the nearest few. */
+const GPS_FALLBACK_COUNT = 5;
+
+/**
+ * The mountains that compete for a day from this origin. A manual city
+ * competes exactly the mountains it has hand-authored routes to; a GPS fix
+ * competes every mountain within `GPS_REACH_MILES`, or — standing in Kansas
+ * — the nearest handful, rather than nothing.
+ */
+export function mountainsInReach(mountains: Mountain[], origin: Origin): Mountain[] {
+  if (isManualCityOrigin(origin.id)) {
+    return mountains.filter((mountain) => routesFrom(mountain, origin.id).length > 0);
+  }
+  const byDistance = mountains
+    .map((mountain) => ({ mountain, miles: haversineMiles(origin.coordinates, mountain.coordinates) }))
+    .sort((a, b) => a.miles - b.miles);
+  const near = byDistance.filter((entry) => entry.miles <= GPS_REACH_MILES);
+  return (near.length > 0 ? near : byDistance.slice(0, GPS_FALLBACK_COUNT)).map((entry) => entry.mountain);
+}
+
 const AVERAGE_ROAD_SPEED_MPH = 45;
 /** Straight-line distance underestimates real road distance; mountain roads wind more than this, but it's a starting figure only. */
 const STRAIGHT_LINE_TO_ROAD_FACTOR = 1.2;

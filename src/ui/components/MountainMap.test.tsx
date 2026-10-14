@@ -78,7 +78,7 @@ describe('MountainMap', () => {
         onSelectMountain={() => {}}
       />,
     );
-    const labelled = container.querySelector('[aria-label*="Colorado mountains relative to Denver"]');
+    const labelled = container.querySelector('[aria-label*="mountains relative to Denver"]');
     expect(labelled).toBeInTheDocument();
     expect(labelled?.getAttribute('aria-label')).toContain(String(MOUNTAINS.length));
   });
