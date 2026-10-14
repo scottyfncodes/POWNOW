@@ -170,6 +170,21 @@ describe('the home screen', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/list'));
   }, 15_000);
 
+  it("puts today's score out of 10 on every reachable mountain's card, still in A–Z order", async () => {
+    render(<App />);
+    await user().click(allMountains());
+    const list = screen.getByRole('list', { name: /\d+ mountains, alphabetical/i });
+    const copper = within(list).getByRole('button', { name: /^Copper Mountain/ });
+    await waitFor(() => expect(copper.querySelector('.mountainlist-score .numeral')?.textContent).toMatch(/^\d+\.\d$/), {
+      timeout: 12_000,
+    });
+    expect(copper.querySelector('.mountainlist-score-of')!.textContent).toBe('/10');
+    // Purgatory has no route from Denver: it says so instead of scoring.
+    const purgatory = within(list).getByRole('button', { name: /^Purgatory/ });
+    expect(purgatory.querySelector('.mountainlist-score')!.textContent).toBe('Too far');
+    expect(within(purgatory).getByLabelText(/out of range from denver/i)).toBeInTheDocument();
+  }, 15_000);
+
   it('narrows the list by name and by pass', async () => {
     render(<App />);
     await user().click(allMountains());

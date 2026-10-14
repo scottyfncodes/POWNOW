@@ -3,10 +3,12 @@ import { MOUNTAINS } from '@/data/mountains';
 import { ORIGIN_STATE_LABELS } from '@/data/origins';
 import { PASS_LABELS, type PassAffiliation } from '@/domain/mountain';
 import { BrowseBar } from '@/ui/components/BrowseBar';
-import { MountainList } from '@/ui/components/MountainList';
+import { MountainList, type ListScores } from '@/ui/components/MountainList';
 import { ScreenHeader } from '@/ui/components/ScreenHeader';
 
 export interface ListScreenProps {
+  /** Today's score per mountain, from the same ranking the home screen shows. */
+  scores?: ListScores;
   onBack: () => void;
   /** A mountain's own profile — its facts, conditions and logistics, no ranking. */
   onOpenMountain: (mountainId: string) => void;
@@ -32,10 +34,11 @@ const STATES_SENTENCE = ((names: string[]) =>
 
 /**
  * Every supported mountain by name — the primary way to browse, with the
- * map one tab over. A search box, state chips and pass chips narrow it; a row opens that
+ * map one tab over. Each card carries today's score from the rider's starting
+ * point, but the list stays alphabetical. A search box, state chips and pass chips narrow it; a row opens that
  * mountain's profile, separate from any ranking.
  */
-export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
+export function ListScreen({ scores, onBack, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
   const [query, setQuery] = useState('');
   const [pass, setPass] = useState<PassAffiliation | null>(null);
   const [state, setState] = useState<string | null>(null);
@@ -61,7 +64,11 @@ export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListSc
           <h1 className="listscreen-title">
             <span className="numeral">{MOUNTAINS.length}</span> mountains
           </h1>
-          <p className="listscreen-intro">Across {STATES_SENTENCE}. Open any one for its full profile — the terrain, today's snow, the drive, parking and where to eat. No ranking unless you ask for it.</p>
+          <p className="listscreen-intro">
+            Across {STATES_SENTENCE}. Each card shows today's score out of 10
+            {scores?.status === 'ready' ? ` from ${scores.originName}` : ''} — still A to Z, no ranking unless you ask for it. Open any one for its full
+            profile: the terrain, today's snow, the drive, parking and where to eat.
+          </p>
         </header>
 
         <div className="listscreen-filters">
@@ -110,6 +117,7 @@ export function ListScreen({ onBack, onOpenMountain, onShowMap, onRank }: ListSc
           <MountainList
             mountains={shown}
             onSelectMountain={onOpenMountain}
+            scores={scores}
             label={filtered ? `${shown.length} of ${MOUNTAINS.length} mountains, alphabetical` : undefined}
           />
         ) : (
