@@ -109,14 +109,14 @@ export function DepartureWhatIf({ plan }: { plan: SkiDayPlan }) {
 
 function departureVerdict(selected: DepartureOption, recommended: DepartureOption): string {
   if (selected.departure === recommended.departure) {
-    return `${formatClock(recommended.departure)} is the move — early enough for the good snow, late enough that you're not sitting in the lot.`;
+    return `${formatClock(recommended.departure)} is the move: early enough for the good snow, late enough that you're not sitting in the lot.`;
   }
   const scoreDelta = (selected.score - recommended.score) / 10;
   const primeLost = recommended.primeCaptured - selected.primeCaptured;
   if (selected.departure > recommended.departure) {
     return primeLost > 20
       ? `Leaving ${formatDuration(selected.departure - recommended.departure)} later costs you ${formatDuration(primeLost)} of the best snow and ${Math.abs(scoreDelta).toFixed(1)} off the day.`
-      : `A little later is fine — you give up ${Math.abs(scoreDelta).toFixed(1)} and barely touch the good snow.`;
+      : `A little later is fine: you give up ${Math.abs(scoreDelta).toFixed(1)} and barely touch the good snow.`;
   }
   return `Going ${formatDuration(recommended.departure - selected.departure)} earlier buys ${primeLost < 0 ? formatDuration(-primeLost) : 'nothing'} of extra prime snow. Worth the alarm? Probably not.`;
 }

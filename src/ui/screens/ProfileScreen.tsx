@@ -311,7 +311,7 @@ function GettingThere({ mountain, origin }: { mountain: Mountain; origin: Origin
     <section className="panel profileroute" aria-labelledby="profileroute-heading">
       <header className="panel-head">
         <h2 id="profileroute-heading" className="section-title">
-          🚗 Getting there
+          Getting there
         </h2>
         <span className="panel-head-note">from {from}</span>
       </header>
@@ -351,12 +351,12 @@ function TicketFacts({ mountain, ticket }: { mountain: Mountain; ticket: Availab
   return (
     <section className="panel ticketpanel" aria-labelledby="profileticket-heading">
       <h2 id="profileticket-heading" className="section-title">
-        🎟️ Lift tickets
+        Lift tickets
       </h2>
       <p className="profileticket-passes">
         {passes.length > 0
           ? `Included on the ${passes.map((pass) => PASS_LABELS[pass]).join(' and ')}.`
-          : 'Not on a multi-resort pass — independent.'}
+          : 'Not on a multi-resort pass (independent).'}
       </p>
       {price ? (
         <p className="ticketpanel-price">

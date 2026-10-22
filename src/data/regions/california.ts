@@ -174,7 +174,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['epic'],
       popularity: 0.5,
-      character: 'The deepest, steepest snow in Tahoe — if CA-88 is open and the Wall gets its control work done.',
+      character: 'The deepest, steepest snow in Tahoe, if CA-88 is open and the Wall gets its control work done.',
     },
     {
       id: 'sierra-at-tahoe',
@@ -366,7 +366,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['independent'],
       popularity: 0.2,
-      character: 'A neighbourhood hill inside a Truckee subdivision — gentle, sheltered, and never a scene.',
+      character: 'A neighbourhood hill inside a Truckee subdivision: gentle, sheltered, and never a scene.',
     },
     // ───────────── Central Sierra ─────────────
     {
@@ -524,7 +524,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['ikon'],
       popularity: 0.85,
-      character: 'Eleven thousand feet of volcano that skis from November to summer — and shuts its summit when the wind howls.',
+      character: 'Eleven thousand feet of volcano that skis from November to summer, and shuts its summit when the wind howls.',
     },
     {
       id: 'june-mountain',
@@ -587,7 +587,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['ikon'],
       popularity: 0.8,
-      character: 'Southern California’s park capital — wall-to-wall features, man-made snow, and LA on a Saturday.',
+      character: 'Southern California’s park capital: wall-to-wall features, man-made snow, and LA on a Saturday.',
     },
     {
       id: 'snow-summit',
@@ -618,7 +618,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['ikon'],
       popularity: 0.82,
-      character: 'Big Bear’s groomer hill, right above the village — snowmaking on everything and night skiing after.',
+      character: 'Big Bear’s groomer hill, right above the village, with snowmaking on everything and night skiing after.',
     },
     {
       id: 'snow-valley',
@@ -649,7 +649,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['ikon'],
       popularity: 0.55,
-      character: 'Southern California’s oldest ski area and the first one up the Rim — it skips the last half-hour to Big Bear.',
+      character: 'Southern California’s oldest ski area and the first one up the Rim. It skips the last half-hour to Big Bear.',
     },
     {
       id: 'mountain-high',
@@ -711,7 +711,7 @@ export const CALIFORNIA: RegionDataset = {
       ]),
       passAffiliations: ['independent'],
       popularity: 0.35,
-      character: 'Four old chairs and the steepest terrain in Southern California — on the handful of days it has natural snow.',
+      character: 'Four old chairs and the steepest terrain in Southern California, on the handful of days it has natural snow.',
     },
     // ───────────── Far north ─────────────
     {
@@ -763,7 +763,7 @@ export const CALIFORNIA: RegionDataset = {
       grub: {
         picks: [
           { name: 'Fireside Pizza Co.', note: 'Village at Palisades pizza-and-salad stop, the default family dinner after skiing.' },
-          { name: 'Le Chamois & Loft Bar', note: 'Slopeside since the 1970s — pizza, cheap pitchers and the classic Olympic Valley après deck.' },
+          { name: 'Le Chamois & Loft Bar', note: 'Slopeside since the 1970s: pizza, cheap pitchers and the classic Olympic Valley après deck.' },
           { name: "Moody's Bistro Bar & Beats", note: 'Downtown Truckee dinner with live music, about 20 minutes north.' },
         ],
         quickBreakfast: { name: 'Wildflour Baking Company', note: 'Village bakery for a coffee and pastry steps from the Funitel.' },
@@ -775,7 +775,7 @@ export const CALIFORNIA: RegionDataset = {
         ],
       },
       notes:
-        'One resort since the 2022 rename: Olympic Valley and Alpine Meadows, linked by the Base-to-Base Gondola. Coordinates, elevations and operations are for the Olympic Valley base; Alpine Meadows (base ~6,835 ft, summit ~8,637 ft) is included in the combined lift/trail/acre totals (6,000 acres, ~270 trails, lift count ~34 — combined figures are approximate; individual-mountain lift counts vary by source). Opening date is the resort’s published 11/25/2026 target (ABC7 / Unofficial Networks, Aug–Sept 2026). Trail map points to the site root — the specific trail-map page URL did not surface in search. Address from memory of the resort’s mailing address, not search-confirmed. Not fetch-verified.',
+        'One resort since the 2022 rename: Olympic Valley and Alpine Meadows, linked by the Base-to-Base Gondola. Coordinates, elevations and operations are for the Olympic Valley base; Alpine Meadows (base ~6,835 ft, summit ~8,637 ft) is included in the combined lift/trail/acre totals (6,000 acres, ~270 trails, lift count ~34; combined figures are approximate; individual-mountain lift counts vary by source). Opening date is the resort’s published 11/25/2026 target (ABC7 / Unofficial Networks, Aug–Sept 2026). Trail map points to the site root; the specific trail-map page URL did not surface in search. Address from memory of the resort’s mailing address, not search-confirmed. Not fetch-verified.',
     },
     northstar: {
       officialWebsite: 'https://www.northstarcalifornia.com',
@@ -791,7 +791,7 @@ export const CALIFORNIA: RegionDataset = {
       grub: {
         picks: [
           { name: 'Rubicon Pizza Company', note: 'Village at Northstar pizza and beer by the ice rink.' },
-          { name: 'Zephyr Lodge', note: 'Mid-mountain lodge at the top of the Big Springs Gondola — the on-hill lunch.' },
+          { name: 'Zephyr Lodge', note: 'Mid-mountain lodge at the top of the Big Springs Gondola: the on-hill lunch.' },
           { name: 'Jax at the Tracks', note: 'Downtown Truckee diner in an old rail car, about 15 minutes away.' },
         ],
         quickBreakfast: { name: 'Squeeze In', note: 'Truckee’s long-running omelette house, on the way in from I-80.' },
@@ -803,7 +803,7 @@ export const CALIFORNIA: RegionDataset = {
         ],
       },
       notes:
-        'Opening date is Vail Resorts’ published 11/20/2026 target. Parking structure (free Castle Peak lots; Village View reservations on weekends/peak until midday; paid Preferred lot) from the official parking guide. Lift/trail/acre figures are the commonly cited 20 lifts / 100 trails / 3,170 acres; high-speed count is an estimate. Trail map links to the site root — no current trail-map page URL surfaced. Not fetch-verified.',
+        'Opening date is Vail Resorts’ published 11/20/2026 target. Parking structure (free Castle Peak lots; Village View reservations on weekends/peak until midday; paid Preferred lot) from the official parking guide. Lift/trail/acre figures are the commonly cited 20 lifts / 100 trails / 3,170 acres; high-speed count is an estimate. Trail map links to the site root; no current trail-map page URL surfaced. Not fetch-verified.',
     },
     heavenly: {
       officialWebsite: 'https://www.skiheavenly.com',
@@ -847,12 +847,12 @@ export const CALIFORNIA: RegionDataset = {
       closingDate: TBD_DATE,
       grub: {
         picks: [
-          { name: 'Off The Wall Bar & Grill', note: 'Kirkwood village bar at the base of The Wall — burgers and pitchers.' },
+          { name: 'Off The Wall Bar & Grill', note: 'Kirkwood village bar at the base of The Wall: burgers and pitchers.' },
           { name: 'Kirkwood Inn & Saloon', note: '1860s stagecoach-stop log cabin on CA-88, a mile from the base.' },
         ],
       },
       brews: {
-        picks: [{ name: 'Sidellis Lake Tahoe', note: 'Nearest real brewery, in South Lake Tahoe — about 50 minutes via Luther Pass.' }],
+        picks: [{ name: 'Sidellis Lake Tahoe', note: 'Nearest real brewery, in South Lake Tahoe: about 50 minutes via Luther Pass.' }],
       },
       notes:
         'Opening date is Vail Resorts’ published 12/4/2026 target. Lift/trail/acre figures (15 lifts, ~86 trails, 2,300 acres) are commonly cited values, high-speed count an estimate. Very little dining beyond the village; picks kept short on purpose. Address from memory, not search-confirmed. Not fetch-verified.',
@@ -881,7 +881,7 @@ export const CALIFORNIA: RegionDataset = {
         ],
       },
       notes:
-        'On the Ikon Pass for 2026-27 (7 days full Ikon / 5 days Base, per the resort’s Ikon page and retailer listings). New for 2026-27: parking reservations on weekends and holidays 12/19/2026–4/4/2027 until noon — free for passholders and 4+ carpools, $25 otherwise (resort announcement, March 2026). No published opening target as of mid-September 2026. Address from memory. Not fetch-verified.',
+        'On the Ikon Pass for 2026-27 (7 days full Ikon / 5 days Base, per the resort’s Ikon page and retailer listings). New for 2026-27: parking reservations on weekends and holidays 12/19/2026–4/4/2027 until noon: free for passholders and 4+ carpools, $25 otherwise (resort announcement, March 2026). No published opening target as of mid-September 2026. Address from memory. Not fetch-verified.',
     },
     'sugar-bowl': {
       officialWebsite: 'https://www.sugarbowl.com',
@@ -905,7 +905,7 @@ export const CALIFORNIA: RegionDataset = {
         picks: [{ name: 'FiftyFifty Brewing Co.', note: 'Truckee brewpub, about 20 minutes east over the summit.' }],
       },
       notes:
-        'Mountain Collective partner (joined 2022; Sugar Bowl’s own page still advertises it). No Ikon listing for Sugar Bowl was found for 2026-27 — recorded as Mountain Collective only. Opening is a published 11/27/2026 target (Unofficial Networks, Sept 2026). Lift/acre/trail figures (13 lifts, 1,650 acres, ~103 runs) are commonly cited values; high-speed count estimated. Parking: Village Gondola lot is passholder-only per the official parking guide; Judah lots for day visitors. Address from memory. Not fetch-verified.',
+        'Mountain Collective partner (joined 2022; Sugar Bowl’s own page still advertises it). No Ikon listing for Sugar Bowl was found for 2026-27, so it is recorded as Mountain Collective only. Opening is a published 11/27/2026 target (Unofficial Networks, Sept 2026). Lift/acre/trail figures (13 lifts, 1,650 acres, ~103 runs) are commonly cited values; high-speed count estimated. Parking: Village Gondola lot is passholder-only per the official parking guide; Judah lots for day visitors. Address from memory. Not fetch-verified.',
     },
     boreal: {
       officialWebsite: 'https://www.rideboreal.com',
@@ -928,7 +928,7 @@ export const CALIFORNIA: RegionDataset = {
         picks: [{ name: 'FiftyFifty Brewing Co.', note: 'Truckee brewpub, about 15 minutes east.' }],
       },
       notes:
-        'Powdr-owned (with Soda Springs and Woodward Tahoe). Powdr’s own multi-resort pass is not one of the networks this app models, so affiliation is "independent". Stats conflict across sources: 380 acres and 500 ft vertical are consistent; trails 34–41 and lifts 7–13 (carpets counted differently) — used 34 trails / 8 lifts (Wikipedia/SnowStash). Address from memory. Not fetch-verified.',
+        'Powdr-owned (with Soda Springs and Woodward Tahoe). Powdr’s own multi-resort pass is not one of the networks this app models, so affiliation is "independent". Stats conflict across sources: 380 acres and 500 ft vertical are consistent; trails 34–41 and lifts 7–13 (carpets counted differently); used 34 trails / 8 lifts (Wikipedia/SnowStash). Address from memory. Not fetch-verified.',
     },
     'soda-springs': {
       officialWebsite: 'https://www.skisodasprings.com',
@@ -945,7 +945,7 @@ export const CALIFORNIA: RegionDataset = {
         picks: [{ name: 'Old 40 Bar & Grill', note: 'Rainbow Lodge restaurant on old Highway 40, a few minutes west.' }],
       },
       notes:
-        'Powdr-owned beginner/tubing area. Official domain (skisodasprings.com) is from memory — the search budget ran out before it could be confirmed by its own search hit; spot-check. Stats from OnTheSnow (200 acres, 652 ft vertical, 6 lifts incl. surface/carpets); trail count conflicts (15–19). Not fetch-verified.',
+        'Powdr-owned beginner/tubing area. Official domain (skisodasprings.com) is from memory; the search budget ran out before it could be confirmed by its own search hit; spot-check. Stats from OnTheSnow (200 acres, 652 ft vertical, 6 lifts incl. surface/carpets); trail count conflicts (15–19). Not fetch-verified.',
     },
     'donner-ski-ranch': {
       officialWebsite: 'https://www.donnerskiranch.com',
@@ -968,7 +968,7 @@ export const CALIFORNIA: RegionDataset = {
         picks: [{ name: 'Alibi Ale Works – Truckee Public House', note: 'Downtown Truckee taproom, about 15 minutes east.' }],
       },
       notes:
-        'Indy Pass partner per OnTheSnow’s 2026/27 Indy buyer’s guide. Stats from OnTheSnow: 8 lifts, 52 trails, 505 acres, 750 ft vertical — its own narrative also says 400 acres, so acreage is uncertain. Official domain from memory, not search-confirmed. Not fetch-verified.',
+        'Indy Pass partner per OnTheSnow’s 2026/27 Indy buyer’s guide. Stats from OnTheSnow: 8 lifts, 52 trails, 505 acres, 750 ft vertical; its own narrative also says 400 acres, so acreage is uncertain. Official domain from memory, not search-confirmed. Not fetch-verified.',
     },
     'tahoe-donner': {
       officialWebsite: 'https://www.tahoedonner.com',
@@ -995,7 +995,7 @@ export const CALIFORNIA: RegionDataset = {
         ],
       },
       notes:
-        'Homeowners-association-owned ski hill in the Tahoe Donner subdivision, open to the public; new lodge opened for 2025-26. Lifts: 1 quad, 1 triple, 3 surface (resort listing) — OnTheSnow calls the quad high-speed, unconfirmed, so highSpeed is 0. Acres ~120, vertical 600 ft, trails 14–17 by source. Domain tahoedonner.com was named in search results but not opened. Not fetch-verified.',
+        'Homeowners-association-owned ski hill in the Tahoe Donner subdivision, open to the public; new lodge opened for 2025-26. Lifts: 1 quad, 1 triple, 3 surface (resort listing); OnTheSnow calls the quad high-speed, unconfirmed, so highSpeed is 0. Acres ~120, vertical 600 ft, trails 14–17 by source. Domain tahoedonner.com was named in search results but not opened. Not fetch-verified.',
     },
     'bear-valley': {
       officialWebsite: 'https://www.bearvalley.com',
@@ -1012,7 +1012,7 @@ export const CALIFORNIA: RegionDataset = {
         town: 'Arnold',
         picks: [
           { name: 'Snowshoe Brewing Co.', note: 'Arnold brewpub with a huge menu from nachos to prime rib, about 45 minutes down CA-4.' },
-          { name: "Sarafina's Italian Kitchen", note: 'Popular Arnold Italian — reservations recommended.' },
+          { name: "Sarafina's Italian Kitchen", note: 'Popular Arnold Italian: reservations recommended.' },
           { name: 'Lube Room Saloon', note: 'Dorrington pub known for fish and chips and burgers.' },
         ],
       },
@@ -1020,7 +1020,7 @@ export const CALIFORNIA: RegionDataset = {
         picks: [{ name: 'Snowshoe Brewing Co.', note: 'The house beers in Arnold, about 45 minutes west on CA-4.' }],
       },
       notes:
-        'Indy Pass partner per OnTheSnow’s 2026/27 Indy guide. Stats: 1,680 acres, 1,900 ft vertical, 6,600 ft base (Wikipedia, Alpine County); lift count 9–10 and trail count 67–103 vary by source — used 9 lifts / 75 trails (Alpine County). One high-speed lift (Mokelumne Express six-pack). CA-4 east of Bear Valley (Ebbetts Pass) is closed in winter, so no Reno route. Not fetch-verified.',
+        'Indy Pass partner per OnTheSnow’s 2026/27 Indy guide. Stats: 1,680 acres, 1,900 ft vertical, 6,600 ft base (Wikipedia, Alpine County); lift count 9–10 and trail count 67–103 vary by source; used 9 lifts / 75 trails (Alpine County). One high-speed lift (Mokelumne Express six-pack). CA-4 east of Bear Valley (Ebbetts Pass) is closed in winter, so no Reno route. Not fetch-verified.',
     },
     'dodge-ridge': {
       officialWebsite: 'https://www.dodgeridge.com',
@@ -1084,7 +1084,7 @@ export const CALIFORNIA: RegionDataset = {
       grub: {
         town: 'Oakhurst',
         picks: [
-          { name: 'South Gate Brewing Company', note: 'Oakhurst brewpub on CA-41 near the south entrance — smoked ribeye, 15 taps.' },
+          { name: 'South Gate Brewing Company', note: 'Oakhurst brewpub on CA-41 near the south entrance: smoked ribeye, 15 taps.' },
           { name: "Ducey's on the Lake", note: 'Bass Lake bar-and-grill upstairs, steakhouse downstairs.' },
         ],
       },
@@ -1092,7 +1092,7 @@ export const CALIFORNIA: RegionDataset = {
         picks: [{ name: 'South Gate Brewing Company', note: 'Oakhurst, about an hour south of Badger Pass.' }],
       },
       notes:
-        'Concession-operated ski area inside Yosemite National Park (park entry fee applies). 2025-26 ran only Jan 16–Mar 18, 2026 (~60 days). Stats: 5 lifts, 10 runs, ~90 acres; elevations approximate (~7,200–8,000 ft). Official site is the park concessioner’s travelyosemite.com, from memory — not search-confirmed. Glacier Point Road is plowed only to the ski area. Not fetch-verified.',
+        'Concession-operated ski area inside Yosemite National Park (park entry fee applies). 2025-26 ran only Jan 16–Mar 18, 2026 (~60 days). Stats: 5 lifts, 10 runs, ~90 acres; elevations approximate (~7,200–8,000 ft). Official site is the park concessioner’s travelyosemite.com, from memory and not search-confirmed. Glacier Point Road is plowed only to the ski area. Not fetch-verified.',
     },
     mammoth: {
       officialWebsite: 'https://www.mammothmountain.com',
@@ -1107,7 +1107,7 @@ export const CALIFORNIA: RegionDataset = {
       closingDate: TBD_DATE,
       grub: {
         picks: [
-          { name: "Toomey's", note: 'Village restaurant from a former Mammoth chef — the local dinner reservation.' },
+          { name: "Toomey's", note: 'Village restaurant from a former Mammoth chef: the local dinner reservation.' },
           { name: "Roberto's Mexican Cafe", note: 'Mammoth Lakes Mexican institution, margaritas after skiing.' },
           { name: "Shea Schat's Bakery", note: 'Eastern Sierra bakery outpost in town for sandwiches and pastries.' },
         ],
@@ -1118,7 +1118,7 @@ export const CALIFORNIA: RegionDataset = {
         distilleries: [{ name: 'Mammoth Distilling', note: 'Small-batch spirits tasting room in Mammoth Lakes.' }],
       },
       notes:
-        'Opening is the resort’s announced 11/13/2026 (8:30am) target — earliest in California. Trail-map page confirmed by search; a winter PDF is linked from it but the direct asset URL/season did not surface, so none is set. Lift count ~25 and high-speed count are approximate. Coordinates at Main Lodge. Address from memory. Not fetch-verified.',
+        'Opening is the resort’s announced 11/13/2026 (8:30am) target, the earliest in California. Trail-map page confirmed by search; a winter PDF is linked from it but the direct asset URL/season did not surface, so none is set. Lift count ~25 and high-speed count are approximate. Coordinates at Main Lodge. Address from memory. Not fetch-verified.',
     },
     'june-mountain': {
       officialWebsite: 'https://www.junemountain.com',
@@ -1139,7 +1139,7 @@ export const CALIFORNIA: RegionDataset = {
         ],
       },
       brews: {
-        picks: [{ name: 'June Lake Brewing', note: 'The village’s own craft brewery; winter hours vary — check before going.' }],
+        picks: [{ name: 'June Lake Brewing', note: 'The village’s own craft brewery; winter hours vary, so check before going.' }],
       },
       notes:
         'Opening is the published 12/19/2026 target (Unofficial Networks, Sept 2026). Stats vary: vertical 2,545–2,590 ft (USFS says 2,590), acres 500–1,500 (used 1,500, which most sources give), lifts 6–7, trails 35–43. Two high-speed quads (J1, J7) from memory. Not fetch-verified.',
@@ -1161,7 +1161,7 @@ export const CALIFORNIA: RegionDataset = {
           { name: 'Teddy Bear Restaurant', note: 'Big Bear Lake diner famous for its homemade pies.' },
           { name: 'The Pines Tavern on the Lake', note: 'Lakeside seasonal American, the sit-down dinner in town.' },
         ],
-        quickBreakfast: { name: 'Grizzly Manor Cafe', note: 'No-frills Big Bear breakfast institution with enormous portions — expect a weekend wait.' },
+        quickBreakfast: { name: 'Grizzly Manor Cafe', note: 'No-frills Big Bear breakfast institution with enormous portions: expect a weekend wait.' },
       },
       brews: {
         picks: [{ name: 'Big Bear Lake Brewing Company', note: 'In-town brewpub brewing on site, about 10 minutes from the base.' }],
@@ -1186,7 +1186,7 @@ export const CALIFORNIA: RegionDataset = {
           { name: 'Teddy Bear Restaurant', note: 'Big Bear Lake diner famous for its homemade pies.' },
           { name: 'Fire Rock Burgers & Brews', note: 'Big Bear burgers and pizza with a long tap list.' },
         ],
-        quickBreakfast: { name: 'Grizzly Manor Cafe', note: 'Big Bear breakfast institution — go early on weekends.' },
+        quickBreakfast: { name: 'Grizzly Manor Cafe', note: 'Big Bear breakfast institution: go early on weekends.' },
       },
       brews: {
         picks: [{ name: 'Big Bear Lake Brewing Company', note: 'In-town brewpub, a few minutes from the base.' }],
@@ -1211,10 +1211,10 @@ export const CALIFORNIA: RegionDataset = {
         quickBreakfast: { name: 'Old Country Coffee Shop', note: 'Running Springs breakfast counter open from 6am, about 4 miles from the lifts.' },
       },
       brews: {
-        picks: [{ name: 'Big Bear Lake Brewing Company', note: 'Nearest brewpub, in Big Bear Lake — about 25 minutes east.' }],
+        picks: [{ name: 'Big Bear Lake Brewing Company', note: 'Nearest brewpub, in Big Bear Lake: about 25 minutes east.' }],
       },
       notes:
-        'Acquired by Alterra in January 2023 and run by Big Bear Mountain Resort; on the Ikon Pass (unlimited on Ikon/Base per the 2023 release; 26/27 BBMR passes cover it). Formerly an Indy partner — no longer. Official site is the BBMR site. Stats: 240 acres, 1,041 ft vertical consistent; lifts 9–13 and trails 29–32 by source. Not fetch-verified.',
+        'Acquired by Alterra in January 2023 and run by Big Bear Mountain Resort; on the Ikon Pass (unlimited on Ikon/Base per the 2023 release; 26/27 BBMR passes cover it). Formerly an Indy partner, no longer. Official site is the BBMR site. Stats: 240 acres, 1,041 ft vertical consistent; lifts 9–13 and trails 29–32 by source. Not fetch-verified.',
     },
     'mountain-high': {
       officialWebsite: 'https://www.mthigh.com',
@@ -1230,16 +1230,16 @@ export const CALIFORNIA: RegionDataset = {
       grub: {
         town: 'Wrightwood',
         picks: [
-          { name: 'Grizzly Cafe', note: 'Wrightwood diner on Highway 2 — homemade potato chips and big breakfasts.' },
+          { name: 'Grizzly Cafe', note: 'Wrightwood diner on Highway 2: homemade potato chips and big breakfasts.' },
           { name: 'The Yodeler Craft Beer Bar & Grill', note: 'Wrightwood burgers, pizza and craft taps.' },
         ],
-        quickBreakfast: { name: 'Evergreen Cafe', note: 'Wrightwood breakfast spot — biscuits & gravy and chicken-fried steak.' },
+        quickBreakfast: { name: 'Evergreen Cafe', note: 'Wrightwood breakfast spot: biscuits & gravy and chicken-fried steak.' },
       },
       brews: {
         picks: [{ name: 'Wrightwood Brew Co.', note: 'Wrightwood village taproom with flatbreads and a mountain-view patio.' }],
       },
       notes:
-        'West, East and North areas sold as one resort; coordinates at West. Indy Pass partner (2026/27 OnTheSnow guide). Stats from OnTheSnow: 14 lifts (2 high-speed quads), 290 acres; vertical ~1,600 ft is the commonly quoted West figure. OnTheSnow’s projected 11/27 opening is an estimate, not a resort target — TBD here. Not fetch-verified.',
+        'West, East and North areas sold as one resort; coordinates at West. Indy Pass partner (2026/27 OnTheSnow guide). Stats from OnTheSnow: 14 lifts (2 high-speed quads), 290 acres; vertical ~1,600 ft is the commonly quoted West figure. OnTheSnow’s projected 11/27 opening is an estimate, not a resort target, so TBD here. Not fetch-verified.',
     },
     'mt-baldy': {
       officialWebsite: 'https://www.mtbaldyresort.com',
@@ -1370,7 +1370,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Base lot sits directly off the I-80 Castle Peak exit. No resort-published 2026-27 parking policy was found in research — check the resort site.'],
+      notes: ['Base lot sits directly off the I-80 Castle Peak exit. No resort-published 2026-27 parking policy was found in research; check the resort site.'],
       infoUrl: 'https://www.rideboreal.com',
     },
     'soda-springs': {
@@ -1379,7 +1379,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Base lot off the I-80 Soda Springs exit. No resort-published 2026-27 parking policy was found in research — check the resort site.'],
+      notes: ['Base lot off the I-80 Soda Springs exit. No resort-published 2026-27 parking policy was found in research; check the resort site.'],
       infoUrl: 'https://www.skisodasprings.com',
     },
     'donner-ski-ranch': {
@@ -1388,7 +1388,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Roadside lots on old Donner Pass Road (old Highway 40). No resort-published 2026-27 parking policy was found in research — check the resort site.'],
+      notes: ['Roadside lots on old Donner Pass Road (old Highway 40). No resort-published 2026-27 parking policy was found in research; check the resort site.'],
       infoUrl: 'https://www.donnerskiranch.com',
     },
     'tahoe-donner': {
@@ -1397,7 +1397,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Small lot at the Downhill lodge inside the Tahoe Donner community. No published 2026-27 parking policy was found in research — check the site.'],
+      notes: ['Small lot at the Downhill lodge inside the Tahoe Donner community. No published 2026-27 parking policy was found in research; check the site.'],
       infoUrl: 'https://www.tahoedonner.com',
     },
     'bear-valley': {
@@ -1418,7 +1418,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Base-area lots at the end of Dodge Ridge Road; weekends and holidays fill. No resort-published 2026-27 parking policy was found in research — check the resort site.'],
+      notes: ['Base-area lots at the end of Dodge Ridge Road; weekends and holidays fill. No resort-published 2026-27 parking policy was found in research; check the resort site.'],
       infoUrl: 'https://www.dodgeridge.com',
     },
     'china-peak': {
@@ -1427,7 +1427,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Base lot on CA-168 at Huntington Lake. No resort-published 2026-27 parking policy was found in research — check the resort site.'],
+      notes: ['Base lot on CA-168 at Huntington Lake. No resort-published 2026-27 parking policy was found in research; check the resort site.'],
       infoUrl: 'https://www.skichinapeak.com',
     },
     'badger-pass': {
@@ -1514,7 +1514,7 @@ export const CALIFORNIA: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Ski-area lot at Manker Flats on Mount Baldy Road; a National Forest Adventure Pass is required at the adjacent trailhead parking — confirm whether it applies to the ski lot.'],
+      notes: ['Ski-area lot at Manker Flats on Mount Baldy Road; a National Forest Adventure Pass is required at the adjacent trailhead parking; confirm whether it applies to the ski lot.'],
       infoUrl: 'https://www.mtbaldyresort.com',
     },
     'mt-shasta': {

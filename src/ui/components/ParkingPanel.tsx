@@ -23,7 +23,7 @@ export function ParkingPanel({ parking }: ParkingPanelProps) {
     return (
       <section className="panel parkingpanel" aria-labelledby="parking-heading">
         <h2 id="parking-heading" className="section-title">
-          🅿️ Parking
+          Parking
         </h2>
         <p className="parkingpanel-unavailable">Parking information unavailable for this mountain.</p>
       </section>
@@ -37,14 +37,14 @@ export function ParkingPanel({ parking }: ParkingPanelProps) {
     <section className="panel parkingpanel" aria-labelledby="parking-heading">
       <header className="panel-head">
         <h2 id="parking-heading" className="section-title">
-          🅿️ Parking
+          Parking
         </h2>
         <span className={`chip chip-parking-${info.status}`}>{PARKING_STATUS_LABEL[info.status]}</span>
       </header>
 
       {info.status === 'unknown' && (
         <p className="parkingpanel-note">
-          Live lot occupancy isn't published for this mountain — this is not a guess dressed up as a
+          Live lot occupancy isn't published for this mountain. This is not a guess dressed up as a
           status.
         </p>
       )}
@@ -77,7 +77,7 @@ export function ParkingPanel({ parking }: ParkingPanelProps) {
 
       {!isLive && (
         <p className="faint parkingpanel-demo-note">
-          Occupancy status simulated for demo mode — the rules above are real, researched facts.
+          Occupancy status simulated for demo mode. The rules above are real, researched facts.
         </p>
       )}
     </section>

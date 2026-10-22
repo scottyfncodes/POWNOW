@@ -38,7 +38,7 @@ export class LivePricingProvider implements PricingProvider {
   async getTicketPrice(mountain: Mountain, _context: ProviderContext): Promise<Availability<TicketPrice>> {
     const source = resortSourceFor(mountain.id);
     const reason = source.officialPurchaseUrl
-      ? `No verified live pricing feed for ${mountain.name} — dynamic pricing means the price is computed inside the purchase flow, not published separately. Buy at ${source.officialPurchaseUrl}.`
+      ? `No verified live pricing feed for ${mountain.name}. Dynamic pricing means the price is computed inside the purchase flow, not published separately. Buy at ${source.officialPurchaseUrl}.`
       : `No verified live pricing feed for ${mountain.name}.`;
     return unavailable(this.id, reason);
   }

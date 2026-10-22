@@ -22,7 +22,7 @@ export function GetTherePanel({ plan }: GetTherePanelProps) {
     <section className="panel gettherepanel" aria-labelledby="getthere-heading">
       <header className="panel-head">
         <h2 id="getthere-heading" className="section-title">
-          🚗 Get there
+          Get there
         </h2>
       </header>
 
@@ -49,7 +49,7 @@ export function GetTherePanel({ plan }: GetTherePanelProps) {
             <div>
               <dt>Distance</dt>
               <dd className="numeral">
-                {plan.routeDistanceMiles != null ? `${Math.round(plan.routeDistanceMiles)} mi` : '—'}
+                {plan.routeDistanceMiles != null ? `${Math.round(plan.routeDistanceMiles)} mi` : '–'}
               </dd>
             </div>
           </dl>
@@ -59,7 +59,7 @@ export function GetTherePanel({ plan }: GetTherePanelProps) {
         <p className="gettherepanel-unavailable">
           {plan.timingIssue === 'too-late' || plan.timingIssue === 'too-far'
             ? plan.timingNote
-            : "Route service unavailable — we can't time this drive right now."}
+            : "Route service unavailable. We can't time this drive right now."}
         </p>
       )}
     </section>

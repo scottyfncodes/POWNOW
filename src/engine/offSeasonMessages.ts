@@ -115,7 +115,7 @@ const MOUNTAIN_LINES: Record<string, MountainLineBank> = {
   },
   'winter-park': {
     OFF_SEASON: [
-      () => "Mary Jane's bumps are dirt moguls right now — a genuinely different sport.",
+      () => "Mary Jane's bumps are dirt moguls right now. A genuinely different sport.",
       (month) => `${month}: the pass road is clear. The mountain's a different story.`,
     ],
     NO_SNOW: [
@@ -135,11 +135,11 @@ const MOUNTAIN_LINES: Record<string, MountainLineBank> = {
       () => "The base area still doesn't feel like a mall. Mostly because it's also not currently a ski resort.",
     ],
     INSUFFICIENT_COVERAGE: [() => 'San Juan snow is starting to show up. Not enough of it yet.'],
-    CLOSED: [() => 'Closed for the day — same as the season currently is.'],
+    CLOSED: [() => 'Closed for the day. Same as the season, currently.'],
   },
   copper: {
     OFF_SEASON: [
-      () => "West to east, beginner to expert — right now it's all just brown.",
+      () => "West to east, beginner to expert: right now it's all just brown.",
       (month) => `${month} off I-70: the exit's right there. The snow isn't.`,
     ],
     NO_SNOW: [
@@ -151,14 +151,14 @@ const MOUNTAIN_LINES: Record<string, MountainLineBank> = {
   },
   'wolf-creek': {
     OFF_SEASON: [
-      () => "Wolf Creek gets the most snow in Colorado — technically still true, it's just all future snow.",
+      () => "Wolf Creek gets the most snow in Colorado. Technically still true, it's just all future snow.",
       (month) => `${month}, a long way from anywhere, with nothing on the ground yet to show for the drive.`,
     ],
     NO_SNOW: [
       () => 'Most snow in Colorado is a season average, not a today guarantee.',
       () => "The two-digit lift ticket is still a bargain. There's just nothing to spend it on yet.",
     ],
-    INSUFFICIENT_COVERAGE: [() => "It's coming — Wolf Creek usually delivers eventually. Not today though."],
+    INSUFFICIENT_COVERAGE: [() => "It's coming. Wolf Creek usually delivers eventually. Not today though."],
     CLOSED: [() => 'Closed, out here, a long way from anywhere that would notice.'],
   },
   'arapahoe-basin': {
@@ -175,7 +175,7 @@ const MOUNTAIN_LINES: Record<string, MountainLineBank> = {
   },
   loveland: {
     OFF_SEASON: [
-      () => 'Closest lift-served turns to Denver — currently zero lift-served turns to Denver.',
+      () => 'Closest lift-served turns to Denver. Currently zero lift-served turns to Denver.',
       (month) => `${month}, and the wind still hasn't stopped. The snow, on the other hand, hasn't started.`,
     ],
     NO_SNOW: [
@@ -206,7 +206,7 @@ const MOUNTAIN_LINES: Record<string, MountainLineBank> = {
       () => 'No champagne, no powder. Just a really nice town.',
       () => 'Three hours from anywhere, for a mountain with nothing on it yet.',
     ],
-    INSUFFICIENT_COVERAGE: [() => 'Getting there. Not champagne yet — maybe seltzer.'],
+    INSUFFICIENT_COVERAGE: [() => 'Getting there. Not champagne yet. Maybe seltzer.'],
     CLOSED: [() => "Closed. The town's still real and Western, at least."],
   },
   monarch: {
@@ -261,7 +261,7 @@ function detailFor(
 
   const incomingNote =
     future !== null && future >= 6
-      ? ` ${future.toFixed(0)}" is projected over the next 5 days — NOT TODAY doesn't mean NOT SOON.`
+      ? ` ${future.toFixed(0)}" is projected over the next 5 days. NOT TODAY doesn't mean NOT SOON.`
       : '';
   const recentNote = past !== null && past > 0 ? ` ${past.toFixed(0)}" has fallen over the last 5 days.` : '';
 

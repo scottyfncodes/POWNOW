@@ -224,11 +224,11 @@ export function MapScreen({
         {registry.usingDemoData ? (
           <p className="home-demo mapscreen-demo">
             <span className="chip chip-demo">DEMO DATA</span>
-            <span>No live feeds connected — every number is simulated.</span>
+            <span>No live feeds connected. Every number is simulated.</span>
           </p>
         ) : remoteProxy ? (
           <p className="home-note">
-            First traffic check in a while? It can take up to 15 seconds to wake up — that's normal, not a bug.
+            First traffic check in a while? It can take up to 15 seconds to wake up. That's normal, not a bug.
           </p>
         ) : null}
       </div>
@@ -286,13 +286,13 @@ export function MapScreen({
                         ? formatDuration(mapRoute.durationMinutes)
                         : mapRoute === 'loading'
                           ? '…'
-                          : '—'}
+                          : '–'}
                     </dd>
                   </div>
                   <div>
                     <dt>New snow</dt>
                     <dd className="numeral">
-                      {selectedPlan?.freshSnowIn != null ? `${selectedPlan.freshSnowIn.toFixed(1)}″` : '—'}
+                      {selectedPlan?.freshSnowIn != null ? `${selectedPlan.freshSnowIn.toFixed(1)}″` : '–'}
                     </dd>
                   </div>
                   <div>
@@ -344,7 +344,7 @@ export function MapScreen({
                         <div>
                           <dt>Distance</dt>
                           <dd className="numeral">
-                            {mapRoute.distanceMiles != null ? `${Math.round(mapRoute.distanceMiles)} mi` : '—'}
+                            {mapRoute.distanceMiles != null ? `${Math.round(mapRoute.distanceMiles)} mi` : '–'}
                           </dd>
                         </div>
                         <div>

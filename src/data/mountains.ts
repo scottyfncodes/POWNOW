@@ -289,7 +289,7 @@ const CORE_MOUNTAINS: Mountain[] = [
     ]),
     passAffiliations: ['ikon'],
     popularity: 0.8,
-    character: 'Terrain that sorts itself west to east, right off the interstate — when the wind lets the top open.',
+    character: 'Terrain that sorts itself west to east, right off the interstate, when the wind lets the top open.',
   },
   {
     id: 'wolf-creek',
@@ -530,7 +530,7 @@ const CORE_MOUNTAINS: Mountain[] = [
     ]),
     passAffiliations: ['epic'],
     popularity: 0.45,
-    character: 'A box canyon at the end of a dead-end road, extreme terrain off Gold Hill and Palmyra Peak, and Alpino Vino — the highest restaurant in North America — waiting at the bottom of it.',
+    character: 'A box canyon at the end of a dead-end road, extreme terrain off Gold Hill and Palmyra Peak, and Alpino Vino (the highest restaurant in North America) waiting at the bottom of it.',
   },
 ];
 

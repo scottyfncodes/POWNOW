@@ -86,6 +86,6 @@ export function createLiveRegistry(options: LiveRegistryOptions = {}): ProviderR
     // No slot in this registry is ever a demo implementation — a config-time
     // gap reports `unavailable`, not demo data. See the module docblock.
     usingDemoData: false,
-    label: hasProxy ? 'Live data' : 'Live data (traffic, roads and snowpack unavailable — no proxy configured)',
+    label: hasProxy ? 'Live data' : 'Live data (traffic, roads and snowpack unavailable: no proxy configured)',
   };
 }

@@ -10,15 +10,6 @@ import {
 } from '@/domain/time';
 import { SnowClockChart } from './SnowClockChart';
 
-const HEAT = (quality: number): string => {
-  if (quality >= 88) return '🔥🔥';
-  if (quality >= 80) return '🔥';
-  if (quality >= 70) return '👌';
-  if (quality >= 58) return '🙂';
-  if (quality >= 45) return '😐';
-  return '💤';
-};
-
 export interface SnowClockPanelProps {
   clock: SnowClock;
   /** Honest, absolute snow-quality state — see `engine/snowState.ts`. Only when this is `'prime'` may the panel say so. */
@@ -69,8 +60,8 @@ export function SnowClockPanel({ clock, snowState, firstTurn, leaveAt, now }: Sn
             }`}
           >
             <span className="hourstrip-time numeral">{formatClockShort(point.minute)}</span>
-            <span className="hourstrip-heat" aria-hidden="true">
-              {point.closed ? '·' : HEAT(point.quality)}
+            <span className="hourstrip-heat numeral" aria-hidden="true">
+              {point.closed ? '·' : Math.round(point.quality)}
             </span>
             <span className="hourstrip-label">{point.label}</span>
           </li>
@@ -88,7 +79,7 @@ function captionFor(
   leaveAt?: MinuteOfDay | null,
 ): string {
   const prime = clock.prime;
-  if (!prime) return 'No standout window today — it holds up much the same from open to close.';
+  if (!prime) return 'No standout window today. It holds up much the same from open to close.';
 
   const shape =
     prime.peakMinute <= clock.open + 150
@@ -114,5 +105,5 @@ function captionFor(
         ? `and this plan misses it`
         : `and you catch ${formatDuration(caught)} of it`;
 
-  return `${shape}. ${snowLabel} ${formatWindowLabel(prime.start, prime.end)} — you're on the hill from ${formatClock(firstTurn)}, ${catchNote}.`;
+  return `${shape}. ${snowLabel} ${formatWindowLabel(prime.start, prime.end)}, you're on the hill from ${formatClock(firstTurn)}, ${catchNote}.`;
 }

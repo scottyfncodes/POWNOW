@@ -18,9 +18,7 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
             className={`timeline-item${event.emphasis ? ' is-key' : ''}`}
           >
             <span className="timeline-time numeral">{formatClock(event.minute)}</span>
-            <span className="timeline-icon" aria-hidden="true">
-              {event.icon}
-            </span>
+            <span className="timeline-marker" aria-hidden="true" />
             <span className="timeline-body">
               <span className="timeline-label">{event.label}</span>
               {event.detail && <span className="timeline-detail">{event.detail}</span>}

@@ -23,10 +23,10 @@ describe('MountainProfile — the map-to-decision hierarchy', () => {
       [
         plan.mountain.name,
         'Conditions',
-        '🅿️ Parking',
+        'Parking',
         'Lift ticket',
-        '🚗 Get there',
-        '🗺️ Trail map',
+        'Get there',
+        'Trail map',
         'The Snow Clock',
       ].some((label) => text?.includes(label)),
     );

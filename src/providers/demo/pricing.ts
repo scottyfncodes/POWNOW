@@ -93,6 +93,6 @@ export class DemoPricingProvider implements PricingProvider {
 function noteFor(kind: PriceKind, demand: number, holiday: string | null): string {
   if (holiday) return `${holiday} pricing.`;
   if (kind === 'window') return demand > 0.55 ? 'Same-day window rate, peak demand.' : 'Same-day window rate.';
-  if (kind === 'advance') return 'Advance rate — booked this far out.';
+  if (kind === 'advance') return 'Advance rate (booked this far out).';
   return demand > 0.55 ? 'Dynamic pricing, demand is up.' : 'Dynamic pricing.';
 }

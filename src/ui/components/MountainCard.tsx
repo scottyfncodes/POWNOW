@@ -78,7 +78,7 @@ export function MountainCard({ plan, rank, why, projected = false, onOpen }: Mou
             </div>
             <div>
               <dt>On snow</dt>
-              <dd className="numeral">{plan.return ? formatDuration(plan.return.mountainMinutes) : '—'}</dd>
+              <dd className="numeral">{plan.return ? formatDuration(plan.return.mountainMinutes) : '–'}</dd>
             </div>
             <div>
               <dt>Ticket</dt>

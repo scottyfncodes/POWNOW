@@ -117,7 +117,7 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
             className="home-cta"
             disabled={!best}
             onClick={() => best && onOpenMountain(best.mountain.id)}
-            aria-label={best ? `See why ${best.mountain.shortName} — the full day plan` : 'See why — waiting on the call'}
+            aria-label={best ? `See why ${best.mountain.shortName}: the full day plan` : 'See why (waiting on the call)'}
           >
             <span>SEE WHY</span>
             <span className="home-cta-go" aria-hidden="true">
@@ -126,18 +126,18 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
               </svg>
             </span>
           </button>
-          <button type="button" className="home-browse" onClick={onBrowse} aria-label="All mountains — open the map">
+          <button type="button" className="home-browse" onClick={onBrowse} aria-label="All mountains: open the map">
             All mountains
           </button>
 
           {usingDemoData ? (
             <p className="home-note">
-              <strong>DEMO DATA</strong> — No live weather, traffic or lift feeds are connected. Every number in
-              the app is simulated — and labelled as such.
+              <strong>DEMO DATA:</strong> No live weather, traffic or lift feeds are connected. Every number in
+              the app is simulated, and labelled as such.
             </p>
           ) : remoteProxy ? (
             <p className="home-note">
-              First traffic check in a while? It can take up to 15 seconds to wake up — that's normal, not a
+              First traffic check in a while? It can take up to 15 seconds to wake up. That's normal, not a
               bug. Give it a moment or check again if it says unavailable.
             </p>
           ) : null}

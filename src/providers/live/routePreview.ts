@@ -61,7 +61,7 @@ export async function fetchRoutePreview(
 export function describeRoutePreviewFailure(error: unknown): { message: string; likelySlowWake: boolean } {
   if (error instanceof ProviderTimeoutError) {
     return {
-      message: "The route service took too long to answer — it can nap when it's quiet and take a moment to wake up.",
+      message: "The route service took too long to answer. It can nap when it's quiet and take a moment to wake up.",
       likelySlowWake: true,
     };
   }

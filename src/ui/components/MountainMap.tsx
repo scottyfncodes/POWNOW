@@ -405,7 +405,7 @@ export function MountainMap({
         <figcaption className="mountainmap-legend">
           {bestMountainId && (
             <span className="mountainmap-legend-item">
-              <span className="mountainmap-swatch is-best" aria-hidden="true" /> BEST NOW — the engine's current pick
+              <span className="mountainmap-swatch is-best" aria-hidden="true" /> BEST NOW: the engine's current pick
             </span>
           )}
           {showApproximateLine && (

@@ -44,7 +44,7 @@ function projectionNote(
   if (confidence === 'medium') {
     return `A projection for ${when}, not a promise. Expect the snow totals to move before then.`;
   }
-  return `A projection for ${when}, not a promise. This far out we are leaning on pattern and history more than on any single forecast — treat it as a shortlist, not a plan.`;
+  return `A projection for ${when}, not a promise. This far out we are leaning on pattern and history more than on any single forecast. Treat it as a shortlist, not a plan.`;
 }
 
 /**
@@ -135,7 +135,7 @@ export function RecommendationCard({
           <div className={`reccard-time is-wide${plan.snowState === 'prime' ? ' is-prime' : ''}`}>
             <dt>{SNOW_STATE_LABEL[plan.snowState]}</dt>
             <dd className="numeral">
-              {snowClock.prime ? formatWindowLabel(snowClock.prime.start, snowClock.prime.end) : '—'}
+              {snowClock.prime ? formatWindowLabel(snowClock.prime.start, snowClock.prime.end) : '–'}
             </dd>
             <p className="faint">
               {departure.primeCaptured > 0
@@ -158,7 +158,7 @@ export function RecommendationCard({
         <p className="reccard-notiming">
           {plan.timingIssue === 'too-late' || plan.timingIssue === 'too-far'
             ? plan.timingNote
-            : "We can't time this day — see the notes below."}
+            : "We can't time this day. See the notes below."}
         </p>
       )}
 
@@ -188,7 +188,7 @@ export function RecommendationCard({
             <p className="reccard-ticket">
               <span className="reccard-ticket-label">Lift ticket</span>
               <span className="reccard-ticket-note">
-                Current price unavailable —{' '}
+                Current price unavailable:{' '}
                 <a href={plan.ticketPurchaseUrl} target="_blank" rel="noreferrer">
                   buy at the resort
                 </a>
@@ -201,7 +201,7 @@ export function RecommendationCard({
         <h2 className="eyebrow">Why {plan.mountain.shortName}</h2>
         {offSeason ? (
           <p className="reccard-whyline">
-            Base, peak and the 5-day snow cycle above are live for this mountain — there's just not a normal
+            Base, peak and the 5-day snow cycle above are live for this mountain. There's just not a normal
             ski day to call right now.
           </p>
         ) : (

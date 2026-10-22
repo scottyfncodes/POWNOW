@@ -57,7 +57,7 @@ function Bar({ day, max }: { day: DailySnowfall; max: number }) {
         <span className="snowtimeline-bar-fill" style={{ height: `${heightPct}%` }} />
       </span>
       <span className="snowtimeline-bar-value numeral">
-        {day.snowfallIn >= 0.05 ? `${day.snowfallIn.toFixed(1)}"` : '—'}
+        {day.snowfallIn >= 0.05 ? `${day.snowfallIn.toFixed(1)}"` : '–'}
       </span>
       <span className="snowtimeline-bar-day">{monthDay(day.date)}</span>
     </li>

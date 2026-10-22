@@ -225,7 +225,7 @@ function snowCycleFactor(inputs: DayInputs, weather: ReturnType<typeof resolveWe
 function describeSnowCycle(past: number, future: number): string {
   const p = past.toFixed(past < 10 ? 1 : 0);
   const f = future.toFixed(future < 10 ? 1 : 0);
-  if (past < 1 && future < 1) return 'Dry stretch — nothing in the last 5 days, nothing incoming.';
+  if (past < 1 && future < 1) return 'Dry stretch: nothing in the last 5 days, nothing incoming.';
   if (past < 1) return `Dry the last 5 days, but ${f}" projected over the next 5.`;
   if (future < 1) return `${p}" over the last 5 days, nothing new incoming.`;
   return `${p}" over the last 5 days, ${f}" more projected over the next 5.`;
@@ -299,12 +299,12 @@ function peakWindPenalty(peak: ReturnType<typeof resolveWeather>['peak']): {
   if (mph < PEAK_WIND_SEVERE_MPH) {
     return {
       penalty: (mph - PEAK_WIND_NORMAL_MPH) * 0.6,
-      note: `Peak wind running ${Math.round(mph)} mph — some upper-mountain impact likely.`,
+      note: `Peak wind running ${Math.round(mph)} mph. Some upper-mountain impact likely.`,
     };
   }
   return {
     penalty: (PEAK_WIND_SEVERE_MPH - PEAK_WIND_NORMAL_MPH) * 0.6 + (mph - PEAK_WIND_SEVERE_MPH) * 0.9,
-    note: `Severe peak wind, gusting to ${Math.round(mph)} mph — expect upper-mountain holds.`,
+    note: `Severe peak wind, gusting to ${Math.round(mph)} mph. Expect upper-mountain holds.`,
   };
 }
 
@@ -332,7 +332,7 @@ function windFactor(
         ? 'Barely any wind.'
         : peakGust < 38
           ? `Gusts around ${Math.round(peakGust)} mph.`
-          : `Gusting ${Math.round(peakGust)} mph — expect lift holds up high.`),
+          : `Gusting ${Math.round(peakGust)} mph. Expect lift holds up high.`),
   };
 }
 
@@ -441,7 +441,7 @@ function roadsFactor(inputs: DayInputs): RawFactor {
     return {
       value: clamp(value - closures * 5, 0, 100),
       note: authoritative.tractionLawInEffect
-        ? 'Traction law in effect — snow tires or chains required.'
+        ? 'Traction law in effect: snow tires or chains required.'
         : authoritative.condition === 'clear'
           ? 'Roads reported clear.'
           : `Roads: ${authoritative.condition.replace('-', ' ')}.`,
@@ -517,7 +517,7 @@ function ticketFactor(inputs: DayInputs, preferences: RiderPreferences): RawFact
   const saved = savingsVsWindow(ticket);
   const note =
     saved > 8
-      ? `${formatPrice(ticket.adultDay, ticket.currency)} — ${formatPrice(saved, ticket.currency)} under the window rate.`
+      ? `${formatPrice(ticket.adultDay, ticket.currency)}, ${formatPrice(saved, ticket.currency)} under the window rate.`
       : `${formatPrice(ticket.adultDay, ticket.currency)}. ${ticket.note}`;
   return { value: scoreBetween(ticket.adultDay, EXPENSIVE_TICKET, CHEAP_TICKET), note };
 }

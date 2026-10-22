@@ -19,7 +19,7 @@ export function ScreenHeader({ onBack, title, right }: ScreenHeaderProps) {
         </button>
         <span className="screenhead-title">
           {goHome ? (
-            <button type="button" className="logobutton" onClick={goHome} aria-label="POW NOW home — the map">
+            <button type="button" className="logobutton" onClick={goHome} aria-label="POW NOW home: the map">
               <Wordmark size="sm" />
             </button>
           ) : (

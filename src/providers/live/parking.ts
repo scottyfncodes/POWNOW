@@ -37,7 +37,7 @@ export class LiveParkingProvider implements ParkingProvider {
       confidence: 'medium',
       provider: this.id,
       horizonDays: 0,
-      attribution: 'Resort-published parking rules, not a live occupancy feed — see notes.',
+      attribution: 'Resort-published parking rules, not a live occupancy feed. See notes.',
     });
   }
 }

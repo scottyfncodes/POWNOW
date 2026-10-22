@@ -40,7 +40,7 @@ function ScoreBadge({ mountain, scores }: { mountain: Mountain; scores: ListScor
     const why = scores.status === 'ready' ? `Out of range from ${scores.originName}` : 'Score unavailable';
     return (
       <span className="mountainlist-score is-none" aria-label={why} title={why}>
-        {scores.status === 'ready' ? 'Too far' : <span className="numeral">—</span>}
+        {scores.status === 'ready' ? 'Too far' : <span className="numeral">–</span>}
       </span>
     );
   }

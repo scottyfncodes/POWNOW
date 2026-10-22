@@ -23,7 +23,7 @@ export function TrailMapPanel({ mountain, trailMap }: TrailMapPanelProps) {
     <section className="panel trailmappanel" aria-labelledby="trailmap-heading">
       <header className="panel-head">
         <h2 id="trailmap-heading" className="section-title">
-          🗺️ Trail map
+          Trail map
         </h2>
         {trailMap?.season && <span className="chip trailmappanel-season">{trailMap.season}</span>}
       </header>
@@ -39,13 +39,10 @@ export function TrailMapPanel({ mountain, trailMap }: TrailMapPanelProps) {
               />
             ) : (
               <span className="trailmappanel-preview-pdf">
-                <span aria-hidden="true" className="trailmappanel-preview-pdf-icon">
-                  📄
-                </span>
                 <span>{mountain.name} official trail map (PDF)</span>
               </span>
             )}
-            <span className="trailmappanel-preview-cta">Tap to view full map — pinch to zoom ↗</span>
+            <span className="trailmappanel-preview-cta">Tap to view full map. Pinch to zoom ↗</span>
           </button>
           {open && (
             <TrailMapViewer mountain={mountain} trailMap={trailMap} onClose={() => setOpen(false)} />

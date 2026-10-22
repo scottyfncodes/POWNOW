@@ -157,7 +157,7 @@ export function SnowClockChart({ clock, snowState, firstTurn, leaveAt, now }: Sn
                 <tr key={point.minute}>
                   <th scope="row">{formatClock(point.minute)}</th>
                   <td>
-                    {Math.round(point.quality)} — {point.label}
+                    {Math.round(point.quality)}: {point.label}
                   </td>
                 </tr>
               ))}
