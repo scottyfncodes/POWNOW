@@ -40,7 +40,7 @@ export function classifyOperationalState(inputs: DayInputs): OperationalStateRes
     if (ops.liftsExpectedOpen === 0 || ops.terrainOpenShare < 0.12) {
       return calendarOffSeason
         ? { state: 'OFF_SEASON', reason: 'Next to nothing open, and this is the off-season.' }
-        : { state: 'INSUFFICIENT_COVERAGE', reason: 'Next to nothing open — not enough coverage to ski yet.' };
+        : { state: 'INSUFFICIENT_COVERAGE', reason: 'Next to nothing open. Not enough coverage to ski yet.' };
     }
 
     if (ops.terrainOpenShare < 0.45) {

@@ -10,7 +10,7 @@ import { formatClock, formatDuration, formatWindowLabel } from '@/domain/time';
 
 export function planShareText(plan: SkiDayPlan, appUrl?: string): string {
   const lines: string[] = [];
-  lines.push(`${plan.mountain.shortName} — ${plan.verdict} (${plan.score.score.toFixed(1)}/10)`);
+  lines.push(`${plan.mountain.shortName}: ${plan.verdict} (${plan.score.score.toFixed(1)}/10)`);
   if (plan.departure && plan.return) {
     lines.push(
       `Leave ${plan.origin.shortName} ${formatClock(plan.departure.departure)} · first turn ${formatClock(plan.departure.firstTurn)}`,
@@ -69,7 +69,7 @@ const escapeIcs = (value: string): string => value.replace(/\\/g, '\\\\').replac
  */
 export function planCalendarIcs(plan: SkiDayPlan): string | null {
   if (!plan.departure || !plan.return) return null;
-  const summary = `Ski ${plan.mountain.shortName} — leave ${formatClock(plan.departure.departure)}`;
+  const summary = `Ski ${plan.mountain.shortName}, leave ${formatClock(plan.departure.departure)}`;
   const description = planShareText(plan);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const uid = `pownow-${plan.mountain.id}-${plan.date}@pownow`;

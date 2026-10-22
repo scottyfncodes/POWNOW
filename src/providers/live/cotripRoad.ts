@@ -150,7 +150,7 @@ export class CotripRoadProvider implements RoadConditionProvider {
     if (!routes || routes.length === 0) {
       // CDOT reports Colorado highways only. Utah, New Mexico and California
       // roads have no live feed wired up yet, and say so rather than "clear".
-      return unavailable(this.id, `No live road feed for ${corridorFor(corridorId).name} — CDOT covers Colorado roads only.`);
+      return unavailable(this.id, `No live road feed for ${corridorFor(corridorId).name}. CDOT covers Colorado roads only.`);
     }
     if (context.horizonDays > 0) {
       return unavailable(this.id, 'Road status is a right-now fact; CDOT does not report future days.');

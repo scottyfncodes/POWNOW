@@ -71,7 +71,7 @@ export function SetupScreen({
       <ScreenHeader onBack={onBack} title="YOUR RIDE" />
       <div className="screen-body shell setup">
         <p className="setup-intro">
-          Where you're starting, which day, and how you ride. Every mountain gets ranked around these — change
+          Where you're starting, which day, and how you ride. Every mountain gets ranked around these. Change
           any of them and the ranking changes with you.
         </p>
 
@@ -110,7 +110,7 @@ export function SetupScreen({
           </label>
           <p className="setup-hint">
             {date === clock.today
-              ? 'Today is the real call — live snow, live roads, when to leave.'
+              ? 'Today is the real call: live snow, live roads, when to leave.'
               : `${dayLabel} is a projection: the forecast does the work, and the plan says how sure it is.`}
           </p>
         </section>

@@ -187,7 +187,6 @@ export interface Tradeoff {
 
 export interface TimelineEvent {
   minute: MinuteOfDay;
-  icon: string;
   label: string;
   detail?: string;
   emphasis?: boolean;

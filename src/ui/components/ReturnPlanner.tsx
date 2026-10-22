@@ -84,10 +84,10 @@ export function ReturnPlanner({ plan, now }: ReturnPlannerProps) {
               </th>
               <td className="numeral">{formatClock(option.homeArrival)}</td>
               <td className="numeral">
-                {option.extraMountainMinutes === 0 ? '—' : formatDelta(option.extraMountainMinutes)}
+                {option.extraMountainMinutes === 0 ? '–' : formatDelta(option.extraMountainMinutes)}
               </td>
               <td className="numeral">
-                {option.extraDriveMinutes === 0 ? '—' : formatDelta(option.extraDriveMinutes)}
+                {option.extraDriveMinutes === 0 ? '–' : formatDelta(option.extraDriveMinutes)}
               </td>
               <td>
                 <span className={`traffic is-${option.trafficLight}`}>
@@ -132,7 +132,7 @@ function returnVerdict(recommended: ReturnOption, ladder: ReturnOption[]): strin
     option.extraDriveMinutes > top.extraDriveMinutes ? option : top,
   );
   if (worst.extraDriveMinutes <= 10) {
-    return `The road stays reasonable all afternoon — ski until you're done. ${formatClock(recommended.departure)} is simply when the day stops paying you back.`;
+    return `The road stays reasonable all afternoon. Ski until you're done. ${formatClock(recommended.departure)} is simply when the day stops paying you back.`;
   }
   return `Leave at ${formatClock(recommended.departure)} and you get most of the good skiing without getting swallowed by the afternoon. Hang on until ${formatClock(worst.departure)} and the same drive costs you ${formatDelta(worst.extraDriveMinutes)}.`;
 }

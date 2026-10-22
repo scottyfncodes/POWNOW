@@ -20,7 +20,7 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
     return (
       <section className="panel profile-panel" aria-label={`${mountain.name} reference information`}>
         <p className="profile-unavailable">
-          We don't have a researched profile for this mountain yet — not currently available.
+          We don't have a researched profile for this mountain yet.
         </p>
       </section>
     );
@@ -61,19 +61,19 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
           <>
             {profile.grub.town && (
               <p className="profile-dining-note">
-                There's little to no base-area dining here — most people eat in {profile.grub.town}.
+                There's little to no base-area dining here. Most people eat in {profile.grub.town}.
               </p>
             )}
             {profile.grub.quickBreakfast && (
               <p className="profile-dining-note">
                 <strong className="profile-dining-label profile-dining-label-bright">Best quick breakfast:</strong>{' '}
-                {profile.grub.quickBreakfast.name} — {profile.grub.quickBreakfast.note}
+                {profile.grub.quickBreakfast.name}: {profile.grub.quickBreakfast.note}
               </p>
             )}
             <ul className="profile-dining-list">
               {profile.grub.picks.map((pick) => (
                 <li key={pick.name}>
-                  <strong>{pick.name}</strong> — {pick.note}
+                  <strong>{pick.name}</strong>: {pick.note}
                 </li>
               ))}
             </ul>
@@ -92,19 +92,19 @@ export function MountainProfilePanel({ mountain, profile }: MountainProfilePanel
             <ul className="profile-dining-list">
               {profile.brews.picks.map((pick) => (
                 <li key={pick.name}>
-                  <strong>{pick.name}</strong> — {pick.note}
+                  <strong>{pick.name}</strong>: {pick.note}
                 </li>
               ))}
             </ul>
             {profile.brews.distilleries && profile.brews.distilleries.length > 0 && (
               <>
                 <p className="profile-dining-note">
-                  <strong className="profile-dining-label">Bonus — distilleries:</strong>
+                  <strong className="profile-dining-label">Bonus distilleries:</strong>
                 </p>
                 <ul className="profile-dining-list">
                   {profile.brews.distilleries.map((pick) => (
                     <li key={pick.name}>
-                      <strong>{pick.name}</strong> — {pick.note}
+                      <strong>{pick.name}</strong>: {pick.note}
                     </li>
                   ))}
                 </ul>
@@ -150,7 +150,7 @@ function ProfileLink({ label, href }: { label: string; href: string | null }) {
         </a>
       ) : (
         <span>
-          {label} — <span className="faint">not currently available</span>
+          {label} <span className="faint">(not currently available)</span>
         </span>
       )}
     </li>

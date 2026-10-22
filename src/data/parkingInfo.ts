@@ -48,7 +48,7 @@ const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
     reservationRequired: 'partial',
     freeOptionAvailable: true,
     notes: [
-      "As of the 2025-26 season, reservations for the paid in-town lots (F Lot, Stables Lot) are highly recommended and may be required via Reserve 'N Ski — space is limited.",
+      "As of the 2025-26 season, reservations for the paid in-town lots (F Lot, Stables Lot) are highly recommended and may be required via Reserve 'N Ski: space is limited.",
       'The Free Skier Shuttle Lot on McCain Drive is free daily, 6am–11pm, with no reservation.',
     ],
     infoUrl: 'https://www.breckpark.com/skier-parking',
@@ -98,7 +98,7 @@ const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
     notes: [
       'Free parking in the Main Village Lot and Overflow Lot.',
       'Free shuttle runs from the overflow lots to the base area, 8am–5pm daily during mountain operations.',
-      'The official Purgatory Resort app reports same-day parking-lot status — this page cannot see that feed.',
+      'The official Purgatory Resort app reports same-day parking-lot status; this page cannot see that feed.',
     ],
     infoUrl: 'https://www.purgatory.ski/transportation-and-shuttle-services/',
     contact: '(970) 426-7282 (Transportation)',
@@ -122,7 +122,7 @@ const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
     reservationRequired: 'not-required',
     freeOptionAvailable: true,
     notes: [
-      'Free parking across the Upper, Lower, Alberta and Tranquility lots — no reservations.',
+      'Free parking across the Upper, Lower, Alberta and Tranquility lots, no reservations.',
       'Free shuttle runs from the lower/overflow lots to the base area.',
     ],
     infoUrl: 'https://wolfcreekski.com/parking-at-wolf-creek-ski-area-co/',
@@ -134,7 +134,7 @@ const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
     reservationRequired: 'partial',
     freeOptionAvailable: true,
     notes: [
-      "For the 2025-26 season, a reservation is no longer required for general parking — but the Beach and Admin lots still require a paid reservation ($20–$40).",
+      "For the 2025-26 season, a reservation is no longer required for general parking, but the Beach and Admin lots still require a paid reservation ($20–$40).",
       'Free carpool parking (4+ occupants) is offered in the Easy Riser, High Noon, Last Chance and Upper Last Chance lots; all parking is free after 1pm on weekends.',
     ],
     infoUrl: 'https://www.parkabasin.com/parkingbasics',
@@ -145,7 +145,7 @@ const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
     capacity: null,
     reservationRequired: 'not-required',
     freeOptionAvailable: true,
-    notes: ['Free parking at the base of the mountain — no reservation system.'],
+    notes: ['Free parking at the base of the mountain, no reservation system.'],
     infoUrl: 'https://www.skiloveland.com/plan-your-trip/faq/',
   },
   eldora: {
@@ -167,7 +167,7 @@ const CORE_PARKING_INFO: Record<string, ParkingInfo> = {
     reservationRequired: 'not-required',
     freeOptionAvailable: true,
     notes: [
-      'All parking at Monarch is free and first-come — the lots sit right at the base off US-50, no shuttle, no reservation system.',
+      'All parking at Monarch is free and first-come. The lots sit right at the base off US-50, no shuttle, no reservation system.',
       'The main lots fill on powder weekends; overflow parks along the access road and walks in.',
     ],
     infoUrl: 'https://skimonarch.com',

@@ -95,7 +95,7 @@ export function reasonsFor(inputs: DayInputs, clock: SnowClock, score: DayScore)
     } else if (clock.prime && clock.prime.averageQuality >= 74) {
       reasons.push(`No new snow, but the grooming is holding up.`);
     } else {
-      reasons.push(`No new snow — ${weather.daysSinceStorm} days since the last one.`);
+      reasons.push(`No new snow: ${weather.daysSinceStorm} days since the last one.`);
     }
   }
 
@@ -193,7 +193,7 @@ export function comparisonFor(best: SkiDayPlan, runnerUp: SkiDayPlan | undefined
   const rival = runnerUp.mountain.shortName;
 
   if (rivalEdge && winnerEdge) {
-    return `${rival} has ${describeEdge(rivalEdge)}, but ${winner} wins on ${winnerEdge.label.toLowerCase()} — and that's the difference between a good day and a great one.`;
+    return `${rival} has ${describeEdge(rivalEdge)}, but ${winner} wins on ${winnerEdge.label.toLowerCase()}, and that's the difference between a good day and a great one.`;
   }
   if (winnerEdge) {
     return `${winner} takes it on ${winnerEdge.label.toLowerCase()}.`;

@@ -30,7 +30,7 @@
   ],
   "shortcuts": [
     {
-      "name": "POW NOW — rank my mountains",
+      "name": "POW NOW: rank my mountains",
       "short_name": "POW NOW",
       "description": "Say how you ride, get every mountain ranked for your day.",
       "url": "./#/setup",

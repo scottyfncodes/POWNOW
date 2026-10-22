@@ -265,7 +265,7 @@ describe('why a day has no departure — the rider hears the real reason', () =>
     const long = testTravel({ direction: 'outbound', duration: () => 250 });
     const result = run(testInputs({ outbound: long }), { ...prefs, maxDriveMinutes: 180 });
     expect(result.timingIssue).toBe('too-far');
-    expect(result.unavailableReason).toMatch(/4h10 drive — longer than the 3h you said you'd make/);
+    expect(result.unavailableReason).toMatch(/4h10 drive, longer than the 3h you said you'd make/);
   });
 
   it('a timed day has no issue at all', () => {

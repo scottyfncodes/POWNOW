@@ -187,7 +187,7 @@ function buildDataSources(inputs: DayInputs): DataSourceStatus[] {
 function collectCaveats(inputs: DayInputs, timingReason: string | null): string[] {
   const caveats: string[] = [];
   if (inputs.weather.status === 'unavailable') {
-    caveats.push("Weather's being weird — we can't confidently call the snow.");
+    caveats.push("Weather's being weird. We can't confidently call the snow.");
   }
   if (inputs.operations.status === 'unavailable') {
     caveats.push("Lift report isn't talking. Terrain and opening times are assumptions.");
@@ -208,7 +208,7 @@ function collectCaveats(inputs: DayInputs, timingReason: string | null): string[
       (inputs.inbound.status === 'unavailable' && timeoutPattern.test(inputs.inbound.reason));
     caveats.push(
       isSlowWake
-        ? "Road intel is offline. We'll show the mountain, but we're not going to fake the drive. (Our traffic service naps when it's quiet and can take ~15 seconds to wake up — try again in a moment.)"
+        ? "Road intel is offline. We'll show the mountain, but we're not going to fake the drive. (Our traffic service naps when it's quiet and can take ~15 seconds to wake up. Try again in a moment.)"
         : "Road intel is offline. We'll show the mountain, but we're not going to fake the drive.",
     );
   } else if (timingReason) {
@@ -230,14 +230,12 @@ function buildTimeline(
   if (departure) {
     events.push({
       minute: departure.departure,
-      icon: '🚗',
       label: `Leave ${inputs.origin.shortName}`,
       detail: formatDuration(departure.driveMinutes),
       emphasis: true,
     });
     events.push({
       minute: departure.arrival,
-      icon: '🏔️',
       label: 'Arrive',
       detail: `First turn ${formatClock(departure.firstTurn)}`,
     });
@@ -246,7 +244,6 @@ function buildTimeline(
   if (ops.expectedOpen > ops.scheduledOpen) {
     events.push({
       minute: ops.expectedOpen,
-      icon: '🚡',
       label: 'Lifts turn (running late)',
       detail: `Scheduled ${formatClock(ops.scheduledOpen)}`,
     });
@@ -258,7 +255,6 @@ function buildTimeline(
     // is genuinely good — see engine/snowState.ts.
     events.push({
       minute: snowClock.prime.start,
-      icon: '❄️',
       label: snowState === 'prime' ? 'PRIME SNOW' : 'BEST WINDOW',
       detail: `through ${formatClock(snowClock.prime.end)}`,
       emphasis: snowState === 'prime',
@@ -268,7 +264,7 @@ function buildTimeline(
         point.minute > snowClock.prime!.end && point.quality < snowClock.prime!.averageQuality - 12,
     );
     if (fade) {
-      events.push({ minute: fade.minute, icon: '☀️', label: 'Snow quality starts fading' });
+      events.push({ minute: fade.minute, label: 'Snow quality starts fading' });
     }
   }
 
@@ -276,19 +272,17 @@ function buildTimeline(
     if (ret.departure > snowClock.close) {
       events.push({
         minute: snowClock.close,
-        icon: '🎿',
         label: 'Last chair',
-        detail: `Wait out traffic — ${formatDuration(ret.departure - snowClock.close)}`,
+        detail: `Wait out traffic: ${formatDuration(ret.departure - snowClock.close)}`,
       });
     }
     events.push({
       minute: ret.departure,
-      icon: '🚗',
       label: 'BEST TIME TO HEAD HOME',
       detail: formatDuration(ret.driveMinutes),
       emphasis: true,
     });
-    events.push({ minute: ret.homeArrival, icon: '🏠', label: 'Home' });
+    events.push({ minute: ret.homeArrival, label: 'Home' });
   }
 
   return events.sort((a, b) => a.minute - b.minute);
@@ -410,7 +404,7 @@ export function stayOrGo(
     verdict: 'stay',
     headline: jammedNow ? "DON'T LEAVE YET." : wait <= 60 ? 'ONE MORE LAP.' : 'STAY A WHILE.',
     detail: jammedNow
-      ? `Traffic is stacking hard. Stay another ${formatDuration(wait)} — grab après, let the road clear. That's ${formatDuration(extraMountain)} more up here ${cost}.`
+      ? `Traffic is stacking hard. Stay another ${formatDuration(wait)}, grab après, let the road clear. That's ${formatDuration(extraMountain)} more up here ${cost}.`
       : `Hang on ${formatDuration(wait)}. That's ${formatDuration(extraMountain)} more on the hill ${cost}.`,
     leaveNow,
     leaveLater: best,

@@ -288,14 +288,14 @@ function whyNoTiming(
   const mountain = inputs.mountain.shortName;
   if (shortest > preferences.maxDriveMinutes) {
     return emptyResult(
-      `${mountain} is a ${formatDuration(shortest)} drive — longer than the ${formatDuration(preferences.maxDriveMinutes)} you said you'd make.`,
+      `${mountain} is a ${formatDuration(shortest)} drive, longer than the ${formatDuration(preferences.maxDriveMinutes)} you said you'd make.`,
       'too-far',
     );
   }
   const isToday = inputs.horizonDays === 0;
   return emptyResult(
     isToday
-      ? `Too late to ski ${mountain} today — you'd get there after the lifts are done. Right now it's a ${formatDuration(now)} drive.`
+      ? `Too late to ski ${mountain} today: you'd get there after the lifts are done. Right now it's a ${formatDuration(now)} drive.`
       : `No departure gets you to ${mountain} with enough time on snow before the lifts close.`,
     'too-late',
   );

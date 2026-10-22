@@ -38,7 +38,7 @@ export function SnowpackPanel({ snowpack, modelSnowDepthIn, demo = false }: Snow
         <dl className="snowpack-grid">
           <div>
             <dt>Depth</dt>
-            <dd className="numeral">{snowpack.snowDepthIn === null ? '—' : `${Math.round(snowpack.snowDepthIn)}"`}</dd>
+            <dd className="numeral">{snowpack.snowDepthIn === null ? '–' : `${Math.round(snowpack.snowDepthIn)}"`}</dd>
           </div>
           <div>
             <dt>Last 24h</dt>
@@ -46,11 +46,11 @@ export function SnowpackPanel({ snowpack, modelSnowDepthIn, demo = false }: Snow
           </div>
           <div>
             <dt>5-day new</dt>
-            <dd className="numeral">{snowpack.newSnow5dIn === null ? '—' : `${snowpack.newSnow5dIn.toFixed(1)}"+`}</dd>
+            <dd className="numeral">{snowpack.newSnow5dIn === null ? '–' : `${snowpack.newSnow5dIn.toFixed(1)}"+`}</dd>
           </div>
           <div>
             <dt>Water</dt>
-            <dd className="numeral">{snowpack.sweIn === null ? '—' : `${snowpack.sweIn.toFixed(1)}"`}</dd>
+            <dd className="numeral">{snowpack.sweIn === null ? '–' : `${snowpack.sweIn.toFixed(1)}"`}</dd>
           </div>
         </dl>
         <p className="snowpack-note">
@@ -68,7 +68,7 @@ export function SnowpackPanel({ snowpack, modelSnowDepthIn, demo = false }: Snow
           Snow depth <span className={`chip ${demo ? 'chip-demo' : 'chip-projected'} snowpack-chip`}>{demo ? 'DEMO' : 'MODELED'}</span>
         </p>
         <p className="snowpack-model">
-          <span className="numeral">~{Math.round(modelSnowDepthIn)}"</span> at the forecast point, from the weather model — an
+          <span className="numeral">~{Math.round(modelSnowDepthIn)}"</span> at the forecast point, from the weather model: an
           estimate for a several-kilometre grid cell, not a measurement. No station reading is available for this mountain.
         </p>
       </div>
@@ -84,7 +84,7 @@ function formatMiles(miles: number): string {
 }
 
 function formatChange(change: number | null): string {
-  if (change === null) return '—';
+  if (change === null) return '–';
   if (Math.abs(change) < 0.05) return 'flat';
   return `${change > 0 ? '+' : '−'}${Math.abs(change).toFixed(1)}"`;
 }
@@ -95,5 +95,5 @@ function describePack(snowpack: SnowpackObservation): string {
   if (density < 0.2) return 'A light, unsettled pack.';
   if (density < 0.3) return 'A typical settled mid-winter pack.';
   if (density < 0.4) return 'A dense, well-settled pack.';
-  return 'A very dense pack — spring-like.';
+  return 'A very dense pack, spring-like.';
 }

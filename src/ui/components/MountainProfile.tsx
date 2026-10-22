@@ -118,7 +118,7 @@ function TicketPanel({ plan }: { plan: SkiDayPlan }) {
           Current price unavailable
           {plan.ticketPurchaseUrl && (
             <>
-              {' — '}
+              {': '}
               <a href={plan.ticketPurchaseUrl} target="_blank" rel="noreferrer">
                 buy at the resort
               </a>

@@ -77,7 +77,7 @@ export function PicksScreen({ state, clock, date, settings, onBack, onEdit, onOp
           of {recommendation.origin.id === 'gps' ? 'you' : recommendation.origin.shortName}, ranked for{' '}
           {dayLabel.toLowerCase()}.
           {narrowedToPasses && ' Only mountains on your pass, as you asked.'}
-          {!isToday && ' A projection, not a promise — open a mountain to see how sure each call is.'}
+          {!isToday && ' A projection, not a promise. Open a mountain to see how sure each call is.'}
         </p>
 
         {recommendation.usingDemoData && (

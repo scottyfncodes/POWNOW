@@ -129,7 +129,7 @@ export function RiderSettingsPanel({ settings, onChange, onReset, alwaysOpen = f
               </label>
             )}
             <p className="ridersettings-hint">
-              A mountain on your pass scores as if the ticket were free — because for you it is. Ones that aren't still show
+              A mountain on your pass scores as if the ticket were free, because for you it is. Ones that aren't still show
               up, with the price.
             </p>
           </fieldset>

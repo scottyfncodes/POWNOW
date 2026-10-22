@@ -1509,6 +1509,7 @@
 
 .hourstrip-heat {
   font-size: 15px;
+  font-weight: 800;
   line-height: 1.1;
 }
 
@@ -1544,8 +1545,20 @@
   color: var(--ink-dim);
 }
 
-.timeline-icon {
-  font-size: 15px;
+/* A plain marker on the day's spine; the moments that decide the day are lit. */
+.timeline-marker {
+  align-self: start;
+  justify-self: center;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-ghost);
+}
+
+.timeline-item.is-key .timeline-marker {
+  border-color: var(--ice);
+  background: var(--ice);
 }
 
 .timeline-body {
@@ -3534,10 +3547,6 @@
   color: var(--ink);
 }
 
-.trailmappanel-preview-pdf-icon {
-  font-size: 40px;
-}
-
 .trailmappanel-preview-cta {
   display: block;
   padding: 10px 14px;
@@ -4230,13 +4239,12 @@
   font-size: 18px;
   font-weight: 800;
   color: var(--ink-ghost);
-  transition: color 180ms var(--ease), transform 180ms var(--ease);
+  transition: color 180ms var(--ease);
 }
 
 .mountainlist-row:hover .mountainlist-chevron,
 .mountainlist-row:focus-visible .mountainlist-chevron {
   color: var(--ice);
-  transform: translate(3px, -50%);
 }
 
 /* Pass chips wear their network's colour, quietly. */
@@ -4456,7 +4464,6 @@
   border-radius: var(--radius-lg);
   background:
     radial-gradient(110% 90% at 100% 0%, rgba(124, 231, 255, 0.16), transparent 60%),
-    radial-gradient(80% 70% at 0% 100%, rgba(31, 143, 189, 0.16), transparent 70%),
     var(--bg-raise);
   overflow: hidden;
   animation: rise-in 420ms var(--ease);

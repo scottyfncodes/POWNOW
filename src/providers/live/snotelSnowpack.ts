@@ -65,7 +65,7 @@ export class SnotelSnowpackProvider implements SnowpackProvider {
     if (payload.stationName && !stationNameMatches(station.expectedName, payload.stationName)) {
       return unavailable(
         this.id,
-        `Station ${station.triplet} resolved to "${payload.stationName}", not "${station.expectedName}" — not shown until the registry is corrected.`,
+        `Station ${station.triplet} resolved to "${payload.stationName}", not "${station.expectedName}", so it's not shown until the registry is corrected.`,
       );
     }
 
@@ -85,7 +85,7 @@ export class SnotelSnowpackProvider implements SnowpackProvider {
 
     // A reading from days ago is history, not the current snowpack.
     if (daysBetweenKeys(latest.date, context.today) > 3) {
-      return unavailable(this.id, `The nearest SNOTEL site last reported on ${latest.date} — too old to call current.`);
+      return unavailable(this.id, `The nearest SNOTEL site last reported on ${latest.date}, too old to call current.`);
     }
 
     const depth = latest.snowDepthIn;

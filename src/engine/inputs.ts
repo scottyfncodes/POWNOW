@@ -160,7 +160,7 @@ export async function loadDayInputs(
     if (routes.length > 0 && routes.every(isRouteClosed)) {
       return unavailable<TravelCurve>(
         registry.roads.id,
-        `${closedCorridors.join(', ') || 'The road'} closed — no route to this mountain today.`,
+        `${closedCorridors.join(', ') || 'The road'} closed. No route to this mountain today.`,
       );
     }
     const firstFailure = results.find((r) => r.status === 'unavailable');

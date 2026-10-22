@@ -75,6 +75,6 @@ export const ROAD_LABEL: Record<string, string> = {
   clear: 'Clear and dry',
   wet: 'Wet',
   'snow-packed': 'Snow-packed in spots',
-  'chains-required': 'Traction law — chains or 4WD',
+  'chains-required': 'Traction law: chains or 4WD',
   closed: 'Closed',
 };

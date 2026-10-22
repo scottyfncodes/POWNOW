@@ -27,7 +27,7 @@ describe('SnowpackPanel — the two kinds of depth never wear the same label', (
 
   it('shows each metric honestly as a dash when the sensor did not report it', () => {
     render(<SnowpackPanel snowpack={testSnowpack({ sweIn: null, packDensity: null, depthChange24hIn: null, newSnow5dIn: null })} modelSnowDepthIn={null} />);
-    expect(screen.getAllByText('—').length).toBe(3);
+    expect(screen.getAllByText('–').length).toBe(3);
     expect(screen.getByText('48"')).toBeInTheDocument();
   });
 

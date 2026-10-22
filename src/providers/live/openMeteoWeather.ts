@@ -452,7 +452,7 @@ function summarize(hourly: HourlyWeather[], daysSinceStorm: number): string {
   const totalSnow = hourly.reduce((sum, hour) => sum + hour.snowfallIn, 0);
   const peakGust = Math.max(...hourly.map((hour) => hour.windGustMph));
   const windNote = peakGust > 40 ? ' Strong wind through the day.' : '';
-  if (totalSnow > 3) return `Active snow expected — around ${totalSnow.toFixed(1)}" through the day.${windNote}`;
+  if (totalSnow > 3) return `Active snow expected: around ${totalSnow.toFixed(1)}" through the day.${windNote}`;
   if (totalSnow > 0.3) return `Light snow expected.${windNote}`;
   if (daysSinceStorm <= 2) return `Between systems, mostly firm and fast.${windNote}`;
   return `Dry pattern. Groomers are the play.${windNote}`;

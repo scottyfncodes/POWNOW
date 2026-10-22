@@ -171,7 +171,7 @@ export async function getLiftieOperations(
       horizonDays: context.horizonDays,
       fetchedAt: new Date(fetchedAtMs).toISOString(),
       validUntil: new Date(fetchedAtMs + 20 * 60 * 1000).toISOString(),
-      attribution: "Third-party aggregator (Liftie) — not the resort's own feed.",
+      attribution: "Third-party aggregator (Liftie), not the resort's own feed.",
     },
   );
 }

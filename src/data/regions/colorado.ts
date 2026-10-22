@@ -147,7 +147,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['ikon', 'mountain-collective'],
       popularity: 0.3,
-      character: 'The X Games hill the rest of the year is Aspen\'s gentlest, sunniest, emptiest groomers — and the same ticket.',
+      character: 'The X Games hill the rest of the year is Aspen\'s gentlest, sunniest, emptiest groomers, on the same ticket.',
     },
     {
       id: 'snowmass',
@@ -182,7 +182,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['ikon', 'mountain-collective'],
       popularity: 0.65,
-      character: 'Over 4,400 vertical feet and 3,300 acres — the biggest mountain in the valley, and it skis like it, from Elk Camp cruisers to the Cirque headwall.',
+      character: 'Over 4,400 vertical feet and 3,300 acres: the biggest mountain in the valley, and it skis like it, from Elk Camp cruisers to the Cirque headwall.',
     },
     {
       id: 'silverton',
@@ -218,7 +218,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['independent'],
       popularity: 0.15,
-      character: 'One old double chair, no groomers, a guide and an avalanche beacon — the steepest lift-served skiing in the country, Thursday to Sunday only.',
+      character: 'One old double chair, no groomers, a guide and an avalanche beacon. The steepest lift-served skiing in the country, Thursday to Sunday only.',
     },
     {
       id: 'ski-cooper',
@@ -254,7 +254,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['independent'],
       popularity: 0.25,
-      character: 'Built by the 10th Mountain Division, run by the county, and the whole hill is low-angle and empty — with snowcat powder on Chicago Ridge next door.',
+      character: 'Built by the 10th Mountain Division, run by the county, and the whole hill is low-angle and empty, with snowcat powder on Chicago Ridge next door.',
     },
     {
       id: 'sunlight',
@@ -326,7 +326,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['indy'],
       popularity: 0.25,
-      character: 'Grand Junction\'s mountain on the flank of the world\'s largest flat-top — tree runs and powder days nobody from the Front Range drives to.',
+      character: 'Grand Junction\'s mountain on the flank of the world\'s largest flat-top: tree runs and powder days nobody from the Front Range drives to.',
     },
     {
       id: 'echo-mountain',
@@ -361,7 +361,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['indy'],
       popularity: 0.25,
-      character: 'Closest lift to Denver and the only one with lights — a one-chair park-and-race hill for an after-work lap, if the thin snowpack lets it open.',
+      character: 'Closest lift to Denver and the only one with lights: a one-chair park-and-race hill for an after-work lap, if the thin snowpack lets it open.',
     },
     {
       id: 'granby-ranch',
@@ -395,7 +395,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['indy'],
       popularity: 0.25,
-      character: 'Two high-speed quads and no lines, fifteen minutes past Winter Park\'s traffic — but the same Berthoud Pass to get there.',
+      character: 'Two high-speed quads and no lines, fifteen minutes past Winter Park\'s traffic, but over the same Berthoud Pass to get there.',
     },
     {
       id: 'howelsen-hill',
@@ -429,7 +429,7 @@ export const COLORADO: RegionDataset = {
       ]),
       passAffiliations: ['indy'],
       popularity: 0.15,
-      character: 'Colorado\'s oldest continuously operating ski area, a walk from downtown Steamboat, where Olympians learned to jump — and Sundays are free.',
+      character: 'Colorado\'s oldest continuously operating ski area, a walk from downtown Steamboat, where Olympians learned to jump, and Sundays are free.',
     },
   ],
 
@@ -453,17 +453,17 @@ export const COLORADO: RegionDataset = {
       closingDate: { date: '2027-04-18', status: 'projected' },
       grub: {
         picks: [
-          { name: 'Ajax Tavern', note: 'Patio at the bottom of the gondola — truffle fries and ski boots by mid-afternoon.' },
+          { name: 'Ajax Tavern', note: 'Patio at the bottom of the gondola: truffle fries and ski boots by mid-afternoon.' },
           { name: 'Hooch Craft Cocktail Bar', note: 'Downtown speakeasy-style cocktail bar.' },
           { name: 'Mi Chola', note: 'Downtown Mexican, a local favorite since 2016.' },
         ],
-        quickBreakfast: { name: 'Jour de Fête', note: 'Near the gondola — croissants, scones and breakfasts to go.' },
+        quickBreakfast: { name: 'Jour de Fête', note: 'Near the gondola: croissants, scones and breakfasts to go.' },
       },
       brews: {
         picks: [{ name: 'Aspen Brewing Company', note: "Aspen's only craft brewery, downtown near the slopes, brewing since 2008." }],
       },
       notes:
-        'Opening Nov 26, 2026 and closing Apr 18, 2027 are Aspen Snowmass\'s own Sept 9, 2026 schedule, "as conditions allow." Acres = the long-quoted 675 plus Hero\'s 153 (opened 2023-24). Trail count 76 is the pre-Hero\'s figure (Hero\'s added roughly 19 chutes, 3 glade areas and 4 cut trails, but no official combined count was found). Lift count includes the Hero\'s high-speed quad. Window price ($279 adult peak, 2025-26) is one four-mountain ticket; 2026-27 rates not yet found. Phone/address left null — search budget ran out before they could be confirmed. Not fetch-verified.',
+        'Opening Nov 26, 2026 and closing Apr 18, 2027 are Aspen Snowmass\'s own Sept 9, 2026 schedule, "as conditions allow." Acres = the long-quoted 675 plus Hero\'s 153 (opened 2023-24). Trail count 76 is the pre-Hero\'s figure (Hero\'s added roughly 19 chutes, 3 glade areas and 4 cut trails, but no official combined count was found). Lift count includes the Hero\'s high-speed quad. Window price ($279 adult peak, 2025-26) is one four-mountain ticket; 2026-27 rates not yet found. Phone/address left null; search budget ran out before they could be confirmed. Not fetch-verified.',
     },
     'aspen-highlands': {
       officialWebsite: 'https://www.aspensnowmass.com',
@@ -485,16 +485,16 @@ export const COLORADO: RegionDataset = {
       grub: {
         town: 'Aspen, about 2 miles',
         picks: [
-          { name: 'Cloud Nine Alpine Bistro', note: 'Former patrol hut at the top of Cloud Nine — fondue, raclette and the champagne-spraying afternoon; reserve weeks ahead.' },
-          { name: 'Highlands Alehouse', note: 'Ski-in base pub — pizza, burgers, and beer on tap.' },
-          { name: 'Ajax Tavern', note: "Back in town at the gondola — Aspen's default après patio." },
+          { name: 'Cloud Nine Alpine Bistro', note: 'Former patrol hut at the top of Cloud Nine: fondue, raclette and the champagne-spraying afternoon; reserve weeks ahead.' },
+          { name: 'Highlands Alehouse', note: 'Ski-in base pub: pizza, burgers, and beer on tap.' },
+          { name: 'Ajax Tavern', note: "Back in town at the gondola: Aspen's default après patio." },
         ],
       },
       brews: {
         picks: [{ name: 'Aspen Brewing Company', note: 'Downtown Aspen, about 10 minutes from the Highlands base.' }],
       },
       notes:
-        'Opening Dec 12, 2026 / closing Apr 11, 2027 per Aspen Snowmass\'s Sept 9, 2026 schedule. Elevations are the resort\'s lift-served figures; Highland Bowl\'s hike tops out at 12,392 ft. Trail counts vary 117-144 across sources (118 used); 1,040 acres and 5 lifts are consistent. Trail map links the Four Mountains page — no Highlands-specific trail-map URL turned up in search. Not fetch-verified.',
+        'Opening Dec 12, 2026 / closing Apr 11, 2027 per Aspen Snowmass\'s Sept 9, 2026 schedule. Elevations are the resort\'s lift-served figures; Highland Bowl\'s hike tops out at 12,392 ft. Trail counts vary 117-144 across sources (118 used); 1,040 acres and 5 lifts are consistent. Trail map links the Four Mountains page; no Highlands-specific trail-map URL turned up in search. Not fetch-verified.',
     },
     buttermilk: {
       officialWebsite: 'https://www.aspensnowmass.com',
@@ -515,7 +515,7 @@ export const COLORADO: RegionDataset = {
       closingDate: { date: '2027-04-04', status: 'projected' },
       grub: {
         picks: [
-          { name: 'Bumps', note: 'Base-area lunch stop — made-to-order pasta, soups and grill, back on the lift fast.' },
+          { name: 'Bumps', note: 'Base-area lunch stop: made-to-order pasta, soups and grill, back on the lift fast.' },
           { name: 'Home Team BBQ', note: 'Inside The Inn at Aspen at the Buttermilk base.' },
         ],
       },
@@ -544,17 +544,17 @@ export const COLORADO: RegionDataset = {
       closingDate: { date: '2027-04-11', status: 'projected' },
       grub: {
         picks: [
-          { name: 'Venga Venga', note: "Richard Sandoval's Mexican cantina at the base — fire pits, a DJ and 120-plus tequilas." },
-          { name: 'Limelight Lounge', note: 'Base Village hotel lounge — wood-fired pizzas, small and large plates.' },
-          { name: 'Elk Camp Restaurant', note: 'Top of the Elk Camp Gondola — rotisserie chicken, pizza, soups.' },
-          { name: 'Ullrhof', note: 'Rebuilt mid-mountain restaurant at the base of Big Burn, slated to reopen for 2026-27 — burgers and shakes.' },
+          { name: 'Venga Venga', note: "Richard Sandoval's Mexican cantina at the base: fire pits, a DJ and 120-plus tequilas." },
+          { name: 'Limelight Lounge', note: 'Base Village hotel lounge: wood-fired pizzas, small and large plates.' },
+          { name: 'Elk Camp Restaurant', note: 'Top of the Elk Camp Gondola: rotisserie chicken, pizza, soups.' },
+          { name: 'Ullrhof', note: 'Rebuilt mid-mountain restaurant at the base of Big Burn, slated to reopen for 2026-27: burgers and shakes.' },
         ],
       },
       brews: {
         picks: [{ name: 'Aspen Brewing Company', note: 'Downtown Aspen, about 20-25 minutes from Snowmass Village.' }],
       },
       notes:
-        'Opening Nov 26, 2026 / closing Apr 11, 2027 per Aspen Snowmass\'s Sept 9, 2026 schedule. Ikon Base Pass for 2026-27 is 5 days at Snowmass only (blackouts); full Ikon covers all four. Acres vary 3,332-3,362 across sources (official site says "3,300+", 96 trails). Lift count (20) and high-speed count are best-available third-party figures — the Elk Camp quad was replaced by a six-pack (and the old quad moved to Powderhorn). Ullrhof reopening is a 2025 plan, not re-confirmed. Not fetch-verified.',
+        'Opening Nov 26, 2026 / closing Apr 11, 2027 per Aspen Snowmass\'s Sept 9, 2026 schedule. Ikon Base Pass for 2026-27 is 5 days at Snowmass only (blackouts); full Ikon covers all four. Acres vary 3,332-3,362 across sources (official site says "3,300+", 96 trails). Lift count (20) and high-speed count are best-available third-party figures; the Elk Camp quad was replaced by a six-pack (and the old quad moved to Powderhorn). Ullrhof reopening is a 2025 plan, not re-confirmed. Not fetch-verified.',
     },
     silverton: {
       officialWebsite: 'https://silvertonmountain.com',
@@ -581,7 +581,7 @@ export const COLORADO: RegionDataset = {
         ],
       },
       notes:
-        'LIMITED OPERATING DAYS: Silverton\'s own pricing page gives the 2026-27 guided season as Dec 31, 2026 – Apr 11, 2027, Thursday–Sunday only ($249/day; $199 early/late Dec 31–Jan 10 and Apr 1–11), and an unguided window of roughly Mar 17 – Apr 11, 2027 (Wed–Sun early, Thu–Sun from Apr 1). It is closed Monday–Wednesday most of the season, which the demo world does not model — any recommendation for a Mon–Wed is not a real option. Single heli runs $99. Lift-served acres 1,819 (26,819 including hike/heli terrain); trail count 69 is a commonly listed third-party figure — the terrain is ungroomed, unmarked expert lines, so treat it loosely. Vertical/summit include the hike to 13,487 ft (chair tops at 12,300 ft). Brews omitted: Golden Block Brewery\'s winter status was uncertain in research. Not fetch-verified.',
+        'LIMITED OPERATING DAYS: Silverton\'s own pricing page gives the 2026-27 guided season as Dec 31, 2026 – Apr 11, 2027, Thursday–Sunday only ($249/day; $199 early/late Dec 31–Jan 10 and Apr 1–11), and an unguided window of roughly Mar 17 – Apr 11, 2027 (Wed–Sun early, Thu–Sun from Apr 1). It is closed Monday–Wednesday most of the season, which the demo world does not model, so any recommendation for a Mon–Wed is not a real option. Single heli runs $99. Lift-served acres 1,819 (26,819 including hike/heli terrain); trail count 69 is a commonly listed third-party figure; the terrain is ungroomed, unmarked expert lines, so treat it loosely. Vertical/summit include the hike to 13,487 ft (chair tops at 12,300 ft). Brews omitted: Golden Block Brewery\'s winter status was uncertain in research. Not fetch-verified.',
     },
     'ski-cooper': {
       officialWebsite: 'https://www.skicooper.com',
@@ -603,8 +603,8 @@ export const COLORADO: RegionDataset = {
       grub: {
         town: 'Leadville, about 9 miles south',
         picks: [
-          { name: 'Tennessee Pass Cookhouse', note: 'Ski- or snowshoe-in four-course backcountry dinner yurt right at Tennessee Pass — pricey, reservations.' },
-          { name: 'Silver Dollar Saloon', note: 'Leadville saloon dating to 1879 — lunch, dinner and the historic back bar.' },
+          { name: 'Tennessee Pass Cookhouse', note: 'Ski- or snowshoe-in four-course backcountry dinner yurt right at Tennessee Pass: pricey, reservations.' },
+          { name: 'Silver Dollar Saloon', note: 'Leadville saloon dating to 1879: lunch, dinner and the historic back bar.' },
           { name: 'Treeline Kitchen', note: 'Downtown Leadville restaurant.' },
         ],
       },
@@ -615,7 +615,7 @@ export const COLORADO: RegionDataset = {
         ],
       },
       notes:
-        'Stats (1,200 ft, 64 trails, 480 acres, 5 lifts: one triple, one double, three surface) from skicooper.com\'s Mountain Stats page via search. Chicago Ridge snowcat terrain (2,400-2,600 acres) is separate and not counted. PASS: not on Indy Pass — Indy forced partners to choose between it and Cooper\'s reciprocal pass in July 2023; Cooper is on Powder Alliance and Freedom Pass reciprocity, neither modelled here, so `independent`. A Dec 9, 2026 opening appears only on an aggregator list ("tentative"), so TBD. Pricing from 2025-26 third-party data ($40-49 weekday, $69-99 weekend). Ticket URL, phone, address not confirmed (search budget exhausted). Not fetch-verified.',
+        'Stats (1,200 ft, 64 trails, 480 acres, 5 lifts: one triple, one double, three surface) from skicooper.com\'s Mountain Stats page via search. Chicago Ridge snowcat terrain (2,400-2,600 acres) is separate and not counted. PASS: not on Indy Pass. Indy forced partners to choose between it and Cooper\'s reciprocal pass in July 2023; Cooper is on Powder Alliance and Freedom Pass reciprocity, neither modelled here, so `independent`. A Dec 9, 2026 opening appears only on an aggregator list ("tentative"), so TBD. Pricing from 2025-26 third-party data ($40-49 weekday, $69-99 weekend). Ticket URL, phone, address not confirmed (search budget exhausted). Not fetch-verified.',
     },
     sunlight: {
       officialWebsite: 'https://sunlightmtn.com',
@@ -638,18 +638,18 @@ export const COLORADO: RegionDataset = {
         town: 'Glenwood Springs, about 12 miles north',
         picks: [
           { name: 'Pullman', note: 'Chef-owned restaurant in a restored railroad-era building downtown.' },
-          { name: "Florinda's", note: '721 Grand Ave — slightly upscale Italian, reasonable prices.' },
+          { name: "Florinda's", note: '721 Grand Ave: slightly upscale Italian, reasonable prices.' },
           { name: 'Slope & Hatch', note: 'Downtown tacos.' },
         ],
       },
       brews: {
         picks: [
-          { name: 'Glenwood Canyon Brewpub', note: 'In the historic Hotel Denver by the river — frequent GABF medalist.' },
+          { name: 'Glenwood Canyon Brewpub', note: 'In the historic Hotel Denver by the river: frequent GABF medalist.' },
           { name: 'Casey Brewing Taproom', note: 'Grand Avenue taproom for one of Colorado\'s best-known sour-beer brewers.' },
         ],
       },
       notes:
-        'Elevations, 730+ acres, 75 runs and 3 fixed-grip chairs (two doubles, one triple) from Sunlight\'s own trail-map page. 2025-26 opened Dec 12, 2025; no 2026-27 date published yet. Window price is Coloradotopia\'s 2025-26 same-day peak-holiday figure ($109; $94 regular); OnTheSnow listed $74 — sources conflict. Indy Pass member since 2019-20. Not fetch-verified.',
+        'Elevations, 730+ acres, 75 runs and 3 fixed-grip chairs (two doubles, one triple) from Sunlight\'s own trail-map page. 2025-26 opened Dec 12, 2025; no 2026-27 date published yet. Window price is Coloradotopia\'s 2025-26 same-day peak-holiday figure ($109; $94 regular); OnTheSnow listed $74; sources conflict. Indy Pass member since 2019-20. Not fetch-verified.',
     },
     powderhorn: {
       officialWebsite: 'https://www.powderhorn.com',
@@ -676,7 +676,7 @@ export const COLORADO: RegionDataset = {
           { name: 'Wagon Wheel Restaurant', note: 'Mesa local stalwart, about 10 minutes down CO-65.' },
           { name: 'Bin 707', note: 'Grand Junction dinner-and-cocktails pick.' },
         ],
-        quickBreakfast: { name: 'Quickdraw Cafe', note: 'Ground floor of the base lodge — breakfast from 8am.' },
+        quickBreakfast: { name: 'Quickdraw Cafe', note: 'Ground floor of the base lodge: breakfast from 8am.' },
       },
       brews: {
         picks: [
@@ -686,7 +686,7 @@ export const COLORADO: RegionDataset = {
         distilleries: [{ name: 'Highlands Distillery', note: 'Grand Junction cocktail bar and distillery.' }],
       },
       notes:
-        'Trail map lists 1,600 permitted acres, 1,650 ft, 9,850 ft summit (one review puts the actual skiable footprint near 845 acres). NEW FOR 2026-27: Wild West Express, a refurbished detachable quad (ex-Snowmass Elk Camp, 1995) replacing the 1972 West End double, projected to open December 2026 pending Forest Service approval — lift counts assume it opens. 2026-27 is the 60th season; day ticket pricing was "coming soon" on the official site; pricing uses 2025-26 ($89 weekday / $99 weekend adult). Phone/address not confirmed. Not fetch-verified.',
+        'Trail map lists 1,600 permitted acres, 1,650 ft, 9,850 ft summit (one review puts the actual skiable footprint near 845 acres). NEW FOR 2026-27: Wild West Express, a refurbished detachable quad (ex-Snowmass Elk Camp, 1995) replacing the 1972 West End double, projected to open December 2026 pending Forest Service approval; lift counts assume it opens. 2026-27 is the 60th season; day ticket pricing was "coming soon" on the official site; pricing uses 2025-26 ($89 weekday / $99 weekend adult). Phone/address not confirmed. Not fetch-verified.',
     },
     'echo-mountain': {
       officialWebsite: 'https://echomtn.com',
@@ -715,11 +715,11 @@ export const COLORADO: RegionDataset = {
       brews: {
         picks: [
           { name: 'Tommyknocker Brewery & Pub', note: '1401 Miner St, Idaho Springs.' },
-          { name: 'Westbound & Down', note: '1617 Miner St, Idaho Springs — brewery since 2015.' },
+          { name: 'Westbound & Down', note: '1617 Miner St, Idaho Springs: brewery since 2015.' },
         ],
       },
       notes:
-        'Stats are OnTheSnow\'s (3 lifts: one triple, two surface; 7 trails; 60 acres, 40 lit for night skiing); the oft-quoted 226 acres is the whole property. Hours vary by source (roughly 11am-5pm weekdays, 9am weekends, to 9pm on night-skiing evenings, closed some midweek days) — confirm before going. 2025-26 opened briefly then shut lift-served skiing for thin snow in December 2025 — no snowmaking safety net worth trusting. OnTheSnow\'s Dec 12, 2026 opening is an aggregator projection, so TBD. Indy Pass member. Website domain echomtn.com from search text, not a rendered page. Not fetch-verified.',
+        'Stats are OnTheSnow\'s (3 lifts: one triple, two surface; 7 trails; 60 acres, 40 lit for night skiing); the oft-quoted 226 acres is the whole property. Hours vary by source (roughly 11am-5pm weekdays, 9am weekends, to 9pm on night-skiing evenings, closed some midweek days); confirm before going. 2025-26 opened briefly then shut lift-served skiing for thin snow in December 2025, with no snowmaking safety net worth trusting. OnTheSnow\'s Dec 12, 2026 opening is an aggregator projection, so TBD. Indy Pass member. Website domain echomtn.com from search text, not a rendered page. Not fetch-verified.',
     },
     'granby-ranch': {
       officialWebsite: 'https://granbyranch.com',
@@ -740,15 +740,15 @@ export const COLORADO: RegionDataset = {
       closingDate: TBD_DATE,
       grub: {
         picks: [
-          { name: 'Bluebird Bistro', note: 'Right at the Granby Ranch base — burgers, brick-fired pizza and pit-smoked BBQ.' },
-          { name: 'Brickhouse 40', note: 'Granby — elevated American and Italian; the elk chili is the local favorite.' },
+          { name: 'Bluebird Bistro', note: 'Right at the Granby Ranch base: burgers, brick-fired pizza and pit-smoked BBQ.' },
+          { name: 'Brickhouse 40', note: 'Granby: elevated American and Italian; the elk chili is the local favorite.' },
         ],
       },
       brews: {
-        picks: [{ name: 'Never Summer Brewing Co.', note: 'Granby taproom since 2016 — cream ales to porters, skier happy hour.' }],
+        picks: [{ name: 'Never Summer Brewing Co.', note: 'Granby taproom since 2016: cream ales to porters, skier happy hour.' }],
       },
       notes:
-        '406 acres, 1,000 ft (8,202-9,202) consistent across sources; trails 38-45 (43 used); lifts 5-6 (OnTheSnow: 2 high-speed quads, 1 triple, 1 double, 2 surface — used). 2025-26 opened Nov 26, 2025; no 2026-27 date published. Pricing is an estimate — no current day-ticket figure was found. Phone/address and ticket URL not confirmed (search budget exhausted). Not fetch-verified.',
+        '406 acres, 1,000 ft (8,202-9,202) consistent across sources; trails 38-45 (43 used); lifts 5-6 (OnTheSnow: 2 high-speed quads, 1 triple, 1 double, 2 surface, used). 2025-26 opened Nov 26, 2025; no 2026-27 date published. Pricing is an estimate; no current day-ticket figure was found. Phone/address and ticket URL not confirmed (search budget exhausted). Not fetch-verified.',
     },
     'howelsen-hill': {
       officialWebsite: 'https://steamboatsprings.net',
@@ -770,15 +770,15 @@ export const COLORADO: RegionDataset = {
       grub: {
         picks: [
           { name: 'Aurum Food & Wine', note: 'Downtown on the Yampa, looking straight across at Howelsen.' },
-          { name: 'Yampa Valley Kitchen', note: 'Downtown neighborhood spot — breakfast, lunch and dinner.' },
-          { name: 'Brass Kitchen & Bar', note: 'Yampa Street — modern American plates and a deep spirits list.' },
+          { name: 'Yampa Valley Kitchen', note: 'Downtown neighborhood spot: breakfast, lunch and dinner.' },
+          { name: 'Brass Kitchen & Bar', note: 'Yampa Street: modern American plates and a deep spirits list.' },
         ],
       },
       brews: {
         picks: [{ name: 'Storm Peak Brewing', note: "Steamboat's largest brewery, a few minutes across town." }],
       },
       notes:
-        'City-owned (City of Steamboat Springs) — the official site is the city\'s; 970-879-8499 is the ticket office. 2025-26 adult ticket $52 (youth/senior $38), and Ski Free Sundays — free lift tickets every Sunday. 440 ft vertical and ~50 acres from search; base elevation, 17 trails and 3 lifts are best-available figures, and operating hours (afternoon-only weekdays, with lights) are the long-standing pattern but were NOT confirmed for 2026-27. The city\'s own pages disagreed on the 2025-26 opening (Nov 29 vs Dec 6). Not fetch-verified.',
+        'City-owned (City of Steamboat Springs); the official site is the city\'s; 970-879-8499 is the ticket office. 2025-26 adult ticket $52 (youth/senior $38), and Ski Free Sundays: free lift tickets every Sunday. 440 ft vertical and ~50 acres from search; base elevation, 17 trails and 3 lifts are best-available figures, and operating hours (afternoon-only weekdays, with lights) are the long-standing pattern but were NOT confirmed for 2026-27. The city\'s own pages disagreed on the 2025-26 opening (Nov 29 vs Dec 6). Not fetch-verified.',
     },
   },
 
@@ -790,7 +790,7 @@ export const COLORADO: RegionDataset = {
       reservationRequired: 'not-required',
       freeOptionAvailable: true,
       notes: [
-        'No skier lot at the gondola — downtown Aspen parking is paid and limited.',
+        'No skier lot at the gondola. Downtown Aspen parking is paid and limited.',
         'Brush Creek Park & Ride (CO-82 at Brush Creek Rd) is free, with free RFTA buses to Rubey Park downtown, a block from the gondola.',
       ],
       infoUrl: 'https://aspen.gov/1679/Brush-Creek-Park-Ride',
@@ -802,7 +802,7 @@ export const COLORADO: RegionDataset = {
       reservationRequired: 'not-required',
       freeOptionAvailable: true,
       notes: [
-        'The Highlands Village garage is paid (first half hour free); pay before you ski. Older published rates were $25-35 weekdays, $40-50 weekends — confirm current rates.',
+        'The Highlands Village garage is paid (first half hour free); pay before you ski. Older published rates were $25-35 weekdays, $40-50 weekends. Confirm current rates.',
         'Free alternative: Brush Creek Park & Ride plus free buses to all four mountains.',
       ],
       infoUrl: 'https://www.aspensnowmass.com/visit/getting-around',
@@ -814,7 +814,7 @@ export const COLORADO: RegionDataset = {
       reservationRequired: 'not-required',
       freeOptionAvailable: true,
       notes: [
-        'Buttermilk\'s main lot stopped being free in 2025 (Pitkin County-approved paid parking); winter rates were still being set — check before going.',
+        'Buttermilk\'s main lot stopped being free in 2025 (Pitkin County-approved paid parking); winter rates were still being set. Check before going.',
         'Brush Creek Park & Ride is free, with free buses to Buttermilk.',
       ],
       infoUrl: 'https://www.aspensnowmass.com/visit/getting-around',
@@ -840,7 +840,7 @@ export const COLORADO: RegionDataset = {
       freeOptionAvailable: true,
       notes: [
         'Small dirt lots at the base, just past the main buildings on CO-110, about 6.5 miles up from town.',
-        'The road turns unpaved and snow-covered — 4WD recommended in storms. Ophir Pass Rd (630) is closed in winter.',
+        'The road turns unpaved and snow-covered: 4WD recommended in storms. Ophir Pass Rd (630) is closed in winter.',
       ],
       infoUrl: 'https://silvertonmountain.com/town/directions/',
     },
@@ -871,7 +871,7 @@ export const COLORADO: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['Base-area lots off CO-65 above Mesa. Fees and policy were not confirmed in research — check the resort site.'],
+      notes: ['Base-area lots off CO-65 above Mesa. Fees and policy were not confirmed in research. Check the resort site.'],
       infoUrl: 'https://www.powderhorn.com',
     },
     'echo-mountain': {
@@ -898,7 +898,7 @@ export const COLORADO: RegionDataset = {
       capacity: null,
       reservationRequired: 'unknown',
       freeOptionAvailable: null,
-      notes: ['City-run hill across the Yampa River from downtown Steamboat — walkable from Lincoln Ave. Lot fees were not confirmed in research.'],
+      notes: ['City-run hill across the Yampa River from downtown Steamboat, walkable from Lincoln Ave. Lot fees were not confirmed in research.'],
       infoUrl: 'https://steamboatsprings.net',
     },
   },

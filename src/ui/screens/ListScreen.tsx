@@ -66,7 +66,7 @@ export function ListScreen({ scores, onBack, onOpenMountain, onShowMap, onRank }
           </h1>
           <p className="listscreen-intro">
             Across {STATES_SENTENCE}. Each card shows today's score out of 10
-            {scores?.status === 'ready' ? ` from ${scores.originName}` : ''} — still A to Z, no ranking unless you ask for it. Open any one for its full
+            {scores?.status === 'ready' ? ` from ${scores.originName}` : ''}. Still A to Z, no ranking unless you ask for it. Open any one for its full
             profile: the terrain, today's snow, the drive, parking and where to eat.
           </p>
         </header>

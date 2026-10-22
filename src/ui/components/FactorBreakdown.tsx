@@ -16,7 +16,7 @@ export function FactorBreakdown({ score }: { score: DayScore }) {
               <span className="factor-label">
                 {factor.label}
                 {factor.imputed && (
-                  <span className="factor-imputed" title="No data — neutral assumption used">
+                  <span className="factor-imputed" title="No data: neutral assumption used">
                     assumed
                   </span>
                 )}
@@ -53,7 +53,7 @@ export function FactorBreakdown({ score }: { score: DayScore }) {
       )}
 
       <p className="factors-footnote">
-        Weights are configuration, not gospel. The score is decision support — it is not a
+        Weights are configuration, not gospel. The score is decision support. It is not a
         measurement of anything.
       </p>
     </div>

@@ -214,7 +214,7 @@ export function LaterScreen({ registry, clock, origin, preferences, onBack }: La
             </div>
             <p className="rangetable-note">
               Further out, the forecast leans harder on pattern and history than on any single
-              model run. Confidence is ranked alongside the score — a 9.0 twelve days out does not
+              model run. Confidence is ranked alongside the score: a 9.0 twelve days out does not
               beat an 8.6 on Saturday.
             </p>
           </section>

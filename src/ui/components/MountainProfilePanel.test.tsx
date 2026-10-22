@@ -59,7 +59,7 @@ describe('MountainProfilePanel — Grub', () => {
       },
     };
     render(<MountainProfilePanel mountain={mountain} profile={profile} />);
-    expect(screen.getByText(/most people eat in Pagosa Springs/)).toBeInTheDocument();
+    expect(screen.getByText(/Most people eat in Pagosa Springs/)).toBeInTheDocument();
   });
 
   it('says restaurants have not been researched yet rather than showing an empty list', () => {
