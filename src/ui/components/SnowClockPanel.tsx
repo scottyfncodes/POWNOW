@@ -31,6 +31,24 @@ export function SnowClockPanel({ clock, snowState, firstTurn, leaveAt, now }: Sn
   );
   const isPrime = snowState === 'prime';
 
+  // Without a weather feed every hour is the same stand-in value. A chart of
+  // that would be a picture of nothing, so the panel says so and stops.
+  if (snowState === 'unavailable') {
+    return (
+      <section className="panel" aria-labelledby="snowclock-heading">
+        <header className="panel-head">
+          <h2 id="snowclock-heading" className="section-title">
+            The Snow Clock
+          </h2>
+        </header>
+        <p className="snowclock-caption">
+          The weather feed is down, so there's no snow to clock today. Times on this page are built around
+          lift hours and the drive only.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="panel" aria-labelledby="snowclock-heading">
       <header className="panel-head">

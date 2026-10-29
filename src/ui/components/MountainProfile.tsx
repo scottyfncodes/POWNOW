@@ -39,14 +39,14 @@ export function MountainProfile({ plan, reference, now }: MountainProfileProps) 
           </p>
           <DataBadge provenance={plan.provenance} allSourcesUnavailable={allSourcesUnavailable} />
         </div>
-        {!offSeason && (
+        {!offSeason && !plan.noCall && (
           <div className="mountainprofile-scorewrap">
             <ScoreDial score={plan.score.score} label={`${plan.mountain.name} day score`} />
           </div>
         )}
       </header>
 
-      <p className="mountainprofile-headline">{offSeason ? offSeason.detail : plan.headline}</p>
+      <p className="mountainprofile-headline">{offSeason ? offSeason.detail : (plan.noCall ?? plan.headline)}</p>
 
       <ConditionsPanel plan={plan} />
 

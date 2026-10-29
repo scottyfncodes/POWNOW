@@ -26,10 +26,10 @@ import {
 } from '@/domain/provenance';
 import { formatClock, formatDuration, type MinuteOfDay } from '@/domain/time';
 import type { ProviderContext, ProviderRegistry } from '@/providers/types';
-import { comparisonFor, headlineFor, reasonsFor, tradeoffsAgainst, verdictFor } from './explain';
+import { comparisonFor, headlineFor, NO_CALL_VERDICT, reasonsFor, tradeoffsAgainst, verdictFor } from './explain';
 import { type DayInputs, loadDayInputs, makeContext } from './inputs';
 import { buildOffSeasonMessage } from './offSeasonMessages';
-import { classifyOperationalState } from './operationalState';
+import { classifyOperationalState, noCallReason } from './operationalState';
 import { optimizeDay } from './optimize';
 import { mountainsInReach } from './routing';
 import { scoreDay } from './scoring';
@@ -82,6 +82,11 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
         inputs.weather.status === 'ok' ? inputs.weather.data : null,
       )
     : null;
+  const noCall = offSeasonMessage ? null : noCallReason(inputs, operationalState);
+  // With no weather feed the clock's "best window" is shaped by neutral
+  // stand-in values, not snow. Timing still runs on it, but nothing shown to
+  // a person may name a snow window the data never described.
+  const shownClock = snowState === 'unavailable' ? { ...snowClock, prime: null } : snowClock;
 
   return {
     mountain: inputs.mountain,
@@ -89,7 +94,7 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     date: inputs.date,
     isToday: inputs.isToday,
     score,
-    snowClock,
+    snowClock: shownClock,
     snowState,
     freshSnowIn: inputs.weather.status === 'ok' ? inputs.weather.data.overnightSnowIn : null,
     baseConditions: inputs.weather.status === 'ok' ? inputs.weather.data.base : null,
@@ -100,6 +105,7 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     operationalState,
     operations: inputs.operations.status === 'ok' ? inputs.operations.data : null,
     offSeasonMessage,
+    noCall,
     ticket: inputs.ticket.status === 'ok' ? inputs.ticket.data : null,
     ticketPurchaseUrl: resortSourceFor(inputs.mountain.id).officialPurchaseUrl,
     passCoverage: passCovering(inputs.mountain, preferences.passes),
@@ -114,9 +120,9 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
     returnOptions: optimized.returnOptions,
     routeDistanceMiles: routeDistanceMiles(inputs),
     routeLabel: routeLabel(inputs),
-    timeline: buildTimeline(inputs, snowClock, snowState, optimized.departure, optimized.ret),
+    timeline: buildTimeline(inputs, shownClock, snowState, optimized.departure, optimized.ret),
     headline: headlineFor(inputs, snowClock, score),
-    verdict: verdictFor(score.score, hasSnow),
+    verdict: noCall ? NO_CALL_VERDICT : verdictFor(score.score, hasSnow),
     reasons: reasonsFor(inputs, snowClock, score),
     tradeoffs: [],
     provenance: planProvenance(inputs),
@@ -318,7 +324,9 @@ export async function recommend(
 
   const plans = inputs
     .map((dayInputs) => buildPlan(dayInputs, options))
-    .sort((a, b) => b.score.raw - a.score.raw);
+    // A day we can't call never outranks one we can: its score is built on
+    // neutral stand-ins, and letting that win would put a guess on the home screen.
+    .sort((a, b) => Number(a.noCall !== null) - Number(b.noCall !== null) || b.score.raw - a.score.raw);
 
   const best = plans[0];
   if (!best) {

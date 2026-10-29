@@ -139,6 +139,11 @@ convention:
   and is shown once, at the forecast point, never per elevation — because a
   model's depth is one grid-cell number however many elevations you ask
   about
+- **no evidence, no verdict.** With the weather feed down (or, in a shoulder
+  month, no lift report), a day reads **CAN'T CALL IT.** with no score, no
+  snow window and no BEST NOW pin, and it ranks below every day that can be
+  called. A snow station reading next to no depth still marks a mountain
+  NO_SNOW even when the weather feed is down
 - tap "Where this data came from" on any recommendation to see every feed's
   status, provider and fetch time individually — the one aggregate badge on
   the card is a summary, not the only source of truth

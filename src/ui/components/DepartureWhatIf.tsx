@@ -28,6 +28,8 @@ export function DepartureWhatIf({ plan }: { plan: SkiDayPlan }) {
   const recommended = options[recommendedIndex] as DepartureOption;
   const primeDelta = selected.primeCaptured - recommended.primeCaptured;
   const light = trafficLightFor(selected.congestion);
+  // With no weather feed, "prime snow" and the score are stand-ins; show the drive, not them.
+  const snowKnown = plan.snowState !== 'unavailable';
 
   return (
     <section className="panel" aria-labelledby="departure-heading">
@@ -58,7 +60,7 @@ export function DepartureWhatIf({ plan }: { plan: SkiDayPlan }) {
           step={1}
           value={Math.min(index, options.length - 1)}
           onChange={(event) => setIndex(Number(event.target.value))}
-          aria-valuetext={`Leave ${formatClock(selected.departure)}, arrive ${formatClock(selected.arrival)}, day score ${(selected.score / 10).toFixed(1)}`}
+          aria-valuetext={`Leave ${formatClock(selected.departure)}, arrive ${formatClock(selected.arrival)}${snowKnown && !plan.noCall ? `, day score ${(selected.score / 10).toFixed(1)}` : ''}`}
         />
       </label>
 
@@ -83,7 +85,7 @@ export function DepartureWhatIf({ plan }: { plan: SkiDayPlan }) {
           </div>
           <div>
             <dt>Prime snow</dt>
-            <dd className="numeral">{formatDuration(selected.primeCaptured)}</dd>
+            <dd className="numeral">{snowKnown ? formatDuration(selected.primeCaptured) : '–'}</dd>
           </div>
           <div>
             <dt>Traffic</dt>
@@ -91,18 +93,22 @@ export function DepartureWhatIf({ plan }: { plan: SkiDayPlan }) {
           </div>
           <div>
             <dt>Day score</dt>
-            <dd className="numeral">{(selected.score / 10).toFixed(1)}</dd>
+            <dd className="numeral">{snowKnown && !plan.noCall ? (selected.score / 10).toFixed(1) : '–'}</dd>
           </div>
           <div>
             <dt>vs best</dt>
             <dd className="numeral">
-              {primeDelta === 0 ? 'even' : `${formatDelta(primeDelta)} prime`}
+              {!snowKnown ? '–' : primeDelta === 0 ? 'even' : `${formatDelta(primeDelta)} prime`}
             </dd>
           </div>
         </dl>
       </div>
 
-      <p className="whatif-verdict">{departureVerdict(selected, recommended)}</p>
+      <p className="whatif-verdict">
+        {snowKnown
+          ? departureVerdict(selected, recommended)
+          : `Without snow data, this is about the drive: ${formatDuration(selected.driveMinutes)} leaving at ${formatClock(selected.departure)}.`}
+      </p>
     </section>
   );
 }

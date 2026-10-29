@@ -89,7 +89,8 @@ export function MapScreen({
         now: clock.now,
         preferences: preferences ?? DEFAULT_PREFERENCES,
       });
-      return { all: recommendation.all, bestId: recommendation.best.mountain.id };
+      // No BEST NOW pin on a day nobody can call.
+      return { all: recommendation.all, bestId: recommendation.best.noCall ? '' : recommendation.best.mountain.id };
     },
     // `clock.now` is read inside but deliberately not a dependency: the
     // whole-map ranking must not re-run every minute the tab is open.
@@ -106,7 +107,7 @@ export function MapScreen({
     for (const plan of plans) {
       info[plan.mountain.id] = {
         score: plan.score.score,
-        tier: plan.offSeasonMessage ? null : tierFor(plan.score.score),
+        tier: plan.offSeasonMessage || plan.noCall ? null : tierFor(plan.score.score),
         freshSnowIn: plan.freshSnowIn,
         driveMinutes: plan.departure?.driveMinutes ?? null,
       };
@@ -271,7 +272,7 @@ export function MapScreen({
                       {selectedPlan && !selectedPlan.offSeasonMessage ? selectedPlan.verdict : selectedMountain.region}
                     </span>
                   </div>
-                  {selectedPlan && !selectedPlan.offSeasonMessage && (
+                  {selectedPlan && !selectedPlan.offSeasonMessage && !selectedPlan.noCall && (
                     <span className={`mapscreen-peek-score is-${tierFor(selectedPlan.score.score)}`}>
                       <span className="numeral">{selectedPlan.score.score.toFixed(1)}</span>
                       <span className="visually-hidden"> out of 10</span>

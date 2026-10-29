@@ -26,6 +26,9 @@ import { resolveOperations, resolveWeather, weatherAt } from './snowClock';
  * only reach a couple of times a season is the point: it should mean
  * something when it appears.
  */
+/** The verdict when the evidence for a call is missing; see `SkiDayPlan.noCall`. */
+export const NO_CALL_VERDICT = "CAN'T CALL IT.";
+
 export function verdictFor(score: number, hasSnow: boolean): string {
   if (score >= 8.5) return "LET'S RIDE.";
   if (score >= 7.9) return hasSnow ? 'SEND IT.' : 'GO.';
@@ -167,6 +170,8 @@ export function tradeoffsAgainst(alternative: DayScore, winner: DayScore, limit 
 
 /** "Vail has more snow, but Breck is the better overall day." */
 export function comparisonFor(best: SkiDayPlan, runnerUp: SkiDayPlan | undefined): string {
+  // Comparing imputed factors would invent a reason one guess beat another.
+  if (best.noCall) return `${best.noCall} Nothing within reach can be ranked with confidence right now.`;
   if (!runnerUp) return `Nothing else within reach comes close today.`;
 
   const bestByKey = new Map(best.score.factors.map((factor) => [factor.key, factor]));
@@ -226,13 +231,18 @@ const describeEdge = (factor: ScoreFactor): string => {
 
 /** The one-line summary of the whole plan, used for sharing and screen readers. */
 export function planSummary(plan: SkiDayPlan): string {
+  const call = plan.offSeasonMessage
+    ? 'no normal ski day to call right now.'
+    : plan.noCall
+      ? `no call today. ${plan.noCall}`
+      : `${plan.score.score.toFixed(1)} out of 10.`;
   if (!plan.departure || !plan.return) {
-    return `${plan.mountain.name}: ${plan.score.score.toFixed(1)} out of 10.`;
+    return `${plan.mountain.name}: ${call}`;
   }
   const prime = plan.snowClock.prime;
   const primeText = prime ? ` Best snow ${formatWindowLabel(prime.start, prime.end)}.` : '';
   return (
-    `${plan.mountain.name}, ${plan.score.score.toFixed(1)} out of 10. ` +
+    `${plan.mountain.name}, ${call} ` +
     `Leave ${formatClock(plan.departure.departure)}, arrive ${formatClock(plan.departure.arrival)}.` +
     `${primeText} Head home ${formatClock(plan.return.departure)}, back by ${formatClock(plan.return.homeArrival)} ` +
     `after ${formatDuration(plan.return.mountainMinutes)} on the hill.`

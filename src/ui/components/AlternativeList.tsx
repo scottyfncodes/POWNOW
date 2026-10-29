@@ -46,7 +46,7 @@ export const AlternativeList = forwardRef<HTMLElement, AlternativeListProps>(
                       <span className="alt-fullname">{plan.mountain.name}</span>
                     )}
                   </span>
-                  <span className="alt-score numeral">{plan.score.score.toFixed(1)}</span>
+                  <span className="alt-score numeral">{plan.noCall ? '–' : plan.score.score.toFixed(1)}</span>
                 </span>
                 <span className="alt-meta">
                   {plan.departure && plan.return ? (

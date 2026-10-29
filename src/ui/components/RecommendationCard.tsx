@@ -91,7 +91,7 @@ export function RecommendationCard({
             {offSeason ? offSeason.line : plan.verdict}
           </p>
         </div>
-        {!offSeason && (
+        {!offSeason && !plan.noCall && (
           <div className="reccard-scorewrap">
             <ScoreDial score={plan.score.score} label={`${plan.mountain.name} day score`} />
             <p className="reccard-scorelabel">Day score</p>
@@ -99,7 +99,7 @@ export function RecommendationCard({
         )}
       </div>
 
-      <p className="reccard-headline">{offSeason ? offSeason.detail : plan.headline}</p>
+      <p className="reccard-headline">{offSeason ? offSeason.detail : (plan.noCall ?? plan.headline)}</p>
 
       <div className="reccard-badges">
         <DataBadge provenance={plan.provenance} allSourcesUnavailable={allSourcesUnavailable} />
@@ -138,9 +138,11 @@ export function RecommendationCard({
               {snowClock.prime ? formatWindowLabel(snowClock.prime.start, snowClock.prime.end) : '–'}
             </dd>
             <p className="faint">
-              {departure.primeCaptured > 0
-                ? `${formatDuration(departure.primeCaptured)} of the best window is yours`
-                : 'You miss the best window at this departure'}
+              {plan.snowState === 'unavailable'
+                ? 'No weather feed to time the snow'
+                : departure.primeCaptured > 0
+                  ? `${formatDuration(departure.primeCaptured)} of the best window is yours`
+                  : 'You miss the best window at this departure'}
             </p>
           </div>
           <div className="reccard-time">
@@ -201,8 +203,9 @@ export function RecommendationCard({
         <h2 className="eyebrow">Why {plan.mountain.shortName}</h2>
         {offSeason ? (
           <p className="reccard-whyline">
-            Base, peak and the 5-day snow cycle above are live for this mountain. There's just not a normal
-            ski day to call right now.
+            {plan.baseConditions
+              ? "Base, peak and the 5-day snow cycle above are live for this mountain. There's just not a normal ski day to call right now."
+              : "There's just not a normal ski day to call right now."}
           </p>
         ) : (
           <>

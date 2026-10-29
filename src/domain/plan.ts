@@ -229,6 +229,13 @@ export interface SkiDayPlan {
   operations: OperationsReport | null;
   /** Set only in the non-skiable states (see `NON_SKIABLE_STATES`) — a personality-forward line plus the real data behind it. */
   offSeasonMessage: OffSeasonMessage | null;
+  /**
+   * Why the engine won't put a number on this day, or `null` when it will.
+   * Set when the evidence a call rests on is missing (no weather feed, or no
+   * lift report in a shoulder month), so a neutral imputation never reads as
+   * a confident verdict. The UI withholds the score while this is set.
+   */
+  noCall: string | null;
   /** Null when pricing was unavailable — never a guessed number. */
   ticket: TicketPrice | null;
   /**
