@@ -161,7 +161,7 @@ function Pick({ plan }: { plan: SkiDayPlan }) {
       </h1>
       <div className="home-call">
         <p className={`home-verdict${offSeason ? ' is-offseason' : ''}`}>{offSeason ? offSeason.line : plan.verdict}</p>
-        {!offSeason && <ScoreDial score={plan.score.score} size="lg" label={`${plan.mountain.name} day score`} />}
+        {!offSeason && !plan.noCall && <ScoreDial score={plan.score.score} size="lg" label={`${plan.mountain.name} day score`} />}
       </div>
       {offSeason ? (
         <p className="home-offseason">{offSeason.detail}</p>

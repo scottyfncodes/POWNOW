@@ -15,6 +15,8 @@ import type { DayInputs } from './inputs';
 
 /** Colorado's ski areas are reliably shut across this window; shoulder months stay `UNKNOWN`, not assumed either way. */
 const OFF_SEASON_MONTHS = new Set([6, 7, 8, 9]);
+/** Openings and closings land in these months and vary by mountain and year, so a missing lift report can't be read as "open". */
+const SHOULDER_MONTHS = new Set([4, 5, 10, 11]);
 
 export interface OperationalStateResult {
   state: MountainOperationalState;
@@ -63,24 +65,44 @@ export function classifyOperationalState(inputs: DayInputs): OperationalStateRes
     return { state: 'OFF_SEASON', reason: 'No lift report, and this is typically the off-season.' };
   }
 
-  if (inputs.weather.status === 'ok') {
-    const weather = inputs.weather.data;
-    // A measured station depth is the better witness; the model's grid-cell
-    // depth is the fallback. Either way the bar is "next to nothing on the
-    // ground and nothing recent" — a thin pack alone is a coverage question
-    // for the lift report, not a NO_SNOW verdict.
-    const measured = inputs.snowpack.status === 'ok' ? inputs.snowpack.data.snowDepthIn : null;
-    const depth = measured ?? weather.modelSnowDepthIn;
-    const history = weather.snowHistory;
-    if (depth !== null && depth < 6 && (!history || history.pastTotalIn < 3)) {
-      return {
-        state: 'NO_SNOW',
-        reason: measured !== null
-          ? 'The nearest snow station reads next to no depth, and little has fallen recently.'
-          : 'Modeled snow depth is negligible and little has fallen recently.',
-      };
-    }
+  // A measured station depth is the better witness; the model's grid-cell
+  // depth is the fallback. Either way the bar is "next to nothing on the
+  // ground and nothing recent". A thin pack alone is a coverage question
+  // for the lift report, not a NO_SNOW verdict. The station stands on its
+  // own, so a dead weather feed doesn't hide a bare mountain.
+  const weather = inputs.weather.status === 'ok' ? inputs.weather.data : null;
+  const measured = inputs.snowpack.status === 'ok' ? inputs.snowpack.data.snowDepthIn : null;
+  const depth = measured ?? weather?.modelSnowDepthIn ?? null;
+  const recentFall = weather?.snowHistory?.pastTotalIn
+    ?? (inputs.snowpack.status === 'ok' ? inputs.snowpack.data.newSnow5dIn : null);
+  if (depth !== null && depth < 6 && (recentFall === null || recentFall < 3)) {
+    return {
+      state: 'NO_SNOW',
+      reason: measured !== null
+        ? 'The nearest snow station reads next to no depth, and little has fallen recently.'
+        : 'Modeled snow depth is negligible and little has fallen recently.',
+    };
   }
 
   return { state: 'UNKNOWN', reason: 'No lift report available.' };
+}
+
+/**
+ * Why a day can't be called, or `null` when it can. A score built on neutral
+ * stand-ins reads exactly like a real one, so the plan withholds it when:
+ * - there's no weather feed: nothing to judge the snow on at all, or
+ * - there's no lift report in a shoulder month, when the mountain may simply
+ *   not be open yet (or anymore).
+ * Mid-season, a missing lift report alone stays a routine caveat; see
+ * `NON_SKIABLE_STATES` in domain/mountainStatus.ts.
+ */
+export function noCallReason(inputs: DayInputs, state: MountainOperationalState): string | null {
+  if (inputs.weather.status !== 'ok') {
+    return "The weather feed is down, so there's no snow to judge this day on.";
+  }
+  const month = fromDateKey(inputs.date).getMonth() + 1;
+  if (state === 'UNKNOWN' && !inputs.usingDemoData && SHOULDER_MONTHS.has(month)) {
+    return "No lift report, and this time of year that can mean it isn't open. Check before you go.";
+  }
+  return null;
 }

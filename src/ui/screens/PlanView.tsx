@@ -148,7 +148,9 @@ export function PlanView({
           onClick={() => setShowFactors((value) => !value)}
           aria-expanded={showFactors}
         >
-          <span className="section-title">How we got {plan.score.score.toFixed(1)}</span>
+          <span className="section-title">
+            {plan.noCall ? 'How the score would be built' : `How we got ${plan.score.score.toFixed(1)}`}
+          </span>
           <span aria-hidden="true">{showFactors ? '−' : '+'}</span>
         </button>
         {showFactors && <FactorBreakdown score={plan.score} />}

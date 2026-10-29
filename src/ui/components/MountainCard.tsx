@@ -46,7 +46,7 @@ export function MountainCard({ plan, rank, why, projected = false, onOpen }: Mou
               {plan.mountain.region}
             </span>
           </span>
-          {!offSeason && (
+          {!offSeason && !plan.noCall && (
             <span className="mcard-score">
               <ScoreDial score={plan.score.score} size="sm" label={`${plan.mountain.name} day score`} />
             </span>
