@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { corridorFor } from '@/data/corridors';
 import { findMountain } from '@/data/mountains';
 import { mountainProfileFor } from '@/data/mountainProfiles';
@@ -27,6 +27,8 @@ import { SnowTimeline } from '@/ui/components/SnowTimeline';
 import { TrailMapPanel } from '@/ui/components/TrailMapPanel';
 import type { ClockState } from '@/ui/hooks/useClock';
 import { useAsync } from '@/ui/hooks/useRecommendation';
+import { ShareSheet } from '@/ui/share/ShareSheet';
+import type { ShareCardData } from '@/ui/share/shareCard';
 import { ErrorScreen } from './ErrorScreen';
 
 export interface ProfileScreenProps {
@@ -89,6 +91,16 @@ export function ProfileScreen({ mountainId, registry, clock, origin, onBack, onS
     [mountain?.id, clock.today, registry],
   );
 
+  const [sharing, setSharing] = useState(false);
+  const snowForCard = facts.status === 'ready' && facts.data?.weather.status === 'ok' ? facts.data.weather.data.snowHistory : null;
+  const shareData = useMemo(
+    (): ShareCardData | null =>
+      mountain
+        ? { mountain, snow: snowForCard, today: clock.today, usingDemoData: registry.usingDemoData, host: window.location.host }
+        : null,
+    [mountain, snowForCard, clock.today, registry.usingDemoData],
+  );
+
   if (!mountain) {
     return <ErrorScreen message={`We don't know a mountain called "${mountainId}".`} onBack={onBack} />;
   }
@@ -100,7 +112,13 @@ export function ProfileScreen({ mountainId, registry, clock, origin, onBack, onS
     <div className="screen profilescreen">
       <ScreenHeader onBack={onBack} title="PROFILE" />
       <div className="screen-body shell stack profilescreen-body">
-        <ProfileHero mountain={mountain} officialSite={reference?.officialWebsite ?? null} onSeeCall={() => onSeeCall(mountain.id)} />
+        <ProfileHero
+          mountain={mountain}
+          officialSite={reference?.officialWebsite ?? null}
+          onSeeCall={() => onSeeCall(mountain.id)}
+          // The card is about the snow coming: wait for the forecast before offering it.
+          onShare={facts.status === 'loading' || facts.status === 'idle' ? null : () => setSharing(true)}
+        />
 
         <MountainStats mountain={mountain} />
 
@@ -132,11 +150,23 @@ export function ProfileScreen({ mountainId, registry, clock, origin, onBack, onS
           <span className="profilescreen-callout-note">Verdict, score, when to leave and when to head home.</span>
         </button>
       </div>
+      {sharing && shareData && <ShareSheet data={shareData} onClose={() => setSharing(false)} />}
     </div>
   );
 }
 
-function ProfileHero({ mountain, officialSite, onSeeCall }: { mountain: Mountain; officialSite: string | null; onSeeCall: () => void }) {
+function ProfileHero({
+  mountain,
+  officialSite,
+  onSeeCall,
+  onShare,
+}: {
+  mountain: Mountain;
+  officialSite: string | null;
+  onSeeCall: () => void;
+  /** Null while the forecast the card is built on is still loading. */
+  onShare: (() => void) | null;
+}) {
   return (
     <section className="profilehero" aria-labelledby="profilehero-name">
       <p className="eyebrow profilehero-region">
@@ -163,6 +193,9 @@ function ProfileHero({ mountain, officialSite, onSeeCall }: { mountain: Mountain
             Official site ↗
           </a>
         )}
+        <button type="button" className="button button-quiet profilehero-share" onClick={onShare ?? undefined} disabled={!onShare}>
+          Share
+        </button>
       </div>
     </section>
   );

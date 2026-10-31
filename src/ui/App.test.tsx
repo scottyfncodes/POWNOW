@@ -232,6 +232,20 @@ describe('the home screen', () => {
     }
   });
 
+  it('a profile makes a shareable card of the mountain and its snow coming', async () => {
+    window.history.replaceState(null, '', '/#/profile/wolf-creek');
+    render(<App />);
+    const share = screen.getByRole('button', { name: 'Share' });
+    await waitFor(() => expect(share).toBeEnabled(), { timeout: 12_000 });
+    await user().click(share);
+    const sheet = screen.getByRole('dialog', { name: /share wolf creek/i });
+    expect(within(sheet).getByText(/^Wolf Creek: /)).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Send' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
+    await user().click(within(sheet).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  }, 15_000);
+
   it("a profile's Today's call opens the engine's day for it, and the two link back without looping", async () => {
     render(<App />);
     await user().click(screen.getByRole('button', { name: /^Copper Mountain/ }));
