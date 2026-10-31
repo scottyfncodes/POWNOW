@@ -634,12 +634,12 @@ describe('honest empty states', () => {
     expect(screen.getByText(/MEDIUM CONFIDENCE|LOW CONFIDENCE/)).toBeInTheDocument();
   });
 
-  it('says the price is unavailable rather than inventing one when pricing is down', async () => {
+  it('never invents a price when pricing is down, and points at the resort instead of announcing the gap', async () => {
     await tapNow(createDemoRegistry({ pricing: { failFor: () => true } }));
-    // No dollar figure anywhere — the honest fallback names the gap instead of a number.
     expect(screen.queryByText(/^\$\d/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Current price unavailable/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ticket pricing isn't loading/i)).toBeInTheDocument();
+    expect(screen.queryByText(/price unavailable/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ticket pricing isn't loading/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Buy at the resort/i }).length).toBeGreaterThan(0);
   });
 
   it('says why a mountain is out of your ranking instead of showing an empty plan', async () => {

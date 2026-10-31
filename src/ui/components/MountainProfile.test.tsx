@@ -102,10 +102,11 @@ describe('MountainProfile — the map-to-decision hierarchy', () => {
     }
   });
 
-  it('shows parking as a dedicated section, honestly unavailable rather than a fabricated status, when the feed has nothing', () => {
+  it('leaves parking out entirely when nothing is known, never a fabricated status or an empty section', () => {
     const plan = buildPlan(testInputs({ parking: 'unavailable' }));
     render(<MountainProfile plan={plan} reference={null} />);
-    expect(screen.getByText(/parking information unavailable/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Parking' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/parking information unavailable/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/% occupied/i)).not.toBeInTheDocument();
   });
 
