@@ -162,7 +162,7 @@ Day 0 is deliberately shaped into a storm day — the product story starts at
 | **Snowpack** (measured) | NRCS SNOTEL | browser → proxy → API | `server/` deployed + `VITE_API_BASE_URL`. No key. |
 | **Traffic** | Google Routes | browser → proxy → API | `server/` + `GOOGLE_ROUTES_API_KEY` + `VITE_API_BASE_URL` |
 | **Road conditions** | CDOT / COtrip | browser → proxy → API | `server/` + `COTRIP_API_KEY` (free) + `VITE_API_BASE_URL`; `VITE_ENABLE_ROAD_CONDITIONS=false` disables |
-| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 31 mountains read the resort's own feed or page; most others a Liftie id |
+| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 37 mountains read the resort's own feed or page; most others a Liftie id |
 | **Crowds** | — | — | Unavailable, always. No trustworthy live source exists |
 | **Pricing** | — | — | Unavailable, always. Investigated, unverifiable — official purchase link shown instead |
 | **Places** | — | — | Unavailable, always. Never in scope |
@@ -207,7 +207,7 @@ its last build.
 `server/index.mjs` is the one server-side thing this project needs, and it
 exists for three reasons a browser can't cover: hold secrets (Google Routes,
 CDOT), reach hosts that don't serve CORS (SNOTEL, CDOT), and share a cache
-across visitors. It is dependency-free `node:http` so "does this leak a key
+across visitors. It is plain `node:http` (its one dependency is an HTML parser for resort pages) so "does this leak a key
 anywhere" is a five-minute read, and the same file serves as the Vercel
 function. Endpoints:
 

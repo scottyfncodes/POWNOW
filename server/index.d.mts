@@ -23,7 +23,7 @@ export function readBody(req: import('node:http').IncomingMessage & { body?: unk
 export function samplePoints(geometry: unknown, max?: number): [number, number][];
 /** A resort board normalized to counts — see the official resort feeds section of server/index.mjs. */
 export interface ResortStatusPayload {
-  feed: 'mtnpowder' | 'powdr' | 'aspen' | 'boyne' | 'vail' | 'alta' | 'loveland';
+  feed: 'mtnpowder' | 'powdr' | 'aspen' | 'boyne' | 'vail' | 'alta' | 'loveland' | 'markup';
   resortName: string | null;
   lifts: { open: number; hold: number; scheduled: number; closed: number; unknown: number };
   trails: { open: number; total: number };
@@ -43,3 +43,5 @@ export function parseVailPage(html: string): ResortStatusPayload | null;
 export function parseAltaPage(html: string): ResortStatusPayload | null;
 export function parseLovelandPage(html: string): ResortStatusPayload | null;
 export const VAIL_PAGES: Record<string, string>;
+export function parseMarkupPage(id: string, html: string): ResortStatusPayload | null;
+export const MARKUP_PAGES: Record<string, { url: string }>;

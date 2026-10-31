@@ -14,7 +14,7 @@
  *      once and served to every visitor for the next 15 minutes; the same
  *      statewide road feed answers every corridor question for 5 minutes.
  *
- * Deliberately dependency-free (no Express): a plain `node:http` router is
+ * Deliberately framework-free (no Express; one dependency, an HTML parser for resort pages): a plain `node:http` router is
  * easier to audit for "does this leak a key anywhere" than a framework.
  *
  * It runs two ways from the same file:
@@ -34,6 +34,7 @@
  * See .env.example for every variable this reads.
  */
 import { createServer } from 'node:http';
+import { parse as parseHtml } from 'node-html-parser';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const API_KEY = process.env.GOOGLE_ROUTES_API_KEY ?? '';
@@ -867,6 +868,95 @@ export function parseLovelandPage(html) {
   };
 }
 
+/**
+ * Resorts whose lift status is plain markup, read with a real HTML parser
+ * (node-html-parser) and the resort's own markup, each checked against the
+ * live page on 2026-10-31 with robots.txt allowing it. Each returns
+ * [lift name, status word] pairs; `liftsFromRows` counts them.
+ *
+ * Not covered, and why: Taos lists lifts in one feed with its restaurant and
+ * pickleball courts, no reliable way to tell them apart; Angel Fire builds
+ * its report in the browser; Purgatory's and Wolf Creek's pages carry no
+ * lift list at all.
+ */
+const text = (node) => (node ? node.text.replace(/\s+/g, ' ').trim() : '');
+
+export const MARKUP_PAGES = {
+  telluride: {
+    url: 'https://tellurideskiresort.com/snow-report',
+    // The status column's word; the icon beside it disagreed on the town gondola.
+    // The free gondola is town transport, not a ski lift.
+    rows: (root) =>
+      root
+        .querySelectorAll('.tsr-report-app-lift-status tbody tr')
+        .map((tr) => tr.querySelectorAll('td'))
+        .map((td) => [text(td[1]), text(td[3])])
+        .filter(([name]) => !/free gondola/i.test(name)),
+  },
+  monarch: {
+    url: 'https://skimonarch.com/conditions/',
+    rows: (root) =>
+      root
+        .querySelectorAll('.lifts-table tbody tr')
+        .map((tr) => tr.querySelectorAll('td'))
+        .map((td) => [text(td[0]), text(td[1])])
+        .filter(([name]) => !/tubing/i.test(name)),
+  },
+  snowbasin: {
+    url: 'https://www.snowbasin.com/the-mountain/conditions',
+    // "Lift Closed" / "Lift Open", in the cell's screen-reader text.
+    rows: (root) =>
+      root
+        .querySelectorAll('.mc-lifts__table tbody tr')
+        .map((tr) => tr.querySelectorAll('td'))
+        .map((td) => [text(td[0]), text(td[2]?.querySelector('.sr-only')).replace(/^lift\s+/i, '')]),
+  },
+  brianhead: {
+    url: 'https://www.brianhead.com/weather-conditions-webcams/',
+    // Status is the list item's class: m-lift-status-open / -closed.
+    rows: (root) =>
+      root
+        .querySelectorAll('li')
+        .filter((li) => /^m-lift-status-/.test(li.getAttribute('class') ?? ''))
+        .map((li) => [text(li.querySelector('h3')), (li.getAttribute('class') ?? '').replace(/^m-lift-status-/, '')]),
+  },
+  sugarbowl: {
+    url: 'https://www.sugarbowl.com/conditions',
+    rows: (root) =>
+      root
+        .querySelectorAll('.lift_status_top')
+        .map((card) => [text(card.querySelector('.fw_semi_bold')), text(card.querySelector('[data-update-id$="_status_text"]'))]),
+  },
+  sierra: {
+    url: 'https://www.sierraattahoe.com/lifts-trails-grooming/',
+    rows: (root) =>
+      root
+        .querySelectorAll('.sierra-lift-row')
+        .filter((row) => row.getAttribute('data-panel') === 'lift-status')
+        .map((row) => [text(row.querySelector('h4')), text(row.querySelector('.sierra-status-badge'))])
+        .filter(([name]) => !/tubing/i.test(name)),
+  },
+};
+
+/** Counts [name, status] rows; null when there are none, or too many status words this code doesn't know. */
+export function liftsFromRows(rows, feed) {
+  const named = rows.filter(([name]) => name);
+  if (named.length === 0) return null;
+  const counts = tally(named, ([, status]) => status);
+  if (counts.unknown > named.length * 0.4) return null;
+  return { feed, resortName: null, lifts: counts, trails: { open: 0, total: 0 }, acres: null, boardUpdatedAt: null };
+}
+
+export function parseMarkupPage(id, html) {
+  const page = MARKUP_PAGES[id];
+  if (!page) return null;
+  try {
+    return liftsFromRows(page.rows(parseHtml(html)), 'markup');
+  } catch {
+    return null;
+  }
+}
+
 async function fetchPageOrThrow(url) {
   const response = await fetchWithTimeout(url, { headers: { Accept: 'text/html', 'User-Agent': SCRAPER_UA } }, 12000);
   if (!response.ok) throw new Error(`${new URL(url).host} returned ${response.status}`);
@@ -880,6 +970,10 @@ async function fetchJsonOrThrow(url) {
 }
 
 async function buildResortStatus(feed, id) {
+  if (feed === 'markup') {
+    const parsed = parseMarkupPage(id, await fetchPageOrThrow(MARKUP_PAGES[id].url));
+    return parsed && { ...parsed, sourceTimestamp: new Date().toISOString() };
+  }
   if (feed === 'vail' || feed === 'alta' || feed === 'loveland') {
     const html = await fetchPageOrThrow(feed === 'vail' ? VAIL_PAGES[id] : feed === 'alta' ? ALTA_PAGE : LOVELAND_PAGE);
     const parsed = feed === 'vail' ? parseVailPage(html) : feed === 'alta' ? parseAltaPage(html) : parseLovelandPage(html);
@@ -1167,14 +1261,15 @@ async function handle(req, res) {
       (feed === 'boyne' && BOYNE_RESORTS.has(id)) ||
       (feed === 'vail' && Object.hasOwn(VAIL_PAGES, id)) ||
       (feed === 'alta' && id === 'alta') ||
-      (feed === 'loveland' && id === 'loveland');
+      (feed === 'loveland' && id === 'loveland') ||
+      (feed === 'markup' && Object.hasOwn(MARKUP_PAGES, id));
     if (!allowed) {
       sendJson(req, res, 400, { error: 'Unknown resort feed.' });
       return;
     }
     let status;
     try {
-      const scraped = feed === 'vail' || feed === 'alta' || feed === 'loveland';
+      const scraped = ['vail', 'alta', 'loveland', 'markup'].includes(feed);
       status = await cachedOrCompute(`resort:${feed}:${id}`, scraped ? RESORT_PAGE_CACHE_TTL_MS : RESORT_FEED_CACHE_TTL_MS, () =>
         buildResortStatus(feed, id),
       );
@@ -1186,7 +1281,7 @@ async function handle(req, res) {
       sendJson(req, res, 502, { error: 'The resort feed returned a shape this proxy does not recognize.' });
       return;
     }
-    sendJson(req, res, 200, status, cdnCache(Math.round((['vail', 'alta', 'loveland'].includes(feed) ? RESORT_PAGE_CACHE_TTL_MS : RESORT_FEED_CACHE_TTL_MS) / 1000)));
+    sendJson(req, res, 200, status, cdnCache(Math.round((['vail', 'alta', 'loveland', 'markup'].includes(feed) ? RESORT_PAGE_CACHE_TTL_MS : RESORT_FEED_CACHE_TTL_MS) / 1000)));
     return;
   }
 
