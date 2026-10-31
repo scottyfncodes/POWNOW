@@ -365,9 +365,7 @@ function TicketFacts({ mountain, ticket }: { mountain: Mountain; ticket: Availab
             adult day today · window {formatPrice(price.windowRate, price.currency)}
           </span>
         </p>
-      ) : (
-        ticket && <p className="ticketpanel-unavailable">Current day-ticket price unavailable.</p>
-      )}
+      ) : null}
       {purchaseUrl && (
         <a className="profileticket-buy" href={purchaseUrl} target="_blank" rel="noreferrer">
           Buy at the resort ↗

@@ -13,16 +13,18 @@ const PROVENANCE = {
 };
 
 describe('ParkingPanel', () => {
-  it('says parking information is unavailable rather than showing a blank or fabricated section', () => {
-    render(<ParkingPanel parking={unavailable('test', 'no data')} />);
-    expect(screen.getByText(/parking information unavailable/i)).toBeInTheDocument();
+  it('shows no parking section at all when nothing is known, rather than a section saying so', () => {
+    const { container } = render(<ParkingPanel parking={unavailable('test', 'no data')} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('never shows an occupancy count or percentage when none was provided', () => {
     render(<ParkingPanel parking={ok(testParking({ status: 'unknown', occupied: null, capacity: null }), PROVENANCE)} />);
     expect(screen.queryByText(/spaces/)).not.toBeInTheDocument();
     expect(screen.queryByText(/% occupied/)).not.toBeInTheDocument();
-    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+    // No live occupancy source exists anywhere, so no badge and no note about it.
+    expect(screen.queryByText('Unavailable')).not.toBeInTheDocument();
+    expect(screen.queryByText(/occupancy isn't published/i)).not.toBeInTheDocument();
   });
 
   it('shows a real occupancy count only when the data actually carries one', () => {

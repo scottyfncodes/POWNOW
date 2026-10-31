@@ -19,16 +19,8 @@ export interface ParkingPanelProps {
  * up not knowing if they'll get parked.
  */
 export function ParkingPanel({ parking }: ParkingPanelProps) {
-  if (parking.status === 'unavailable') {
-    return (
-      <section className="panel parkingpanel" aria-labelledby="parking-heading">
-        <h2 id="parking-heading" className="section-title">
-          Parking
-        </h2>
-        <p className="parkingpanel-unavailable">Parking information unavailable for this mountain.</p>
-      </section>
-    );
-  }
+  // Nothing researched for this mountain: no section, rather than a section saying there's nothing.
+  if (parking.status === 'unavailable') return null;
 
   const info = parking.data;
   const isLive = parking.provenance.source === 'live';
@@ -39,15 +31,11 @@ export function ParkingPanel({ parking }: ParkingPanelProps) {
         <h2 id="parking-heading" className="section-title">
           Parking
         </h2>
-        <span className={`chip chip-parking-${info.status}`}>{PARKING_STATUS_LABEL[info.status]}</span>
+        {/* No resort publishes live lot occupancy, so an "unknown" status gets no badge: the panel shows the rules it does have. */}
+        {info.status !== 'unknown' && (
+          <span className={`chip chip-parking-${info.status}`}>{PARKING_STATUS_LABEL[info.status]}</span>
+        )}
       </header>
-
-      {info.status === 'unknown' && (
-        <p className="parkingpanel-note">
-          Live lot occupancy isn't published for this mountain. This is not a guess dressed up as a
-          status.
-        </p>
-      )}
 
       {info.occupied != null && info.capacity != null && (
         <p className="parkingpanel-count numeral">

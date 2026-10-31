@@ -115,12 +115,10 @@ function TicketPanel({ plan }: { plan: SkiDayPlan }) {
         </p>
       ) : (
         <p className="ticketpanel-unavailable">
-          Current price unavailable
           {plan.ticketPurchaseUrl && (
             <>
-              {': '}
               <a href={plan.ticketPurchaseUrl} target="_blank" rel="noreferrer">
-                buy at the resort
+                Buy at the resort
               </a>
             </>
           )}

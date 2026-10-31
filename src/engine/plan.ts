@@ -179,10 +179,12 @@ function buildDataSources(inputs: DayInputs): DataSourceStatus[] {
     row('Snowpack', inputs.snowpack, snowpackUrl),
     row('Traffic', inputs.outbound),
     row('Lift operations', inputs.operations, opsSourceUrl),
-    row('Ticket price', inputs.ticket),
     row('Alerts', inputs.alerts),
     row('Parking', inputs.parking, parkingSourceUrl),
   ];
+
+  // Ticket price only gets a row when a source actually answered; no resort publishes one live.
+  if (inputs.ticket.status === 'ok') rows.push(row('Ticket price', inputs.ticket));
 
   // Roads only gets a row when there was a corridor to ask about at all —
   // an origin/mountain pair with no routes has nothing to report here.
@@ -199,12 +201,9 @@ function collectCaveats(inputs: DayInputs, timingReason: string | null): string[
   if (inputs.operations.status === 'unavailable') {
     caveats.push("Lift report isn't talking. Terrain and opening times are assumptions.");
   }
-  if (inputs.crowds.status === 'unavailable') {
-    caveats.push('No crowd signal for this mountain.');
-  }
-  if (inputs.ticket.status === 'unavailable') {
-    caveats.push("Ticket pricing isn't loading, so the cost of the day is missing.");
-  }
+  // Crowds and ticket prices have no live source for any resort, so their
+  // absence isn't news worth a caveat on every plan. The score breakdown
+  // still says they count as neutral.
   if (inputs.closedCorridors.length > 0) {
     caveats.push(`${inputs.closedCorridors.join(', ')} closed. Routing around it wasn't possible from here today.`);
   }

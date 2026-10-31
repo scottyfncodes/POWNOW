@@ -190,9 +190,8 @@ export function RecommendationCard({
             <p className="reccard-ticket">
               <span className="reccard-ticket-label">Lift ticket</span>
               <span className="reccard-ticket-note">
-                Current price unavailable:{' '}
                 <a href={plan.ticketPurchaseUrl} target="_blank" rel="noreferrer">
-                  buy at the resort
+                  Buy at the resort
                 </a>
               </span>
             </p>
