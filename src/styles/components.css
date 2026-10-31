@@ -34,6 +34,45 @@
   letter-spacing: -0.03em;
 }
 
+/* ================================================================= intro */
+
+/* The launch screen: the name alone, centred on the whole screen, over the app loading beneath. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  background: var(--bg);
+  transition: opacity 0.3s ease;
+}
+
+.intro.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.intro-tagline {
+  font-size: 15px;
+  color: var(--ink-dim);
+  letter-spacing: -0.005em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro {
+    transition: none;
+  }
+}
+
 /* ================================================================== home */
 
 .home {
@@ -3982,6 +4021,12 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.listscreen-today {
+  margin-top: 4px;
+  font-size: 14px;
   color: var(--ink-dim);
 }
 

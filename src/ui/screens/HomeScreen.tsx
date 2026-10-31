@@ -22,7 +22,7 @@ export interface HomeScreenProps {
   usingDemoData: boolean;
   /** SEE WHY: the pick's whole day on its own screen. */
   onOpenMountain: (mountainId: string) => void;
-  /** All mountains: the map. */
+  /** All mountains: the list, where the app opens. */
   onBrowse: () => void;
 }
 
@@ -139,7 +139,7 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
               </svg>
             </span>
           </button>
-          <button type="button" className="home-browse" onClick={onBrowse} aria-label="All mountains: open the map">
+          <button type="button" className="home-browse" onClick={onBrowse} aria-label="All mountains: every mountain and its snow forecast">
             All mountains
           </button>
 

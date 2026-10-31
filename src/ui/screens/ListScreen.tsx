@@ -11,7 +11,8 @@ export interface ListScreenProps {
   scores?: ListScores;
   /** Every mountain's next five days of snow, shown on each card and sortable. */
   snow?: ListSnow;
-  onBack: () => void;
+  /** Today's single pick from the rider's starting point, for anyone heading out now. */
+  onToday?: () => void;
   /** A mountain's own profile — its facts, conditions and logistics, no ranking. */
   onOpenMountain: (mountainId: string) => void;
   onShowMap: () => void;
@@ -35,12 +36,13 @@ const STATES_SENTENCE = ((names: string[]) =>
 );
 
 /**
- * Every supported mountain by name — the primary way to browse, with the
- * map one tab over. Each card carries today's score from the rider's starting
+ * Where POW NOW opens. Most people come to plan ahead, so the first screen
+ * after the intro is every supported mountain by name with its next five
+ * days of snow, the map one tab over and today's single pick one link away. Each card carries today's score from the rider's starting
  * point, but the list stays alphabetical. A search box, state chips and pass chips narrow it; a row opens that
  * mountain's profile, separate from any ranking.
  */
-export function ListScreen({ scores, snow, onBack, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
+export function ListScreen({ scores, snow, onToday, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
   const [query, setQuery] = useState('');
   const [order, setOrder] = useState<ListOrder>('name');
   const [pass, setPass] = useState<PassAffiliation | null>(null);
@@ -59,7 +61,7 @@ export function ListScreen({ scores, snow, onBack, onOpenMountain, onShowMap, on
 
   return (
     <div className="screen listscreen">
-      <ScreenHeader onBack={onBack} title="MOUNTAINS" />
+      <ScreenHeader title="MOUNTAINS" />
       <div className="screen-body shell">
         <BrowseBar view="list" onShowMap={onShowMap} onShowList={() => {}} onRank={onRank} />
 
@@ -72,6 +74,14 @@ export function ListScreen({ scores, snow, onBack, onOpenMountain, onShowMap, on
             {scores?.status === 'ready' ? ` from ${scores.originName}` : ''} and the snow forecast for the next five days. A to Z unless you
             sort by snow. Open any one for its full profile: the terrain, today's snow, the drive, parking and where to eat.
           </p>
+          {onToday && (
+            <p className="listscreen-today">
+              Going today?{' '}
+              <button type="button" className="linkbutton" onClick={onToday}>
+                See today's pick
+              </button>
+            </p>
+          )}
         </header>
 
         <div className="listscreen-filters">

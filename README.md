@@ -35,19 +35,20 @@ fix competes everything within 300 miles.
 
 ## The flow
 
-The home screen is the answer: today's pick from your starting point — the
-mountain, the verdict and score, and the three facts behind it (snow, lifts,
-the drive) — with **SEE WHY** opening that mountain's whole day and **All
-mountains** opening the map. It shows a skeleton of the same layout while the
-call is made, and a one-line error under the hero if it fails. Where the data
-comes from is behind **Sources**. On every other screen the logo in the header
-is the home button, and home is the map.
+POW NOW opens with its name for a beat, then lands on **All mountains**: every
+mountain A to Z with its next five days of snow, because most people come here
+to plan ahead. The map is one tab over, **POW PLANNER** ranks them for a day you
+pick, and **See today's pick** opens today's answer: the mountain, the verdict
+and score, and the three facts behind it (snow, lifts, the drive), with **SEE
+WHY** opening that mountain's whole day. Where the data comes from is behind
+**Sources** on that screen. On every other screen the logo in the header goes
+back to All mountains.
 
 | | Path | What you get |
 |---|---|---|
-| **Today's pick** | Home → SEE WHY | The engine's winner for today, straight from the home screen. |
-| **Map** | All mountains → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
-| **List** | The map's other tab → a mountain → its day | The same mountains by name, A to Z. |
+| **Today's pick** | See today's pick → SEE WHY | The engine's winner for today, straight from the home screen. |
+| **Map** | The list's Map tab → a mountain → its day | Every mountain at its true coordinates, the engine's current pick marked BEST NOW, the real driven road when traffic is live. |
+| **List** | Where the app opens → a mountain → its profile | Every mountain by name, A to Z, with its five-day snow. |
 | **POW PLANNER** | Your ride → your mountains → one mountain's day | Say where you're starting, which day and how you ride; every reachable mountain comes back ranked as a card, winner first. |
 
 Every path lands on the same mountain screen — the verdict card, parking, the
