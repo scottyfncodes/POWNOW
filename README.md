@@ -162,7 +162,7 @@ Day 0 is deliberately shaped into a storm day — the product story starts at
 | **Snowpack** (measured) | NRCS SNOTEL | browser → proxy → API | `server/` deployed + `VITE_API_BASE_URL`. No key. |
 | **Traffic** | Google Routes | browser → proxy → API | `server/` + `GOOGLE_ROUTES_API_KEY` + `VITE_API_BASE_URL` |
 | **Road conditions** | CDOT / COtrip | browser → proxy → API | `server/` + `COTRIP_API_KEY` (free) + `VITE_API_BASE_URL`; `VITE_ENABLE_ROAD_CONDITIONS=false` disables |
-| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 13 mountains have a resort feed; most others a Liftie id |
+| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 18 mountains have a resort feed; most others a Liftie id |
 | **Crowds** | — | — | Unavailable, always. No trustworthy live source exists |
 | **Pricing** | — | — | Unavailable, always. Investigated, unverifiable — official purchase link shown instead |
 | **Places** | — | — | Unavailable, always. Never in scope |
@@ -298,7 +298,9 @@ tries, in order:
    platforms were found and checked against the live endpoints on
    2026-10-31: **MtnPowder** (Winter Park, Steamboat, Arapahoe Basin, Deer
    Valley, Solitude, Palisades Tahoe, Mammoth, June, Bear Mountain, Snow
-   Summit) and **POWDR's day-of-report API** (Copper, Eldora, Snowbird).
+   Summit), **POWDR's day-of-report API** (Copper, Eldora, Snowbird),
+   **Aspen Snowmass's lift feed** (Aspen Mountain, Highlands, Snowmass,
+   Buttermilk) and **Boyne's feed API** (Brighton).
    Neither sends CORS headers, so the browser can't call them directly; the
    proxy allowlists the ids and normalizes each board to lift and run counts.
    These report runs as well as lifts, so "terrain open" is the real share of
@@ -307,8 +309,9 @@ tries, in order:
    claiming open lifts that hasn't been touched in 36 hours is refused; an
    all-closed board may be old, because a resort that hasn't opened doesn't
    update it. Vail Resorts (Vail, Beaver Creek, Breck, Keystone, Crested
-   Butte), Loveland and the rest publish their boards only inside HTML
-   pages, which this project doesn't scrape, so they stay on Liftie.
+   Butte, Park City, Heavenly, Northstar, Kirkwood) embed their board as a
+   script inside the page, Alta likewise, and Loveland publishes an HTML
+   table; this project doesn't scrape pages, so they stay on Liftie.
 2. **Liftie** (`providers/live/liftieOperations.ts`), an open-source
    lift-status aggregator with a public JSON endpoint per resort
    (`GET https://liftie.info/api/resort/:id`). The adapter reads Liftie's
@@ -340,8 +343,12 @@ early on good snow. An empty board on a closed resort is never read as a lift
 outage or a weather day, and lifts on hold are a hold day, not a closure.
 
 Closed and preseason mountains rank below every open one. When nothing in
-reach is open, the home screen says so ("NOT YET.") and names the first
-announced opening day instead of dressing a closed mountain up as a pick.
+reach is confirmed open (everything is closed, not open yet, or has no lift
+report in a month when that can mean it isn't open), the home screen says
+so ("NOT YET.") and names the first announced opening day instead of
+dressing a closed or uncallable mountain up as a pick. The line explaining
+a pick only compares it against a mountain that is open and callable, and
+never on a factor that was a stand-in on either side.
 
 A mountain with lifts turning but under 45% of its terrain open is open with
 limited operations, and its score is capped at 3.0 plus the open share, shown

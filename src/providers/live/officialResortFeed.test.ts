@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { normalizeMtnPowder, normalizePowdr, liftWord } from '../../../server/index.mjs';
+import { normalizeLiftList, normalizeMtnPowder, normalizePowdr, liftWord } from '../../../server/index.mjs';
 import { findMountain } from '@/data/mountains';
 import { at } from '@/domain/time';
 import { makeContext } from '@/engine/inputs';
@@ -76,6 +76,21 @@ describe('proxy normalizers', () => {
     const status = normalizePowdr(lifts, trails)!;
     expect(status.lifts).toMatchObject({ open: 1, closed: 1 });
     expect(status.trails).toEqual({ open: 1, total: 2 });
+  });
+
+  it("reads Aspen Snowmass's and Boyne's lift lists as captured on 2026-10-31", () => {
+    // Aspen Mountain: eight lifts, all closed, no update time in the feed.
+    const aspen = normalizeLiftList(
+      { lastUpdated: null, liftStatuses: Array.from({ length: 8 }, (_, i) => ({ status: 'Closed', liftName: `Lift ${i}`, type: '4' })) },
+      'aspen',
+    )!;
+    expect(aspen.lifts).toEqual({ open: 0, hold: 0, scheduled: 0, closed: 8, unknown: 0 });
+    expect(aspen.trails.total).toBe(0);
+    expect(aspen.boardUpdatedAt).toBeNull();
+    // Brighton (Boyne): a bare array.
+    const brighton = normalizeLiftList([{ name: 'Caterpillar', status: 'Closed' }, { name: 'Crest 6', status: 'Open' }], 'boyne')!;
+    expect(brighton.lifts).toMatchObject({ open: 1, closed: 1 });
+    expect(normalizeLiftList({ nope: true }, 'aspen')).toBeNull();
   });
 
   it('maps status words without guessing', () => {

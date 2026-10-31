@@ -33,7 +33,11 @@ export interface ResortSource {
 }
 
 /** `mtnpowder`: Alterra's conditions platform, keyed by its numeric resort id. `powdr`: POWDR's day-of-report API, keyed by resort. */
-export type OfficialFeed = { kind: 'mtnpowder'; id: string } | { kind: 'powdr'; id: 'copper' | 'eldora' | 'snowbird' };
+export type OfficialFeed =
+  | { kind: 'mtnpowder'; id: string }
+  | { kind: 'powdr'; id: 'copper' | 'eldora' | 'snowbird' }
+  | { kind: 'aspen'; id: 'AspenMountain' | 'AspenHighlands' | 'Snowmass' | 'Buttermilk' }
+  | { kind: 'boyne'; id: 'br' };
 
 export const RESORT_SOURCES: Record<string, ResortSource> = {
   vail: {
@@ -127,13 +131,13 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
  * feed, each one's `Name` matching the mountain.
  */
 const REGION_SOURCES: Record<string, ResortSource> = {
-  'aspen-mountain': { liftieSlug: 'aspen-mountain' },
-  'aspen-highlands': { liftieSlug: 'aspen-highlands' },
-  buttermilk: { liftieSlug: 'buttermilk' },
-  snowmass: { liftieSlug: 'snowmass' },
+  'aspen-mountain': { liftieSlug: 'aspen-mountain', officialFeed: { kind: 'aspen', id: 'AspenMountain' } },
+  'aspen-highlands': { liftieSlug: 'aspen-highlands', officialFeed: { kind: 'aspen', id: 'AspenHighlands' } },
+  buttermilk: { liftieSlug: 'buttermilk', officialFeed: { kind: 'aspen', id: 'Buttermilk' } },
+  snowmass: { liftieSlug: 'snowmass', officialFeed: { kind: 'aspen', id: 'Snowmass' } },
   alta: { liftieSlug: 'alta' },
   snowbird: { liftieSlug: 'snowbird', officialFeed: { kind: 'powdr', id: 'snowbird' } },
-  brighton: { liftieSlug: 'brighton' },
+  brighton: { liftieSlug: 'brighton', officialFeed: { kind: 'boyne', id: 'br' } },
   solitude: { liftieSlug: 'solitude', officialFeed: { kind: 'mtnpowder', id: '65' } },
   'park-city': { liftieSlug: 'parkcity' },
   'deer-valley': { liftieSlug: 'deer-valley', officialFeed: { kind: 'mtnpowder', id: '49' } },
