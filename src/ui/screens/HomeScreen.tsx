@@ -1,11 +1,10 @@
-import { type CSSProperties, useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { resolveEnvironment } from '@/config/env';
 import { type DateKey, relativeDateLabel } from '@/domain/dates';
 import type { Origin } from '@/domain/mountain';
 import type { Recommendation, SkiDayPlan } from '@/domain/plan';
 import { formatClock, formatDuration } from '@/domain/time';
 import { SNOW_STATE_LABEL } from '@/engine/snowState';
-import { DataCredits } from '@/ui/components/DataCredits';
 import { ScoreDial } from '@/ui/components/ScoreDial';
 import { Snowfall } from '@/ui/components/Snowfall';
 import { shortTimingLabel } from '@/ui/components/timingLabel';
@@ -36,10 +35,9 @@ export interface HomeScreenProps {
  * While the engine is working the same layout shows as a skeleton, so the
  * answer lands in place instead of jumping the page; when it fails, the
  * failure is one line under the hero, never a box in front of it. Where the
- * numbers come from lives behind a Sources button in the header.
+ * numbers come from lives behind Sources on All mountains.
  */
 export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMountain, onBrowse }: HomeScreenProps) {
-  const [sourcesOpen, setSourcesOpen] = useState(false);
   const environment = resolveEnvironment();
   // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
   const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
@@ -60,9 +58,6 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
             <Wordmark />
             <p className="home-tagline">Find your best mountain day.</p>
           </div>
-          <button type="button" className="home-sources" onClick={() => setSourcesOpen(true)} aria-haspopup="dialog">
-            Sources
-          </button>
         </header>
 
         <section className="home-hero" aria-busy={loading} aria-labelledby="home-pick">
@@ -157,7 +152,6 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
         </div>
       </div>
 
-      {sourcesOpen && <SourcesSheet usingDemoData={usingDemoData} onClose={() => setSourcesOpen(false)} />}
     </main>
   );
 }
@@ -232,32 +226,4 @@ function driveLine(plan: SkiDayPlan): string {
   if (!plan.departure) return shortTimingLabel(plan);
   const drive = `Leave ${formatClock(plan.departure.departure)} · ${formatDuration(plan.departure.driveMinutes)}`;
   return plan.routeLabel ? `${drive} via ${plan.routeLabel}` : drive;
-}
-
-/** Where the data comes from, as a sheet over the home — one tap away, never in front of the answer. */
-function SourcesSheet({ usingDemoData, onClose }: { usingDemoData: boolean; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return (
-    <div className="home-sheet-backdrop" onClick={onClose}>
-      <div
-        className="home-sheet shell"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Where the data comes from"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button type="button" className="home-sheet-close" onClick={onClose} autoFocus>
-          Close
-        </button>
-        <DataCredits usingDemoData={usingDemoData} />
-      </div>
-    </div>
-  );
 }

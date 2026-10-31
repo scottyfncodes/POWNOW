@@ -17,7 +17,7 @@ export interface ListScore {
  */
 export type ListScores =
   | { status: 'loading' }
-  | { status: 'ready'; byId: Record<string, ListScore>; originName: string }
+  | { status: 'ready'; byId: Record<string, ListScore>; originName: string; /** "today", "tomorrow", "Saturday", "Sat, Nov 8" */ dayName?: string }
   | { status: 'error' };
 
 /** Every mountain's five-day snow forecast: loading, loaded, or the whole request failed. */
@@ -58,7 +58,7 @@ function ScoreBadge({ mountain, scores }: { mountain: Mountain; scores: ListScor
   const tier = entry.offSeason ? 'off' : tierFor(entry.score);
   const shown = entry.score.toFixed(1);
   return (
-    <span className={`mountainlist-score is-${tier}`} aria-label={`Today's score ${shown} out of 10`}>
+    <span className={`mountainlist-score is-${tier}`} aria-label={`Score for ${scores.status === 'ready' ? (scores.dayName ?? 'today') : 'today'}: ${shown} out of 10`}>
       <span className="numeral">{shown}</span>
       <span className="mountainlist-score-of">/10</span>
     </span>
