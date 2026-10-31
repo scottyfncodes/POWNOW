@@ -221,11 +221,11 @@ describe('recommend() on a November morning', () => {
 describe('an open mountain between days', () => {
   // Keystone opened Oct 30, 2026. Its board reads all closed from last chair to first chair.
   const keystone = mountain('keystone');
-  const at = (date: string, minute: number, horizonDays = 0) =>
+  const at = (date: string, horizonDays = 0) =>
     testInputs({ mountain: keystone, date, horizonDays, usingDemoData: false, operations: allClosed(21) });
 
   it('is not called closed at 6am before first chair', () => {
-    const inputs = { ...at('2026-11-01', 6 * 60), now: 6 * 60 };
+    const inputs = { ...at('2026-11-01'), now: 6 * 60 };
     const result = classifyOperationalState(inputs);
     expect(result.state).toBe('UNKNOWN');
     expect(result.reason).toMatch(/open for the season/i);
@@ -233,12 +233,12 @@ describe('an open mountain between days', () => {
   });
 
   it('is not called closed tomorrow from tonight\'s board', () => {
-    const inputs = { ...at('2026-11-02', 20 * 60, 1), now: 20 * 60 };
+    const inputs = { ...at('2026-11-02', 1), now: 20 * 60 };
     expect(classifyOperationalState(inputs).state).toBe('UNKNOWN');
   });
 
   it('says the lifts are done after last chair', () => {
-    const inputs = { ...at('2026-11-01', 17 * 60), now: 17 * 60 };
+    const inputs = { ...at('2026-11-01'), now: 17 * 60 };
     expect(classifyOperationalState(inputs)).toEqual({ state: 'CLOSED', reason: 'Lifts are done for the day.' });
   });
 
