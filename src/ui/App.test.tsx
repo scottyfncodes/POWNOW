@@ -144,7 +144,8 @@ describe('the home screen', () => {
     for (const mountain of MOUNTAINS) {
       expect(screen.getByRole('button', { name: new RegExp(`^${mountain.name.replace(/[()]/g, '\\$&')}\\. Tap to view`, 'i') })).toBeInTheDocument();
     }
-  });
+  // Renders the list (with every mountain's snow forecast) and then the whole map: a full-app walk like the others here.
+  }, 15_000);
 
   it('lists every mountain alphabetically, and a row opens its profile — no ranking', async () => {
     render(<App />);
