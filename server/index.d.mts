@@ -23,7 +23,7 @@ export function readBody(req: import('node:http').IncomingMessage & { body?: unk
 export function samplePoints(geometry: unknown, max?: number): [number, number][];
 /** A resort board normalized to counts — see the official resort feeds section of server/index.mjs. */
 export interface ResortStatusPayload {
-  feed: 'mtnpowder' | 'powdr' | 'aspen' | 'boyne';
+  feed: 'mtnpowder' | 'powdr' | 'aspen' | 'boyne' | 'vail' | 'alta' | 'loveland';
   resortName: string | null;
   lifts: { open: number; hold: number; scheduled: number; closed: number; unknown: number };
   trails: { open: number; total: number };
@@ -38,3 +38,8 @@ export const POWDR_HOSTS: Record<string, string>;
 export function normalizeLiftList(payload: unknown, feed: 'aspen' | 'boyne'): ResortStatusPayload | null;
 export const ASPEN_MOUNTAINS: Set<string>;
 export const BOYNE_RESORTS: Set<string>;
+export function embeddedJson(html: string, pattern: RegExp): any;
+export function parseVailPage(html: string): ResortStatusPayload | null;
+export function parseAltaPage(html: string): ResortStatusPayload | null;
+export function parseLovelandPage(html: string): ResortStatusPayload | null;
+export const VAIL_PAGES: Record<string, string>;

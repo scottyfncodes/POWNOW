@@ -57,6 +57,24 @@ export function classifyOperationalState(inputs: DayInputs): OperationalStateRes
       return { state: 'CLOSED', reason: 'The lift report says nothing is running today.' };
     }
 
+    // A lift turning with no runs open is not a ski day: on 2026-10-31
+    // Heavenly's gondola was running (sightseeing, three weeks before its
+    // opening day) with nothing open to ski. Only a board that actually
+    // reports runs can show that; one that doesn't is judged on the calendar.
+    const runsReported = ops.trailsTotal != null && ops.trailsTotal > 0;
+    const liftsSpinning = (ops.liftsOpen ?? ops.liftsExpectedOpen) > 0;
+    if (liftsSpinning && (runsReported ? ops.trailsOpen === 0 : season?.phase === 'preseason')) {
+      if (season?.phase === 'preseason') {
+        return {
+          state: 'PRESEASON',
+          reason: `Not open for skiing yet: a lift is turning, but no runs are ${runsReported ? 'open' : 'reported open'}. ${openingLine(season.opening)}`,
+        };
+      }
+      if (runsReported) {
+        return { state: 'INSUFFICIENT_COVERAGE', reason: 'Lifts are turning, but no runs are open.' };
+      }
+    }
+
     // Lifts are turning. However thin, that is an open mountain, and the
     // score (not a takeover screen) says how little of it there is.
     if (ops.terrainOpenShare < 0.45) {

@@ -744,6 +744,135 @@ export function normalizeLiftList(payload, feed) {
   };
 }
 
+/* --------------------------------------------------- resort status pages */
+
+/**
+ * Resorts that publish lift status only on a web page. Each was checked on
+ * 2026-10-31: robots.txt allows the page, it serves normally to a server,
+ * and the data parses. We identify ourselves in the User-Agent, never try to
+ * get past a block, and cache each page (see RESORT_PAGE_CACHE_TTL_MS) so a
+ * resort sees one request per window however many people use the app.
+ *
+ *  - Vail Resorts embed `FR.TerrainStatusFeed = {...}`, strict JSON, in the page.
+ *  - Alta embeds `window.Alta = {...}`, strict JSON, with an `operations`
+ *    summary of lifts and runs open.
+ *  - Loveland renders a TablePress table per lift, titled "Lift 2 - CLOSED".
+ */
+export const VAIL_PAGES = {
+  vail: 'https://www.vail.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  beavercreek: 'https://www.beavercreek.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  breckenridge: 'https://www.breckenridge.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  keystone: 'https://www.keystoneresort.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  crestedbutte: 'https://www.skicb.com/the-mountain/mountain-conditions/lift-and-terrain-status.aspx',
+  parkcity: 'https://www.parkcitymountain.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  heavenly: 'https://www.skiheavenly.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  northstar: 'https://www.northstarcalifornia.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+  kirkwood: 'https://www.kirkwood.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
+};
+const ALTA_PAGE = 'https://www.alta.com/lift-terrain-status';
+const LOVELAND_PAGE = 'https://skiloveland.com/trail-lift-report/';
+const SCRAPER_UA = 'POW NOW lift status (+https://snownow.vercel.app)';
+/** Pages are heavier than feeds and change on the order of minutes; ten is plenty. */
+const RESORT_PAGE_CACHE_TTL_MS = Number(process.env.RESORT_PAGE_CACHE_TTL_SECONDS ?? 600) * 1000;
+
+/**
+ * The JSON object that begins at the first `{` matched by `pattern`, found by
+ * brace matching (string contents respected) and parsed as JSON. Never
+ * evaluated as code: a page that isn't strict JSON there returns null.
+ */
+export function embeddedJson(html, pattern) {
+  const match = pattern.exec(html);
+  if (!match) return null;
+  const start = html.indexOf('{', match.index);
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < html.length; i += 1) {
+    const c = html[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+    else if (c === '{') depth += 1;
+    else if (c === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          return JSON.parse(html.slice(start, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** Vail Resorts' numeric lift status, as their own page script uses it. */
+const VAIL_STATUS = ['closed', 'open', 'hold', 'scheduled'];
+
+export function parseVailPage(html) {
+  const feed = embeddedJson(html, /TerrainStatusFeed\s*=\s*\{/);
+  if (!feed || typeof feed !== 'object' || !Array.isArray(feed.GroomingAreas)) return null;
+  const areaLifts = feed.GroomingAreas.flatMap((area) => (Array.isArray(area?.Lifts) ? area.Lifts : []));
+  const lifts = Array.isArray(feed.Lifts) && feed.Lifts.length > 0 ? feed.Lifts : areaLifts;
+  const trails = feed.GroomingAreas.flatMap((area) => (Array.isArray(area?.Trails) ? area.Trails : []));
+  // Before a season's board is built the lists are simply empty: report zero
+  // lifts (the client reads that as "no lifts listed"), not a guessed closed.
+  const counts = tally(lifts, (lift) => VAIL_STATUS[lift?.Status] ?? 'unknown');
+  if (lifts.length > 0 && counts.unknown > lifts.length * 0.4) return null;
+  return {
+    feed: 'vail',
+    resortName: null,
+    lifts: counts,
+    trails: { open: trails.filter((trail) => trail?.IsOpen === true).length, total: trails.length },
+    acres: null,
+    boardUpdatedAt: null,
+  };
+}
+
+export function parseAltaPage(html) {
+  const data = embeddedJson(html, /window\.Alta\s*=\s*\{/);
+  const lifts = data?.liftStatus?.lifts;
+  if (!Array.isArray(lifts) || lifts.length === 0) return null;
+  const open = lifts.filter((lift) => lift?.open === true).length;
+  const runs = data?.operations?.runs;
+  const runsOk = runs && Number.isFinite(runs.open) && Number.isFinite(runs.total) && runs.total > 0;
+  return {
+    feed: 'alta',
+    resortName: 'Alta',
+    lifts: { open, hold: 0, scheduled: 0, closed: lifts.length - open, unknown: 0 },
+    trails: runsOk ? { open: runs.open, total: runs.total } : { open: 0, total: 0 },
+    acres: null,
+    boardUpdatedAt: null,
+  };
+}
+
+export function parseLovelandPage(html) {
+  const titles = [...html.matchAll(/tablepress-table-name[^>]*>([^<]*)</g)].map((m) => m[1].trim()).filter(Boolean);
+  if (titles.length === 0) return null;
+  const counts = tally(titles, (title) => title.split(/\s+-\s+/).pop());
+  if (counts.unknown > titles.length * 0.4) return null;
+  return {
+    feed: 'loveland',
+    resortName: 'Loveland',
+    lifts: counts,
+    trails: { open: 0, total: 0 },
+    acres: null,
+    boardUpdatedAt: null,
+  };
+}
+
+async function fetchPageOrThrow(url) {
+  const response = await fetchWithTimeout(url, { headers: { Accept: 'text/html', 'User-Agent': SCRAPER_UA } }, 12000);
+  if (!response.ok) throw new Error(`${new URL(url).host} returned ${response.status}`);
+  return response.text();
+}
+
 async function fetchJsonOrThrow(url) {
   const response = await fetchWithTimeout(url, { headers: { Accept: 'application/json', 'User-Agent': 'POW NOW (+https://snownow.vercel.app)' } }, REQUEST_TIMEOUT_MS);
   if (!response.ok) throw new Error(`${new URL(url).host} returned ${response.status}`);
@@ -751,6 +880,11 @@ async function fetchJsonOrThrow(url) {
 }
 
 async function buildResortStatus(feed, id) {
+  if (feed === 'vail' || feed === 'alta' || feed === 'loveland') {
+    const html = await fetchPageOrThrow(feed === 'vail' ? VAIL_PAGES[id] : feed === 'alta' ? ALTA_PAGE : LOVELAND_PAGE);
+    const parsed = feed === 'vail' ? parseVailPage(html) : feed === 'alta' ? parseAltaPage(html) : parseLovelandPage(html);
+    return parsed && { ...parsed, sourceTimestamp: new Date().toISOString() };
+  }
   if (feed === 'aspen' || feed === 'boyne') {
     const url =
       feed === 'aspen'
@@ -1030,14 +1164,20 @@ async function handle(req, res) {
       (feed === 'mtnpowder' && MTNPOWDER_IDS.has(id)) ||
       (feed === 'powdr' && Object.hasOwn(POWDR_HOSTS, id)) ||
       (feed === 'aspen' && ASPEN_MOUNTAINS.has(id)) ||
-      (feed === 'boyne' && BOYNE_RESORTS.has(id));
+      (feed === 'boyne' && BOYNE_RESORTS.has(id)) ||
+      (feed === 'vail' && Object.hasOwn(VAIL_PAGES, id)) ||
+      (feed === 'alta' && id === 'alta') ||
+      (feed === 'loveland' && id === 'loveland');
     if (!allowed) {
       sendJson(req, res, 400, { error: 'Unknown resort feed.' });
       return;
     }
     let status;
     try {
-      status = await cachedOrCompute(`resort:${feed}:${id}`, RESORT_FEED_CACHE_TTL_MS, () => buildResortStatus(feed, id));
+      const scraped = feed === 'vail' || feed === 'alta' || feed === 'loveland';
+      status = await cachedOrCompute(`resort:${feed}:${id}`, scraped ? RESORT_PAGE_CACHE_TTL_MS : RESORT_FEED_CACHE_TTL_MS, () =>
+        buildResortStatus(feed, id),
+      );
     } catch (error) {
       sendJson(req, res, 502, { error: error instanceof Error ? error.message : 'Resort feed request failed.' });
       return;
@@ -1046,7 +1186,7 @@ async function handle(req, res) {
       sendJson(req, res, 502, { error: 'The resort feed returned a shape this proxy does not recognize.' });
       return;
     }
-    sendJson(req, res, 200, status, cdnCache(Math.round(RESORT_FEED_CACHE_TTL_MS / 1000)));
+    sendJson(req, res, 200, status, cdnCache(Math.round((['vail', 'alta', 'loveland'].includes(feed) ? RESORT_PAGE_CACHE_TTL_MS : RESORT_FEED_CACHE_TTL_MS) / 1000)));
     return;
   }
 
