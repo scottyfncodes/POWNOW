@@ -74,4 +74,16 @@ describe('MountainCard — a plan\'s cover, and the button that opens it', () =>
     await userEvent.setup().click(screen.getByText(plan.verdict));
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
+
+  it('never labels an uncallable mountain BEST, even at the top of the list', () => {
+    const plan = buildPlan(testInputs({ weather: 'unavailable', usingDemoData: false }));
+    expect(plan.noCall).not.toBeNull();
+    render(
+      <ul>
+        <MountainCard plan={plan} rank={1} why="" onOpen={() => {}} />
+      </ul>,
+    );
+    expect(screen.getByRole('button').textContent).not.toMatch(/^BEST/);
+  });
 });
+

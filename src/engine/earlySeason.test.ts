@@ -189,4 +189,31 @@ describe('recommend() on a November morning', () => {
   it('has a plain line when no resort in the field has announced a date', () => {
     expect(noneOpenLine(2, null)).toBe('None of the 2 mountains in reach are open today. No opening dates announced yet.');
   });
+
+  it('never explains the pick with a stand-in from a mountain that has no lift report', async () => {
+    // 2026-10-31 from Denver: A-Basin live, Keystone silent. The line read
+    // "KEYSTONE has more terrain open", from a filler value.
+    const rec = await recommend(
+      registryWith({ 'arapahoe-basin': oneRunOpen(), keystone: 'unavailable' }),
+      { mountains: ['arapahoe-basin', 'keystone'].map(mountain), origin: denver, date: '2026-10-31', today: '2026-10-31', now: 7 * 60 },
+    );
+    expect(rec.best.mountain.id).toBe('arapahoe-basin');
+    expect(rec.alternatives[0]?.noCall).not.toBeNull();
+    expect(rec.comparison).toBe('The only mountain in reach confirmed open today.');
+    expect(rec.comparison).not.toMatch(/terrain/i);
+    expect(rec.noneConfirmedOpen).toBe(false);
+  });
+
+  it('says nothing is confirmed open when the field is only closed and silent mountains', async () => {
+    const rec = await recommend(
+      registryWith({ copper: allClosed(), keystone: 'unavailable', loveland: 'unavailable' }),
+      { mountains: ['copper', 'keystone', 'loveland'].map(mountain), origin: denver, date: '2026-10-31', today: '2026-10-31', now: 7 * 60 },
+    );
+    expect(rec.noneOpen).toBe(false);
+    expect(rec.noneConfirmedOpen).toBe(true);
+    expect(rec.comparison).toBe(
+      'Nothing in reach is confirmed open today. 2 have no lift report, so check before you go. First announced opening: COPPER, Nov 6 (projected).'.replace('COPPER', mountain('copper').shortName),
+    );
+  });
 });
+

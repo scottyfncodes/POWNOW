@@ -26,8 +26,8 @@ export interface MountainCardProps {
  */
 export function MountainCard({ plan, rank, why, projected = false, onOpen }: MountainCardProps) {
   const offSeason = plan.offSeasonMessage;
-  // A closed mountain is never labelled BEST, even when everything in the field is closed.
-  const best = rank === 1 && !offSeason;
+  // A closed or uncallable mountain is never labelled BEST, even when it tops the list.
+  const best = rank === 1 && !offSeason && !plan.noCall;
   const showsFullName = plan.mountain.name.toUpperCase() !== plan.mountain.shortName.toUpperCase();
 
   return (

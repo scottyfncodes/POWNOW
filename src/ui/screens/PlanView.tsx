@@ -97,7 +97,7 @@ export function PlanView({
         plan={plan}
         projected={projected}
         why={
-          plan.mountain.id === recommendation.best.mountain.id || recommendation.noneOpen
+          plan.mountain.id === recommendation.best.mountain.id || recommendation.noneConfirmedOpen
             ? recommendation.comparison
             : `${recommendation.best.mountain.shortName} is still the better overall day.`
         }
@@ -133,7 +133,7 @@ export function PlanView({
         ref={alternativesRef}
         alternatives={others}
         comparison={
-          recommendation.noneOpen
+          recommendation.noneConfirmedOpen
             ? recommendation.comparison
             : plan.mountain.id === recommendation.best.mountain.id
               ? `Every mountain within reach, ranked. Tap one to see its whole day.`

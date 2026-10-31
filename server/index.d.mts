@@ -23,7 +23,7 @@ export function readBody(req: import('node:http').IncomingMessage & { body?: unk
 export function samplePoints(geometry: unknown, max?: number): [number, number][];
 /** A resort board normalized to counts — see the official resort feeds section of server/index.mjs. */
 export interface ResortStatusPayload {
-  feed: 'mtnpowder' | 'powdr';
+  feed: 'mtnpowder' | 'powdr' | 'aspen' | 'boyne';
   resortName: string | null;
   lifts: { open: number; hold: number; scheduled: number; closed: number; unknown: number };
   trails: { open: number; total: number };
@@ -35,3 +35,6 @@ export function normalizeMtnPowder(payload: unknown): ResortStatusPayload | null
 export function normalizePowdr(lifts: unknown, trails: unknown): ResortStatusPayload | null;
 export const MTNPOWDER_IDS: Set<string>;
 export const POWDR_HOSTS: Record<string, string>;
+export function normalizeLiftList(payload: unknown, feed: 'aspen' | 'boyne'): ResortStatusPayload | null;
+export const ASPEN_MOUNTAINS: Set<string>;
+export const BOYNE_RESORTS: Set<string>;

@@ -46,7 +46,7 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
 
   const best = state.status === 'ready' ? state.data.best : null;
   // Everything in reach closed or not open yet: say that, never dress the first closed mountain up as a pick.
-  const noneOpen = state.status === 'ready' && state.data.noneOpen;
+  const noneOpen = state.status === 'ready' && state.data.noneConfirmedOpen;
   const loading = state.status === 'loading' || state.status === 'idle';
   const dayLabel = relativeDateLabel(date, clock.today);
   const from = origin.id === 'gps' ? 'your location' : origin.shortName;
@@ -74,7 +74,10 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
           </p>
 
           {best && noneOpen && state.status === 'ready' ? (
-            <NoneOpen line={state.data.comparison} />
+            <NoneOpen
+              verdict={state.data.noneOpen ? 'Nothing in reach is open today.' : 'Nothing in reach is confirmed open today.'}
+              line={state.data.comparison.replace(/^Nothing in reach is confirmed open today\.\s*/, '')}
+            />
           ) : best ? (
             <Pick plan={best} />
           ) : (
@@ -123,7 +126,7 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
             onClick={() => (noneOpen ? onBrowse() : best && onOpenMountain(best.mountain.id))}
             aria-label={
               noneOpen
-                ? 'See every mountain and when each one opens'
+                ? 'See every mountain, its lift report and when it opens'
                 : best
                   ? `See why ${best.mountain.shortName}: the full day plan`
                   : 'See why (waiting on the call)'
@@ -196,14 +199,14 @@ function Pick({ plan }: { plan: SkiDayPlan }) {
 }
 
 /** No mountain in reach is open: the honest answer, with the first announced opening day. */
-function NoneOpen({ line }: { line: string }) {
+function NoneOpen({ verdict, line }: { verdict: string; line: string }) {
   return (
     <>
       <h1 id="home-pick" className="home-pick" style={{ '--chars': 8 } as CSSProperties}>
         NOT YET.
       </h1>
       <div className="home-call">
-        <p className="home-verdict is-offseason">Nothing in reach is open today.</p>
+        <p className="home-verdict is-offseason">{verdict}</p>
       </div>
       <p className="home-offseason">{line}</p>
     </>

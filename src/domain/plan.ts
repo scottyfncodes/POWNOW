@@ -293,7 +293,14 @@ export interface Recommendation {
    * the UI says so instead of presenting it as a recommendation.
    */
   noneOpen: boolean;
-  /** When `noneOpen`: the soonest announced opening day in the field, if any resort has announced one. */
+  /**
+   * True when no mountain in the field is both open and callable: everything
+   * is closed, not open yet, or has no lift report in a month when that can
+   * mean it isn't open. Implies nothing should be presented as today's pick.
+   * Always true when `noneOpen` is.
+   */
+  noneConfirmedOpen: boolean;
+  /** When `noneConfirmedOpen`: the soonest announced opening day in the field, if any resort has announced one. */
   nextOpening: { mountainId: string; shortName: string; date: DateKey; status: 'confirmed' | 'projected' } | null;
 }
 

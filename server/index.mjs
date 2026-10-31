@@ -625,12 +625,19 @@ async function buildSnotelReading(triplet, days) {
  *   - POWDR's day-of-report API (`api.<resort>.com/api/v1/dor/drupal/...`),
  *     behind Copper, Eldora and Snowbird. Lift and trail arrays with status.
  *
+ * Later, Aspen Snowmass's own lift feed and Boyne's (Brighton), both plain
+ * lift lists, also checked live.
+ *
  * Only the ids and hosts below are reachable through this endpoint, so it is
  * not an open proxy. The response is normalized to counts; a feed this code
  * doesn't understand is a 502, never a guessed "closed".
  */
 export const MTNPOWDER_IDS = new Set(['5', '6', '49', '57', '58', '59', '60', '61', '65', '93']);
 export const POWDR_HOSTS = { copper: 'api.coppercolorado.com', eldora: 'api.eldora.com', snowbird: 'api.snowbird.com' };
+/** Aspen Snowmass's own lift feed, one per mountain. Checked live 2026-10-31. */
+export const ASPEN_MOUNTAINS = new Set(['AspenMountain', 'AspenHighlands', 'Snowmass', 'Buttermilk']);
+/** Boyne's resort feed API (no key). `br` is Brighton. Checked live 2026-10-31. */
+export const BOYNE_RESORTS = new Set(['br']);
 const RESORT_FEED_CACHE_TTL_MS = Number(process.env.RESORT_FEED_CACHE_TTL_SECONDS ?? 300) * 1000;
 
 /** Feed status words → the four this app counts. Anything else is "unknown". */
@@ -709,6 +716,27 @@ export function normalizePowdr(liftsPayload, trailsPayload) {
   };
 }
 
+/**
+ * A plain list of lifts with a status word each: Aspen Snowmass
+ * (`{ liftStatuses: [{ liftName, status }] }`) and Boyne (`[{ name, status }]`).
+ * Neither reports runs or an update time, so `trails` is empty and
+ * `boardUpdatedAt` is null; the client then uses the lift share for terrain.
+ */
+export function normalizeLiftList(payload, feed) {
+  const lifts = Array.isArray(payload) ? payload : Array.isArray(payload?.liftStatuses) ? payload.liftStatuses : null;
+  if (!lifts || lifts.length === 0) return null;
+  const counts = tally(lifts, (lift) => lift?.status);
+  if (counts.unknown > lifts.length * 0.4) return null;
+  return {
+    feed,
+    resortName: null,
+    lifts: counts,
+    trails: { open: 0, total: 0 },
+    acres: null,
+    boardUpdatedAt: toMs(payload?.lastUpdated),
+  };
+}
+
 async function fetchJsonOrThrow(url) {
   const response = await fetchWithTimeout(url, { headers: { Accept: 'application/json', 'User-Agent': 'POW NOW (+https://snownow.vercel.app)' } }, REQUEST_TIMEOUT_MS);
   if (!response.ok) throw new Error(`${new URL(url).host} returned ${response.status}`);
@@ -716,6 +744,14 @@ async function fetchJsonOrThrow(url) {
 }
 
 async function buildResortStatus(feed, id) {
+  if (feed === 'aspen' || feed === 'boyne') {
+    const url =
+      feed === 'aspen'
+        ? `https://www.aspensnowmass.com/aspensnowmass/liftstatus/feed?mountain=${id}`
+        : `https://apim-marketing-001.azure-api.net/FeedService/v1/Feed/Facilities/Areas/Lifts/All?resortName=${id}`;
+    const normalized = normalizeLiftList(await fetchJsonOrThrow(url), feed);
+    return normalized && { ...normalized, sourceTimestamp: new Date().toISOString() };
+  }
   if (feed === 'mtnpowder') {
     const normalized = normalizeMtnPowder(await fetchJsonOrThrow(`https://mtnpowder.com/feed?resortId=${id}`));
     return normalized && { ...normalized, sourceTimestamp: new Date().toISOString() };
@@ -984,7 +1020,10 @@ async function handle(req, res) {
     const feed = url.searchParams.get('feed');
     const id = url.searchParams.get('id') ?? '';
     const allowed =
-      (feed === 'mtnpowder' && MTNPOWDER_IDS.has(id)) || (feed === 'powdr' && Object.hasOwn(POWDR_HOSTS, id));
+      (feed === 'mtnpowder' && MTNPOWDER_IDS.has(id)) ||
+      (feed === 'powdr' && Object.hasOwn(POWDR_HOSTS, id)) ||
+      (feed === 'aspen' && ASPEN_MOUNTAINS.has(id)) ||
+      (feed === 'boyne' && BOYNE_RESORTS.has(id));
     if (!allowed) {
       sendJson(req, res, 400, { error: 'Unknown resort feed.' });
       return;

@@ -94,7 +94,7 @@ export function MapScreen({
         preferences: preferences ?? DEFAULT_PREFERENCES,
       });
       // No BEST NOW pin on a day nobody can call, or on a mountain that isn't open.
-      const pinless = recommendation.best.noCall || recommendation.noneOpen;
+      const pinless = recommendation.best.noCall || recommendation.noneConfirmedOpen;
       return { all: recommendation.all, bestId: pinless ? '' : recommendation.best.mountain.id };
     },
     // `clock.now` is read inside but deliberately not a dependency: the

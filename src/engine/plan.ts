@@ -347,7 +347,11 @@ export async function recommend(
 
   const caveats = [...new Set(plans.flatMap((plan) => plan.caveats))];
   const noneOpen = plans.every(isNotSkiable);
-  const nextOpening = noneOpen ? soonestOpening(plans, options.date) : null;
+  const noneConfirmedOpen = plans.every((plan) => isNotSkiable(plan) || plan.noCall !== null);
+  const nextOpening = noneConfirmedOpen ? soonestOpening(plans, options.date) : null;
+  // The runner-up the winner is explained against must be a real day too:
+  // comparing with a closed or uncallable mountain compares with stand-ins.
+  const rival = alternatives.find((plan) => !isNotSkiable(plan) && plan.noCall === null);
 
   return {
     date: options.date,
@@ -355,11 +359,18 @@ export async function recommend(
     best,
     alternatives,
     all: plans,
-    comparison: noneOpen ? noneOpenLine(plans.length, nextOpening) : comparisonFor(best, alternatives[0]),
+    comparison: noneOpen
+      ? noneOpenLine(plans.length, nextOpening)
+      : noneConfirmedOpen
+        ? noneConfirmedLine(plans, nextOpening)
+        : rival
+          ? comparisonFor(best, rival)
+          : 'The only mountain in reach confirmed open today.',
     generatedAt: new Date().toISOString(),
     usingDemoData: registry.usingDemoData,
     caveats,
     noneOpen,
+    noneConfirmedOpen,
     nextOpening,
   };
 }
@@ -371,6 +382,15 @@ export function noneOpenLine(count: number, next: Recommendation['nextOpening'])
     ? ` First to open: ${next.shortName}, ${shortDate(next.date)}${next.status === 'projected' ? ' (projected)' : ''}.`
     : ' No opening dates announced yet.';
   return `${count === 1 ? `${field} not open today.` : `${field} open today.`}${first}`;
+}
+
+/** Nothing open for sure: some mountains closed, the rest with no lift report this time of year. */
+export function noneConfirmedLine(plans: SkiDayPlan[], next: Recommendation['nextOpening']): string {
+  const silent = plans.filter((plan) => !isNotSkiable(plan) && plan.noCall !== null).length;
+  const silentPart =
+    silent === 1 ? ' One has no lift report, so check before you go.' : ` ${silent} have no lift report, so check before you go.`;
+  const first = next ? ` First announced opening: ${next.shortName}, ${shortDate(next.date)}${next.status === 'projected' ? ' (projected)' : ''}.` : '';
+  return `Nothing in reach is confirmed open today.${silent > 0 ? silentPart : ''}${first}`;
 }
 
 const isNotSkiable = (plan: SkiDayPlan): boolean => NON_SKIABLE_STATES.has(plan.operationalState);

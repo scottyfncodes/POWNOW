@@ -152,7 +152,8 @@ export function tradeoffsAgainst(alternative: DayScore, winner: DayScore, limit 
   const deltas = alternative.factors
     .map((factor) => {
       const other = winnerByKey.get(factor.key);
-      const delta = other ? factor.value - other.value : 0;
+      // A stand-in on either side is not a difference anyone measured.
+      const delta = other && !factor.imputed && !other.imputed ? factor.value - other.value : 0;
       return { factor, delta, magnitude: Math.abs(delta) * factor.weight };
     })
     .filter((entry) => Math.abs(entry.delta) >= 7)
@@ -182,7 +183,9 @@ export function comparisonFor(best: SkiDayPlan, runnerUp: SkiDayPlan | undefined
 
   for (const factor of runnerUp.score.factors) {
     const mine = bestByKey.get(factor.key);
-    if (!mine) continue;
+    // "KEYSTONE has more terrain open" from a filler value, when Keystone had
+    // no lift report at all, is a claim nobody measured. Skip stand-ins.
+    if (!mine || mine.imputed || factor.imputed) continue;
     const delta = (factor.value - mine.value) * factor.weight;
     if (delta > rivalDelta) {
       rivalDelta = delta;

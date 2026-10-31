@@ -48,6 +48,8 @@ const MAX_OPEN_BOARD_AGE_HOURS = 36;
 const FEED_LABEL: Record<string, string> = {
   mtnpowder: "The resort's own lift and trail board (via MtnPowder).",
   powdr: "The resort's own lift and trail board (POWDR day-of report).",
+  aspen: "Aspen Snowmass's own lift status feed.",
+  boyne: "The resort's own lift status feed (Boyne).",
 };
 
 const count = (value: unknown): number | null => {
