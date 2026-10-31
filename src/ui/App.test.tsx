@@ -22,9 +22,8 @@ const allMountains = () => screen.getByRole('button', { name: /^All mountains/ }
 const seeWhy = () => screen.getByRole('button', { name: /^See why/ });
 const rankButton = () => screen.getByRole('button', { name: /^POW PLANNER/ });
 
-/** Home → All mountains → the list → POW PLANNER: the Your ride step. */
+/** The list (where the app opens) → POW PLANNER: the Your ride step. */
 async function openSetup() {
-  await user().click(allMountains());
   await user().click(rankButton());
 }
 const showMe = () => screen.getByRole('button', { name: /^SHOW ME/ });
@@ -49,6 +48,7 @@ async function tapNow(registry?: ReturnType<typeof createDemoRegistry>) {
 
 describe('the home screen', () => {
   it("leads with today's answer: the pick, its verdict and score, and why", async () => {
+    window.history.replaceState(null, '', '/#/today');
     render(<App />);
     expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
     await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
@@ -63,6 +63,7 @@ describe('the home screen', () => {
   }, 15_000);
 
   it('the wordmark is the header, not a button: one primary action and one secondary', async () => {
+    window.history.replaceState(null, '', '/#/today');
     render(<App />);
     expect(screen.getByRole('banner').textContent).toMatch(/^POWNOW/);
     expect(screen.queryByRole('button', { name: /POWNOW/ })).not.toBeInTheDocument();
@@ -72,6 +73,7 @@ describe('the home screen', () => {
   });
 
   it('shows a skeleton of the same layout while the call is being made, and SEE WHY waits for it', () => {
+    window.history.replaceState(null, '', '/#/today');
     render(<App />);
     expect(screen.getByRole('status')).toHaveTextContent(/checking the mountain/i);
     expect(screen.getByRole('heading', { level: 1 }).querySelector('.home-skel')).not.toBeNull();
@@ -86,6 +88,7 @@ describe('the home screen', () => {
         throw new Error('The forecast service fell over.');
       },
     });
+    window.history.replaceState(null, '', '/#/today');
     render(<App registry={registry} />);
     const alert = await screen.findByRole('alert', {}, { timeout: 12_000 });
     expect(alert).toHaveTextContent('The forecast service fell over.');
@@ -95,6 +98,7 @@ describe('the home screen', () => {
   }, 15_000);
 
   it('SEE WHY opens the pick\'s whole day, and back returns home', async () => {
+    window.history.replaceState(null, '', '/#/today');
     render(<App />);
     await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
     const name = screen.getByRole('heading', { level: 1 }).textContent;
@@ -107,6 +111,7 @@ describe('the home screen', () => {
   }, 20_000);
 
   it('keeps where the data comes from one tap away, in a Sources sheet', async () => {
+    window.history.replaceState(null, '', '/#/today');
     render(<App />);
     expect(screen.queryByRole('region', { name: /where the data comes from/i })).not.toBeInTheDocument();
     await user().click(screen.getByRole('button', { name: 'Sources' }));
@@ -123,6 +128,7 @@ describe('the home screen', () => {
   });
 
   it('says plainly, beside the answer, that it is running on demo data', async () => {
+    window.history.replaceState(null, '', '/#/today');
     render(<App />);
     const hero = screen.getByRole('heading', { level: 1 }).closest('section')!;
     expect(within(hero).getByText('DEMO DATA')).toBeInTheDocument();
@@ -130,10 +136,14 @@ describe('the home screen', () => {
     expect(screen.queryByText(/^LIVE$/)).not.toBeInTheDocument();
   });
 
-  it('All mountains opens the list first, with the Map tab beside it', async () => {
+  it('the app opens on every mountain, as a list, with the Map tab beside it and today one link away', async () => {
     render(<App />);
+    expect(screen.queryByRole('button', { name: /back to start/i })).not.toBeInTheDocument();
+    await user().click(screen.getByRole('button', { name: "See today's pick" }));
+    expect(window.location.hash).toBe('#/today');
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
     await user().click(allMountains());
-    expect(window.location.hash).toBe('#/list');
+    expect(window.location.hash).toBe('');
     expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'false');
     const tabs = within(screen.getByRole('group', { name: 'View' })).getAllByRole('button');
@@ -149,7 +159,6 @@ describe('the home screen', () => {
 
   it('lists every mountain alphabetically, and a row opens its profile — no ranking', async () => {
     render(<App />);
-    await user().click(allMountains());
     const list = screen.getByRole('list', { name: /\d+ mountains, alphabetical/i });
     const names = within(list)
       .getAllByRole('button')
@@ -168,12 +177,11 @@ describe('the home screen', () => {
     expect(screen.queryByText(/out of 10/i)).not.toBeInTheDocument();
 
     await user().click(screen.getByRole('button', { name: /back to start/i }));
-    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+    await waitFor(() => expect(window.location.hash).toBe(''));
   }, 15_000);
 
   it("puts today's score out of 10 on every reachable mountain's card, still in A–Z order", async () => {
     render(<App />);
-    await user().click(allMountains());
     const list = screen.getByRole('list', { name: /\d+ mountains, alphabetical/i });
     const copper = within(list).getByRole('button', { name: /^Copper Mountain/ });
     await waitFor(() => expect(copper.querySelector('.mountainlist-score .numeral')?.textContent).toMatch(/^\d+\.\d$/), {
@@ -188,7 +196,6 @@ describe('the home screen', () => {
 
   it('narrows the list by name and by pass', async () => {
     render(<App />);
-    await user().click(allMountains());
     await user().type(screen.getByRole('searchbox', { name: /search mountains/i }), 'wolf');
     const list = screen.getByRole('list', { name: /1 of \d+ mountains/i });
     expect(within(list).getAllByRole('button')).toHaveLength(1);
@@ -210,7 +217,6 @@ describe('the home screen', () => {
 
   it("a profile's Today's call opens the engine's day for it, and the two link back without looping", async () => {
     render(<App />);
-    await user().click(allMountains());
     await user().click(screen.getByRole('button', { name: /^Copper Mountain/ }));
     await user().click(screen.getByRole('button', { name: /^Today's call/ }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('COPPER'), {
@@ -221,22 +227,20 @@ describe('the home screen', () => {
     await user().click(screen.getByRole('button', { name: /full copper mountain profile/i }));
     await waitFor(() => expect(window.location.hash).toBe('#/profile/copper'));
     await user().click(screen.getByRole('button', { name: /back to start/i }));
-    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+    await waitFor(() => expect(window.location.hash).toBe(''));
   }, 20_000);
 
   it('switching back to the list tab pops history instead of stacking tabs', async () => {
     render(<App />);
-    await user().click(allMountains());
     await user().click(screen.getByRole('button', { name: 'Map' }));
     await user().click(screen.getByRole('button', { name: 'List' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/list'));
-    await user().click(screen.getByRole('button', { name: /back to start/i }));
-    await waitFor(() => expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument());
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    // The list is where the app opens: nothing further back to go to.
+    expect(screen.queryByRole('button', { name: /back to start/i })).not.toBeInTheDocument();
   });
 
   it('the map\'s "full day plan" lands on the same mountain screen', async () => {
     render(<App />);
-    await user().click(allMountains());
     await user().click(screen.getByRole('button', { name: 'Map' }));
     await user().click(screen.getByRole('button', { name: /^Keystone\. Tap to view/i }));
     await user().click(screen.getByRole('button', { name: /full day plan for keystone/i }));
@@ -252,7 +256,7 @@ describe('the home screen', () => {
     await user().click(within(picksList()).getAllByRole('button')[0]!);
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument(), { timeout: 12_000 });
     await user().click(screen.getByRole('button', { name: /POW NOW home/i }));
-    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+    await waitFor(() => expect(window.location.hash).toBe(''));
     expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
   }, 20_000);
 
@@ -269,7 +273,7 @@ describe('the home screen', () => {
     expect(showMe()).toBeInTheDocument();
     // Its back arrow returns to the tab it came from.
     await user().click(screen.getByRole('button', { name: /back to start/i }));
-    await waitFor(() => expect(window.location.hash).toBe('#/list'));
+    await waitFor(() => expect(window.location.hash).toBe(''));
   });
 
   it('then ranks every reachable mountain as a card, winner first, and opens the one you tap', async () => {
@@ -665,8 +669,7 @@ describe('honest empty states', () => {
 describe('navigation history', () => {
   it('puts each screen in the URL, so the phone Back gesture retraces the flow instead of leaving', async () => {
     render(<App />);
-    await user().click(allMountains());
-    expect(window.location.hash).toBe('#/list');
+    expect(window.location.hash).toBe('');
     await user().click(rankButton());
     expect(window.location.hash).toBe('#/setup');
     await user().click(showMe());
@@ -680,12 +683,8 @@ describe('navigation history', () => {
     act(() => {
       window.history.back();
     });
-    await waitFor(() => expect(window.location.hash).toBe('#/list'));
-    act(() => {
-      window.history.back();
-    });
-    await waitFor(() => expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument());
-    expect(window.location.hash).toBe('');
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    expect(screen.getByRole('list', { name: /\d+ mountains, alphabetical/i })).toBeInTheDocument();
   });
 
   it('the in-app back arrow pops history rather than piling up entries', async () => {
@@ -721,17 +720,21 @@ describe('navigation history', () => {
     await waitFor(() => expect(picksList()).toBeInTheDocument(), { timeout: 12_000 });
   }, 20_000);
 
-  it('treats an unknown hash as home', () => {
+  it('treats an unknown hash, and the old list link, as home: every mountain', () => {
     window.history.replaceState(null, '', '/#/nonsense');
-    render(<App />);
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
-  });
-
-  it('returns home from a deep link without leaving the app', async () => {
+    const first = render(<App />);
+    expect(screen.getByRole('list', { name: /\d+ mountains, alphabetical/i })).toBeInTheDocument();
+    first.unmount();
     window.history.replaceState(null, '', '/#/list');
     render(<App />);
-    await user().click(screen.getByRole('button', { name: /back to start/i }));
-    expect(screen.getByText('Find your best mountain day.')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: /\d+ mountains, alphabetical/i })).toBeInTheDocument();
+  });
+
+  it('returns to every mountain from a deep link to today without leaving the app', async () => {
+    window.history.replaceState(null, '', '/#/today');
+    render(<App />);
+    await user().click(allMountains());
+    expect(screen.getByRole('list', { name: /\d+ mountains, alphabetical/i })).toBeInTheDocument();
     expect(window.location.hash).toBe('');
   });
 });

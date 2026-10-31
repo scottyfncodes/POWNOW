@@ -34,9 +34,11 @@ import { SetupScreen } from '@/ui/screens/SetupScreen';
  * one. Swapping the demo bundle for live integrations happens on this line and
  * nowhere else.
  *
- * Home is today's answer — the engine's pick, why, and SEE WHY — with All
- * mountains one tap over to the list; on every other screen the POW NOW logo
- * in the header goes there too. The list (primary) and the map are two
+ * The app opens, after a moment of the name (IntroSplash, in main.tsx), on
+ * All mountains: the list with each mountain's five-day snow forecast,
+ * because most people come here to plan ahead. On every other screen the
+ * POW NOW logo in the header goes back there. Today's answer (the engine's
+ * pick, why, and SEE WHY) is one link away at `#/today`. The list (primary) and the map are two
  * tabs of the same browse screen. Browsing opens a mountain's profile — its
  * facts, today's conditions and logistics, with no ranking — and from there
  * or from the browse bar the rider can ask for the engine's call:
@@ -91,7 +93,7 @@ export default function App({ registry: injected }: AppProps = {}) {
   // mountain screens and the list's scores read — tapping SEE WHY or All
   // mountains costs no second ranking.
   const wantsPlans =
-    route.screen === 'home' || route.screen === 'picks' || route.screen === 'mountain' || route.screen === 'list';
+    route.screen === 'today' || route.screen === 'picks' || route.screen === 'mountain' || route.screen === 'list';
   const plans = useAsync(
     () =>
       recommend(registry, {
@@ -109,7 +111,7 @@ export default function App({ registry: injected }: AppProps = {}) {
     [origin.id, origin.coordinates.lat, origin.coordinates.lon, date, clock.today, preferences],
     // The home skeleton is already the waiting state; the "checking the
     // roads…" sequence only earns its floor on the picks screen.
-    { enabled: wantsPlans, minimumMs: route.screen === 'home' || route.screen === 'list' ? 0 : 1900 },
+    { enabled: wantsPlans, minimumMs: route.screen === 'today' || route.screen === 'list' ? 0 : 1900 },
   );
 
   // Every mountain's next five days of snow, for the list and the map sheet.
@@ -225,17 +227,6 @@ export default function App({ registry: injected }: AppProps = {}) {
             onSeeCall={openMountain('profile')}
           />
         );
-      case 'list':
-        return (
-          <ListScreen
-            scores={listScores}
-            snow={snow}
-            onBack={() => navigate('home')}
-            onOpenMountain={openProfile('list')}
-            onShowMap={() => navigate('map')}
-            onRank={rank('list')}
-          />
-        );
       case 'map':
         return (
           <MapScreen
@@ -245,7 +236,7 @@ export default function App({ registry: injected }: AppProps = {}) {
             origin={origin}
             onOriginChange={setOrigin}
             preferences={preferences}
-            onBack={() => navigate('home')}
+            onBack={() => navigate('list')}
             onOpenMountain={openMountain('map')}
             onOpenProfile={openProfile('map')}
             onShowList={() => navigate('list')}
@@ -262,7 +253,7 @@ export default function App({ registry: injected }: AppProps = {}) {
             onBack={() => navigate('setup')}
           />
         );
-      default:
+      case 'today':
         return (
           <HomeScreen
             state={plans}
@@ -270,8 +261,20 @@ export default function App({ registry: injected }: AppProps = {}) {
             date={date}
             origin={origin}
             usingDemoData={registry.usingDemoData}
-            onOpenMountain={openMountain('home')}
+            onOpenMountain={openMountain('today')}
             onBrowse={() => navigate('list')}
+          />
+        );
+      // 'list': where the app opens.
+      default:
+        return (
+          <ListScreen
+            scores={listScores}
+            snow={snow}
+            onToday={() => navigate('today')}
+            onOpenMountain={openProfile('list')}
+            onShowMap={() => navigate('map')}
+            onRank={rank('list')}
           />
         );
     }

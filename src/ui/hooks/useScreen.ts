@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type Screen = 'home' | 'setup' | 'picks' | 'mountain' | 'profile' | 'list' | 'map' | 'later';
+export type Screen = 'today' | 'setup' | 'picks' | 'mountain' | 'profile' | 'list' | 'map' | 'later';
 
 /** The screens that carry a mountain id in their URL. */
 const takesMountain = (screen: Screen): boolean => screen === 'mountain' || screen === 'profile';
@@ -11,7 +11,13 @@ export interface Route {
   mountainId: string | null;
 }
 
-const HOME: Route = { screen: 'home', mountainId: null };
+/**
+ * Where the app opens: every mountain. Most people come to POW NOW to plan
+ * ahead (which mountain this weekend, where the snow is going), so the root
+ * URL is the list with each mountain's five-day forecast. Today's single
+ * pick lives one tap away at `#/today`.
+ */
+const HOME: Route = { screen: 'list', mountainId: null };
 
 /** Marks history entries this app pushed, so Back knows whether it may pop one. */
 const HISTORY_MARK = 'pownow';
@@ -22,9 +28,11 @@ export const routeFromHash = (hash: string): Route => {
   switch (head) {
     case '':
       return HOME;
+    case 'list':
+      return HOME;
+    case 'today':
     case 'setup':
     case 'picks':
-    case 'list':
     case 'map':
     case 'later':
       return { screen: head, mountainId: null };
@@ -40,7 +48,7 @@ export const routeFromHash = (hash: string): Route => {
 };
 
 export const hashFor = (route: Route): string => {
-  if (route.screen === 'home') return '';
+  if (route.screen === HOME.screen) return '';
   if (takesMountain(route.screen)) return `#/${route.screen}/${route.mountainId ?? ''}`;
   return `#/${route.screen}`;
 };
@@ -117,7 +125,7 @@ export function useScreen(): [Route, (screen: Screen, mountainId?: string | null
       window.history.go(index - top);
       return;
     }
-    if (next.screen === 'home' && index === -1) {
+    if (next.screen === HOME.screen && index === -1) {
       // Opened directly on a deep link: there is no in-app entry to pop.
       stackRef.current = [target];
       window.history.replaceState(null, '', urlFor(next));

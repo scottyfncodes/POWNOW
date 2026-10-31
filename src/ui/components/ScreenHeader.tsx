@@ -3,7 +3,8 @@ import { useHome } from '@/ui/hooks/useHome';
 import { Wordmark } from './Wordmark';
 
 export interface ScreenHeaderProps {
-  onBack: () => void;
+  /** Omitted on the screen the app opens on: there is nowhere further back. */
+  onBack?: () => void;
   title: string;
   right?: ReactNode;
 }
@@ -13,13 +14,15 @@ export function ScreenHeader({ onBack, title, right }: ScreenHeaderProps) {
   return (
     <header className="screenhead">
       <div className="shell screenhead-inner">
-        <button type="button" className="backbutton" onClick={onBack}>
-          <span aria-hidden="true">←</span>
-          <span className="visually-hidden">Back to start</span>
-        </button>
+        {onBack && (
+          <button type="button" className="backbutton" onClick={onBack}>
+            <span aria-hidden="true">←</span>
+            <span className="visually-hidden">Back to start</span>
+          </button>
+        )}
         <span className="screenhead-title">
           {goHome ? (
-            <button type="button" className="logobutton" onClick={goHome} aria-label="POW NOW home: the map">
+            <button type="button" className="logobutton" onClick={goHome} aria-label="POW NOW home: all mountains">
               <Wordmark size="sm" />
             </button>
           ) : (

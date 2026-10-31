@@ -3,10 +3,12 @@ import { hashFor, routeFromHash } from './useScreen';
 
 describe('routeFromHash — every screen is a URL', () => {
   it('reads each screen and the mountain parameter', () => {
-    expect(routeFromHash('')).toEqual({ screen: 'home', mountainId: null });
+    expect(routeFromHash('')).toEqual({ screen: 'list', mountainId: null });
+    expect(routeFromHash('#/today')).toEqual({ screen: 'today', mountainId: null });
     expect(routeFromHash('#/setup')).toEqual({ screen: 'setup', mountainId: null });
     expect(routeFromHash('#/picks')).toEqual({ screen: 'picks', mountainId: null });
     expect(routeFromHash('#/list')).toEqual({ screen: 'list', mountainId: null });
+    expect(hashFor(routeFromHash('#/list'))).toBe('');
     expect(routeFromHash('#/map')).toEqual({ screen: 'map', mountainId: null });
     expect(routeFromHash('#/later')).toEqual({ screen: 'later', mountainId: null });
     expect(routeFromHash('#/mountain/wolf-creek')).toEqual({ screen: 'mountain', mountainId: 'wolf-creek' });
@@ -18,16 +20,16 @@ describe('routeFromHash — every screen is a URL', () => {
     expect(routeFromHash('#/Mountain/VAIL')).toEqual({ screen: 'mountain', mountainId: 'vail' });
   });
 
-  it('sends the old NOW bookmark to today\'s ranked picks, and anything unknown home', () => {
+  it('sends the old NOW bookmark to today\'s ranked picks, and anything unknown to every mountain', () => {
     expect(routeFromHash('#/now')).toEqual({ screen: 'picks', mountainId: null });
-    expect(routeFromHash('#/nonsense')).toEqual({ screen: 'home', mountainId: null });
+    expect(routeFromHash('#/nonsense')).toEqual({ screen: 'list', mountainId: null });
     // A mountain screen with no mountain is not a place.
-    expect(routeFromHash('#/mountain')).toEqual({ screen: 'home', mountainId: null });
-    expect(routeFromHash('#/profile')).toEqual({ screen: 'home', mountainId: null });
+    expect(routeFromHash('#/mountain')).toEqual({ screen: 'list', mountainId: null });
+    expect(routeFromHash('#/profile')).toEqual({ screen: 'list', mountainId: null });
   });
 
   it('round-trips through hashFor', () => {
-    for (const hash of ['', '#/setup', '#/picks', '#/list', '#/map', '#/later', '#/mountain/eldora', '#/profile/eldora']) {
+    for (const hash of ['', '#/today', '#/setup', '#/picks', '#/map', '#/later', '#/mountain/eldora', '#/profile/eldora']) {
       expect(hashFor(routeFromHash(hash))).toBe(hash);
     }
   });
