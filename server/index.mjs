@@ -633,7 +633,14 @@ async function buildSnotelReading(triplet, days) {
  * doesn't understand is a 502, never a guessed "closed".
  */
 export const MTNPOWDER_IDS = new Set(['5', '6', '49', '57', '58', '59', '60', '61', '65', '93']);
-export const POWDR_HOSTS = { copper: 'api.coppercolorado.com', eldora: 'api.eldora.com', snowbird: 'api.snowbird.com' };
+export const POWDR_HOSTS = {
+  copper: 'api.coppercolorado.com',
+  eldora: 'api.eldora.com',
+  snowbird: 'api.snowbird.com',
+  // Found via Liftie's resort list, checked live 2026-10-31.
+  boreal: 'api.rideboreal.com',
+  'soda-springs': 'api.skisodasprings.com',
+};
 /** Aspen Snowmass's own lift feed, one per mountain. Checked live 2026-10-31. */
 export const ASPEN_MOUNTAINS = new Set(['AspenMountain', 'AspenHighlands', 'Snowmass', 'Buttermilk']);
 /** Boyne's resort feed API (no key). `br` is Brighton. Checked live 2026-10-31. */

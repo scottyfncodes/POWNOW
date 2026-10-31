@@ -162,7 +162,7 @@ Day 0 is deliberately shaped into a storm day — the product story starts at
 | **Snowpack** (measured) | NRCS SNOTEL | browser → proxy → API | `server/` deployed + `VITE_API_BASE_URL`. No key. |
 | **Traffic** | Google Routes | browser → proxy → API | `server/` + `GOOGLE_ROUTES_API_KEY` + `VITE_API_BASE_URL` |
 | **Road conditions** | CDOT / COtrip | browser → proxy → API | `server/` + `COTRIP_API_KEY` (free) + `VITE_API_BASE_URL`; `VITE_ENABLE_ROAD_CONDITIONS=false` disables |
-| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 18 mountains have a resort feed; most others a Liftie id |
+| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 20 mountains have a resort feed; most others a Liftie id |
 | **Crowds** | — | — | Unavailable, always. No trustworthy live source exists |
 | **Pricing** | — | — | Unavailable, always. Investigated, unverifiable — official purchase link shown instead |
 | **Places** | — | — | Unavailable, always. Never in scope |
@@ -298,7 +298,7 @@ tries, in order:
    platforms were found and checked against the live endpoints on
    2026-10-31: **MtnPowder** (Winter Park, Steamboat, Arapahoe Basin, Deer
    Valley, Solitude, Palisades Tahoe, Mammoth, June, Bear Mountain, Snow
-   Summit), **POWDR's day-of-report API** (Copper, Eldora, Snowbird),
+   Summit), **POWDR's day-of-report API** (Copper, Eldora, Snowbird, Boreal, Soda Springs),
    **Aspen Snowmass's lift feed** (Aspen Mountain, Highlands, Snowmass,
    Buttermilk) and **Boyne's feed API** (Brighton).
    Neither sends CORS headers, so the browser can't call them directly; the
