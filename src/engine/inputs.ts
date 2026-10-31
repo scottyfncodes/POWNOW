@@ -25,6 +25,8 @@ export interface DayInputs {
   date: DateKey;
   horizonDays: number;
   isToday: boolean;
+  /** The wall-clock minute the plan was made at. Optional so hand-built inputs (tests) can leave it out. */
+  now?: MinuteOfDay;
   weather: Availability<MountainWeather>;
   /** Measured snowpack at the nearest station — a separate witness from the weather model. */
   snowpack: Availability<SnowpackObservation>;
@@ -181,6 +183,7 @@ export async function loadDayInputs(
     date: context.date,
     horizonDays: context.horizonDays,
     isToday: context.horizonDays === 0,
+    now: context.now,
     weather,
     snowpack,
     operations,

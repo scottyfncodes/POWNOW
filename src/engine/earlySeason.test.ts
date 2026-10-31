@@ -89,7 +89,7 @@ describe('closed and preseason mountains', () => {
 
   it('says "no opening date announced" for an all-closed board at a resort with no date yet', () => {
     const result = classifyOperationalState(
-      testInputs({ mountain: mountain('keystone'), date: NOV_1, usingDemoData: false, operations: allClosed(20) }),
+      testInputs({ mountain: mountain('loveland'), date: NOV_1, usingDemoData: false, operations: allClosed(10) }),
     );
     expect(result.state).toBe('PRESEASON');
     expect(result.reason).toMatch(/no opening date announced/i);
@@ -162,6 +162,7 @@ describe('recommend() on a November morning', () => {
   }
 
   const field = ['copper', 'breckenridge', 'arapahoe-basin'].map(mountain);
+  const closedField = ['copper', 'breckenridge', 'loveland'].map(mountain);
 
   it('never picks a closed or preseason mountain over an open one', async () => {
     const rec = await recommend(
@@ -176,8 +177,8 @@ describe('recommend() on a November morning', () => {
 
   it('says plainly when every option is closed, and names the first opening day', async () => {
     const rec = await recommend(
-      registryWith({ copper: allClosed(), breckenridge: allClosed(35), 'arapahoe-basin': allClosed(9) }),
-      { mountains: field, origin: denver, date: NOV_1, today: NOV_1, now: 6 * 60 },
+      registryWith({ copper: allClosed(), breckenridge: allClosed(35), loveland: allClosed(10) }),
+      { mountains: closedField, origin: denver, date: NOV_1, today: NOV_1, now: 6 * 60 },
     );
     expect(rec.noneOpen).toBe(true);
     expect(rec.all.every((plan) => NON_SKIABLE_STATES.has(plan.operationalState))).toBe(true);
@@ -206,14 +207,45 @@ describe('recommend() on a November morning', () => {
 
   it('says nothing is confirmed open when the field is only closed and silent mountains', async () => {
     const rec = await recommend(
-      registryWith({ copper: allClosed(), keystone: 'unavailable', loveland: 'unavailable' }),
-      { mountains: ['copper', 'keystone', 'loveland'].map(mountain), origin: denver, date: '2026-10-31', today: '2026-10-31', now: 7 * 60 },
+      registryWith({ copper: allClosed(), 'wolf-creek': 'unavailable', loveland: 'unavailable' }),
+      { mountains: ['copper', 'wolf-creek', 'loveland'].map(mountain), origin: denver, date: '2026-10-31', today: '2026-10-31', now: 7 * 60 },
     );
     expect(rec.noneOpen).toBe(false);
     expect(rec.noneConfirmedOpen).toBe(true);
     expect(rec.comparison).toBe(
       'Nothing in reach is confirmed open today. 2 have no lift report, so check before you go. First announced opening: COPPER, Nov 6 (projected).'.replace('COPPER', mountain('copper').shortName),
     );
+  });
+});
+
+describe('an open mountain between days', () => {
+  // Keystone opened Oct 30, 2026. Its board reads all closed from last chair to first chair.
+  const keystone = mountain('keystone');
+  const at = (date: string, minute: number, horizonDays = 0) =>
+    testInputs({ mountain: keystone, date, horizonDays, usingDemoData: false, operations: allClosed(21) });
+
+  it('is not called closed at 6am before first chair', () => {
+    const inputs = { ...at('2026-11-01', 6 * 60), now: 6 * 60 };
+    const result = classifyOperationalState(inputs);
+    expect(result.state).toBe('UNKNOWN');
+    expect(result.reason).toMatch(/open for the season/i);
+    expect(noCallReason(inputs, result.state)).toMatch(/Check after first chair/);
+  });
+
+  it('is not called closed tomorrow from tonight\'s board', () => {
+    const inputs = { ...at('2026-11-02', 20 * 60, 1), now: 20 * 60 };
+    expect(classifyOperationalState(inputs).state).toBe('UNKNOWN');
+  });
+
+  it('says the lifts are done after last chair', () => {
+    const inputs = { ...at('2026-11-01', 17 * 60), now: 17 * 60 };
+    expect(classifyOperationalState(inputs)).toEqual({ state: 'CLOSED', reason: 'Lifts are done for the day.' });
+  });
+
+  it('never treats a passed projected date as open for the season', () => {
+    // Copper projected Nov 6 and has not confirmed; an empty board on Nov 7 at 6am is not "open for the season".
+    const inputs = { ...testInputs({ mountain: mountain('copper'), date: '2026-11-07', usingDemoData: false, operations: allClosed() }), now: 6 * 60 };
+    expect(classifyOperationalState(inputs).reason).not.toMatch(/open for the season/i);
   });
 });
 

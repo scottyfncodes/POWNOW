@@ -20,6 +20,8 @@ const OFF_SEASON_MONTHS = new Set([6, 7, 8, 9]);
 /** Openings and closings land in these months and vary by mountain and year, so a missing lift report can't be read as "open". */
 const SHOULDER_MONTHS = new Set([4, 5, 10, 11]);
 
+const BETWEEN_DAYS = "Open for the season, but the lift board hasn't been set for the day yet.";
+
 export interface OperationalStateResult {
   state: MountainOperationalState;
   reason: string;
@@ -53,6 +55,22 @@ export function classifyOperationalState(inputs: DayInputs): OperationalStateRes
       }
       if (calendarOffSeason) {
         return { state: 'OFF_SEASON', reason: 'Nothing open, and this is the off-season.' };
+      }
+      // Open for the season, and the board is between days. Lifts stop at
+      // last chair and the board reads all closed until first chair, so
+      // overnight it says nothing about the day ahead. Reading it as CLOSED
+      // would call an open mountain shut every morning before 9.
+      // Only a confirmed opening counts: a projected date passing is not the resort opening.
+      if (season?.phase === 'in-season' && season.opening?.status === 'confirmed') {
+        if (inputs.horizonDays > 0) {
+          return { state: 'UNKNOWN', reason: BETWEEN_DAYS };
+        }
+        if (inputs.now !== undefined && inputs.now < ops.scheduledOpen) {
+          return { state: 'UNKNOWN', reason: BETWEEN_DAYS };
+        }
+        if (inputs.now !== undefined && inputs.now >= ops.lastChair) {
+          return { state: 'CLOSED', reason: 'Lifts are done for the day.' };
+        }
       }
       return { state: 'CLOSED', reason: 'The lift report says nothing is running today.' };
     }
@@ -161,6 +179,12 @@ export function noCallReason(inputs: DayInputs, state: MountainOperationalState)
   const month = fromDateKey(inputs.date).getMonth() + 1;
   if (state === 'UNKNOWN' && !inputs.usingDemoData && SHOULDER_MONTHS.has(month)) {
     const season = seasonFor(inputs.mountain, inputs.date);
+    if (season.phase === 'in-season' && season.opening?.status === 'confirmed') {
+      // Early season, how much is open changes day to day, and a guess at it is exactly what can't be scored.
+      return inputs.horizonDays > 0
+        ? "Open for the season, but early-season terrain changes day to day and the lift board can't say what that day brings."
+        : "Open for the season, but today's lift board isn't set yet, so how much terrain is open is unknown. Check after first chair.";
+    }
     const opening = season.opening?.date ? ` Its projected opening day was ${shortDate(season.opening.date)}.` : ' No opening date has been announced.';
     return `No lift report, and this time of year that can mean it isn't open.${opening} Check before you go.`;
   }
