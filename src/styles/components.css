@@ -5022,3 +5022,68 @@
 .listscreen-date:focus-within {
   border-color: var(--line-strong);
 }
+
+/* ================================================================= share */
+
+.profilehero-share:disabled {
+  opacity: 0.5;
+}
+
+.sharesheet {
+  gap: 14px;
+}
+
+.sharesheet-preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  max-height: 52dvh;
+  margin: 0 auto;
+  width: 100%;
+  max-width: calc(52dvh * 0.8);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.sharesheet-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sharesheet-placeholder {
+  padding: 0 24px;
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 14px;
+}
+
+.sharesheet-line {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sharesheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sharesheet-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.sharesheet-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-dim);
+  overflow-wrap: anywhere;
+}
