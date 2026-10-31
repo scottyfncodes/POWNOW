@@ -4,7 +4,9 @@ import { resolveEnvironment } from '@/config/env';
 import { MOUNTAINS } from '@/data/mountains';
 import type { DateKey } from '@/domain/dates';
 import { at } from '@/domain/time';
+import { makeContext } from '@/engine/inputs';
 import { recommend } from '@/engine/plan';
+import { loadSnowOutlooks } from '@/engine/snowOutlook';
 import { warmUpTrafficService } from '@/lib/warmup';
 import { createProviderRegistry } from '@/providers';
 import type { ProviderRegistry } from '@/providers/types';
@@ -16,7 +18,7 @@ import { useAsync } from '@/ui/hooks/useRecommendation';
 import { type Route, type Screen, useScreen } from '@/ui/hooks/useScreen';
 import { HomeScreen } from '@/ui/screens/HomeScreen';
 import { LaterScreen } from '@/ui/screens/LaterScreen';
-import type { ListScore, ListScores } from '@/ui/components/MountainList';
+import type { ListScore, ListScores, ListSnow } from '@/ui/components/MountainList';
 import { ListScreen } from '@/ui/screens/ListScreen';
 import { MapScreen } from '@/ui/screens/MapScreen';
 import { MountainScreen } from '@/ui/screens/MountainScreen';
@@ -109,6 +111,20 @@ export default function App({ registry: injected }: AppProps = {}) {
     // roads…" sequence only earns its floor on the picks screen.
     { enabled: wantsPlans, minimumMs: route.screen === 'home' || route.screen === 'list' ? 0 : 1900 },
   );
+
+  // Every mountain's next five days of snow, for the list and the map sheet.
+  // One batched forecast request in live mode, independent of the starting
+  // point, so it covers mountains the ranking leaves out as too far.
+  const wantsSnow = route.screen === 'list' || route.screen === 'map';
+  const outlooks = useAsync(
+    () => loadSnowOutlooks(registry, MOUNTAINS, makeContext(clock.today, clock.today, clock.now)),
+    [registry, clock.today],
+    { enabled: wantsSnow },
+  );
+  const snow = useMemo((): ListSnow => {
+    if (outlooks.status === 'ready') return { status: 'ready', byId: outlooks.data };
+    return outlooks.status === 'error' ? { status: 'error' } : { status: 'loading' };
+  }, [outlooks]);
 
   // The list shows each mountain's score from that same ranking.
   const listScores = useMemo((): ListScores => {
@@ -213,6 +229,7 @@ export default function App({ registry: injected }: AppProps = {}) {
         return (
           <ListScreen
             scores={listScores}
+            snow={snow}
             onBack={() => navigate('home')}
             onOpenMountain={openProfile('list')}
             onShowMap={() => navigate('map')}
@@ -223,6 +240,7 @@ export default function App({ registry: injected }: AppProps = {}) {
         return (
           <MapScreen
             registry={registry}
+            snow={snow}
             clock={clock}
             origin={origin}
             onOriginChange={setOrigin}

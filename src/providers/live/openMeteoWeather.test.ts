@@ -445,3 +445,51 @@ describe('OpenMeteoWeatherProvider — 5-day snow history', () => {
     expect(result.data.snowHistory).toBeNull();
   });
 });
+
+describe('OpenMeteoWeatherProvider — snow outlooks for many mountains at once', () => {
+  const second = testMountain({ id: 'second-mtn', name: 'Second', weatherLocation: { ...mountain.weatherLocation, point: { lat: 40.1, lon: -106.5 } } });
+  const dailyOnly = (cm: number[]) => ({ daily: buildResponseWithDaily(cm).daily });
+
+  it('asks once for every point and gives each mountain the same strip its own page shows', async () => {
+    const cmA = [2, 0, 0, 5, 1, 0, 3, 0, 0, 8, 1];
+    const cmB = [0, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0];
+    const fetchSpy = vi.fn(async (rawUrl: string) => {
+      const url = new URL(rawUrl);
+      if (url.searchParams.get('latitude')?.includes(',')) {
+        return new Response(JSON.stringify([dailyOnly(cmA), dailyOnly(cmB)]), { status: 200 });
+      }
+      if (isMainRequest(url)) return new Response(JSON.stringify(buildResponseWithDaily(cmA)), { status: 200 });
+      return new Response(JSON.stringify(buildElevationResponse()), { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+    const provider = new OpenMeteoWeatherProvider();
+    const context = makeContext(TODAY, TODAY, at(5));
+
+    const outlooks = await provider.getSnowOutlooks([mountain, second], context);
+    const batchCalls = fetchSpy.mock.calls.filter(([u]) => new URL(u).searchParams.get('latitude')?.includes(','));
+    expect(batchCalls).toHaveLength(1);
+    const batchUrl = new URL(batchCalls[0]![0]);
+    expect(batchUrl.searchParams.get('daily')).toBe('snowfall_sum');
+    expect(batchUrl.searchParams.get('elevation')?.split(',')).toHaveLength(2);
+
+    const a = outlooks[mountain.id];
+    const b = outlooks[second.id];
+    expect(a?.status).toBe('ok');
+    expect(b?.status).toBe('ok');
+    if (a?.status !== 'ok' || b?.status !== 'ok') return;
+    expect(a.data.futureTotalIn).toBeCloseTo(4.7, 1);
+    expect(b.data.futureTotalIn).toBe(9.8);
+    expect(a.provenance.observation).toBe('forecast');
+
+    // The mountain's own page reads the same numbers.
+    const page = await provider.getMountainWeather(mountain, context);
+    expect(page.status === 'ok' && page.data.snowHistory).toEqual(a.data);
+  });
+
+  it('marks every mountain in a failed batch unavailable instead of showing zero', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+    const outlooks = await new OpenMeteoWeatherProvider().getSnowOutlooks([mountain, second], makeContext(TODAY, TODAY, at(5)));
+    expect(outlooks[mountain.id]?.status).toBe('unavailable');
+    expect(outlooks[second.id]?.status).toBe('unavailable');
+  });
+});

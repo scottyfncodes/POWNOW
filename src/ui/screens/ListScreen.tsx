@@ -3,12 +3,14 @@ import { MOUNTAINS } from '@/data/mountains';
 import { ORIGIN_STATE_LABELS } from '@/data/origins';
 import { PASS_LABELS, type PassAffiliation } from '@/domain/mountain';
 import { BrowseBar } from '@/ui/components/BrowseBar';
-import { MountainList, type ListScores } from '@/ui/components/MountainList';
+import { MountainList, type ListOrder, type ListScores, type ListSnow } from '@/ui/components/MountainList';
 import { ScreenHeader } from '@/ui/components/ScreenHeader';
 
 export interface ListScreenProps {
   /** Today's score per mountain, from the same ranking the home screen shows. */
   scores?: ListScores;
+  /** Every mountain's next five days of snow, shown on each card and sortable. */
+  snow?: ListSnow;
   onBack: () => void;
   /** A mountain's own profile — its facts, conditions and logistics, no ranking. */
   onOpenMountain: (mountainId: string) => void;
@@ -38,8 +40,9 @@ const STATES_SENTENCE = ((names: string[]) =>
  * point, but the list stays alphabetical. A search box, state chips and pass chips narrow it; a row opens that
  * mountain's profile, separate from any ranking.
  */
-export function ListScreen({ scores, onBack, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
+export function ListScreen({ scores, snow, onBack, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
   const [query, setQuery] = useState('');
+  const [order, setOrder] = useState<ListOrder>('name');
   const [pass, setPass] = useState<PassAffiliation | null>(null);
   const [state, setState] = useState<string | null>(null);
 
@@ -66,12 +69,28 @@ export function ListScreen({ scores, onBack, onOpenMountain, onShowMap, onRank }
           </h1>
           <p className="listscreen-intro">
             Across {STATES_SENTENCE}. Each card shows today's score out of 10
-            {scores?.status === 'ready' ? ` from ${scores.originName}` : ''}. Still A to Z, no ranking unless you ask for it. Open any one for its full
-            profile: the terrain, today's snow, the drive, parking and where to eat.
+            {scores?.status === 'ready' ? ` from ${scores.originName}` : ''} and the snow forecast for the next five days. A to Z unless you
+            sort by snow. Open any one for its full profile: the terrain, today's snow, the drive, parking and where to eat.
           </p>
         </header>
 
         <div className="listscreen-filters">
+          {snow && (
+            <div className="listscreen-sort" role="group" aria-label="Sort">
+              <button type="button" className={`filterchip${order === 'name' ? ' is-active' : ''}`} aria-pressed={order === 'name'} onClick={() => setOrder('name')}>
+                A to Z
+              </button>
+              <button
+                type="button"
+                className={`filterchip${order === 'snow' ? ' is-active' : ''}`}
+                aria-pressed={order === 'snow'}
+                disabled={snow.status !== 'ready'}
+                onClick={() => setOrder('snow')}
+              >
+                Most snow coming
+              </button>
+            </div>
+          )}
           <label className="listscreen-search">
             <span className="visually-hidden">Search mountains</span>
             <span aria-hidden="true" className="listscreen-search-icon">
@@ -118,7 +137,13 @@ export function ListScreen({ scores, onBack, onOpenMountain, onShowMap, onRank }
             mountains={shown}
             onSelectMountain={onOpenMountain}
             scores={scores}
-            label={filtered ? `${shown.length} of ${MOUNTAINS.length} mountains, alphabetical` : undefined}
+            snow={snow}
+            order={order}
+            label={
+              filtered
+                ? `${shown.length} of ${MOUNTAINS.length} mountains, ${order === 'snow' && snow?.status === 'ready' ? 'most snow coming first' : 'alphabetical'}`
+                : undefined
+            }
           />
         ) : (
           <p className="listscreen-empty">
