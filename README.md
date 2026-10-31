@@ -162,7 +162,7 @@ Day 0 is deliberately shaped into a storm day — the product story starts at
 | **Snowpack** (measured) | NRCS SNOTEL | browser → proxy → API | `server/` deployed + `VITE_API_BASE_URL`. No key. |
 | **Traffic** | Google Routes | browser → proxy → API | `server/` + `GOOGLE_ROUTES_API_KEY` + `VITE_API_BASE_URL` |
 | **Road conditions** | CDOT / COtrip | browser → proxy → API | `server/` + `COTRIP_API_KEY` (free) + `VITE_API_BASE_URL`; `VITE_ENABLE_ROAD_CONDITIONS=false` disables |
-| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 20 mountains have a resort feed; most others a Liftie id |
+| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 31 mountains read the resort's own feed or page; most others a Liftie id |
 | **Crowds** | — | — | Unavailable, always. No trustworthy live source exists |
 | **Pricing** | — | — | Unavailable, always. Investigated, unverifiable — official purchase link shown instead |
 | **Places** | — | — | Unavailable, always. Never in scope |
@@ -308,10 +308,19 @@ tries, in order:
    read "Closed" that morning with Black Mountain Express spinning. A board
    claiming open lifts that hasn't been touched in 36 hours is refused; an
    all-closed board may be old, because a resort that hasn't opened doesn't
-   update it. Vail Resorts (Vail, Beaver Creek, Breck, Keystone, Crested
-   Butte, Park City, Heavenly, Northstar, Kirkwood) embed their board as a
-   script inside the page, Alta likewise, and Loveland publishes an HTML
-   table; this project doesn't scrape pages, so they stay on Liftie.
+   update it.
+
+   Resorts that only publish lift status on a web page are read from that
+   page, through the same endpoint: **Vail Resorts** (Vail, Beaver Creek,
+   Breck, Keystone, Crested Butte, Park City, Heavenly, Northstar, Kirkwood)
+   embed their board as strict JSON in the page, **Alta** likewise with its
+   own lifts-and-runs summary, and **Loveland** renders one table per lift.
+   Each page was checked against its robots.txt, is fetched with an honest
+   User-Agent, cached for ten minutes so a resort sees one request per
+   window however many people use the app, and parsed as JSON only, never
+   run as code. A page that changes shape reads as unavailable, not closed.
+   A lift turning with no runs open is never a ski day: on Oct 31, 2026
+   Heavenly's gondola was running three weeks before opening day.
 2. **Liftie** (`providers/live/liftieOperations.ts`), an open-source
    lift-status aggregator with a public JSON endpoint per resort
    (`GET https://liftie.info/api/resort/:id`). The adapter reads Liftie's

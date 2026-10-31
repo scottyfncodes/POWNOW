@@ -50,6 +50,9 @@ const FEED_LABEL: Record<string, string> = {
   powdr: "The resort's own lift and trail board (POWDR day-of report).",
   aspen: "Aspen Snowmass's own lift status feed.",
   boyne: "The resort's own lift status feed (Boyne).",
+  vail: "Read from the resort's own lift and terrain status page.",
+  alta: "Read from Alta's own lift and terrain status page.",
+  loveland: "Read from Loveland's own lift report page.",
 };
 
 const count = (value: unknown): number | null => {

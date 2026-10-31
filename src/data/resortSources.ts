@@ -37,33 +37,42 @@ export type OfficialFeed =
   | { kind: 'mtnpowder'; id: string }
   | { kind: 'powdr'; id: 'copper' | 'eldora' | 'snowbird' | 'boreal' | 'soda-springs' }
   | { kind: 'aspen'; id: 'AspenMountain' | 'AspenHighlands' | 'Snowmass' | 'Buttermilk' }
-  | { kind: 'boyne'; id: 'br' };
+  | { kind: 'boyne'; id: 'br' }
+  /** Read from the resort's own lift status page, see server/index.mjs "resort status pages". */
+  | { kind: 'vail'; id: string }
+  | { kind: 'alta'; id: 'alta' }
+  | { kind: 'loveland'; id: 'loveland' };
 
 export const RESORT_SOURCES: Record<string, ResortSource> = {
   vail: {
     officialOpsUrl: 'https://www.vail.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     officialPurchaseUrl: 'https://www.vail.com/plan-your-trip/lift-tickets.aspx',
     liftieSlug: 'vail',
+    officialFeed: { kind: 'vail', id: 'vail' },
   },
   'beaver-creek': {
     officialOpsUrl: 'https://www.beavercreek.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     officialPurchaseUrl: 'https://www.beavercreek.com/plan-your-trip/lift-tickets.aspx',
     liftieSlug: 'beavercreek',
+    officialFeed: { kind: 'vail', id: 'beavercreek' },
   },
   breckenridge: {
     officialOpsUrl: 'https://www.breckenridge.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     officialPurchaseUrl: 'https://www.breckenridge.com/plan-your-trip/lift-tickets.aspx',
     liftieSlug: 'breck',
+    officialFeed: { kind: 'vail', id: 'breckenridge' },
   },
   keystone: {
     officialOpsUrl: 'https://www.keystoneresort.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     officialPurchaseUrl: 'https://www.keystoneresort.com/plan-your-trip/lift-tickets.aspx',
     liftieSlug: 'keystone',
+    officialFeed: { kind: 'vail', id: 'keystone' },
   },
   'crested-butte': {
     officialOpsUrl: 'https://www.skicb.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     officialPurchaseUrl: 'https://www.skicb.com/plan-your-trip/lift-tickets.aspx',
     liftieSlug: 'crested-butte',
+    officialFeed: { kind: 'vail', id: 'crestedbutte' },
   },
   'winter-park': {
     officialOpsUrl: 'https://www.winterparkresort.com/the-mountain/mountain-report',
@@ -98,6 +107,7 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
     officialOpsUrl: 'https://www.skiloveland.com/conditions/',
     officialPurchaseUrl: 'https://www.skiloveland.com/lift-tickets/',
     liftieSlug: 'loveland',
+    officialFeed: { kind: 'loveland', id: 'loveland' },
   },
   eldora: {
     officialOpsUrl: 'https://www.eldora.com/the-mountain/mountain-report/',
@@ -135,20 +145,20 @@ const REGION_SOURCES: Record<string, ResortSource> = {
   'aspen-highlands': { liftieSlug: 'aspen-highlands', officialFeed: { kind: 'aspen', id: 'AspenHighlands' } },
   buttermilk: { liftieSlug: 'buttermilk', officialFeed: { kind: 'aspen', id: 'Buttermilk' } },
   snowmass: { liftieSlug: 'snowmass', officialFeed: { kind: 'aspen', id: 'Snowmass' } },
-  alta: { liftieSlug: 'alta' },
+  alta: { liftieSlug: 'alta', officialFeed: { kind: 'alta', id: 'alta' } },
   snowbird: { liftieSlug: 'snowbird', officialFeed: { kind: 'powdr', id: 'snowbird' } },
   brighton: { liftieSlug: 'brighton', officialFeed: { kind: 'boyne', id: 'br' } },
   solitude: { liftieSlug: 'solitude', officialFeed: { kind: 'mtnpowder', id: '65' } },
-  'park-city': { liftieSlug: 'parkcity' },
+  'park-city': { liftieSlug: 'parkcity', officialFeed: { kind: 'vail', id: 'parkcity' } },
   'deer-valley': { liftieSlug: 'deer-valley', officialFeed: { kind: 'mtnpowder', id: '49' } },
   snowbasin: { liftieSlug: 'snowbasin' },
   'brian-head': { liftieSlug: 'brianhead' },
   taos: { liftieSlug: 'taos' },
   'angel-fire': { liftieSlug: 'angel-fire' },
   'palisades-tahoe': { liftieSlug: 'palisades', officialFeed: { kind: 'mtnpowder', id: '61' } },
-  northstar: { liftieSlug: 'northstar' },
-  heavenly: { liftieSlug: 'heavenly' },
-  kirkwood: { liftieSlug: 'kirkwood' },
+  northstar: { liftieSlug: 'northstar', officialFeed: { kind: 'vail', id: 'northstar' } },
+  heavenly: { liftieSlug: 'heavenly', officialFeed: { kind: 'vail', id: 'heavenly' } },
+  kirkwood: { liftieSlug: 'kirkwood', officialFeed: { kind: 'vail', id: 'kirkwood' } },
   'sierra-at-tahoe': { liftieSlug: 'sierra' },
   'sugar-bowl': { liftieSlug: 'sugarbowl' },
   boreal: { liftieSlug: 'boreal', officialFeed: { kind: 'powdr', id: 'boreal' } },
