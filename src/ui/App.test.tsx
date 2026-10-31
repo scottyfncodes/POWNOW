@@ -69,7 +69,7 @@ describe('the home screen', () => {
     expect(screen.queryByRole('button', { name: /POWNOW/ })).not.toBeInTheDocument();
     await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
     expect(allMountains()).toBeInTheDocument();
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Sources', 'SEE WHY', 'All mountains']);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['SEE WHY', 'All mountains']);
   });
 
   it('shows a skeleton of the same layout while the call is being made, and SEE WHY waits for it', () => {
@@ -110,8 +110,7 @@ describe('the home screen', () => {
     await waitFor(() => expect(seeWhy()).toBeInTheDocument());
   }, 20_000);
 
-  it('keeps where the data comes from one tap away, in a Sources sheet', async () => {
-    window.history.replaceState(null, '', '/#/today');
+  it('keeps where the data comes from one tap away, in a Sources sheet on All mountains', async () => {
     render(<App />);
     expect(screen.queryByRole('region', { name: /where the data comes from/i })).not.toBeInTheDocument();
     await user().click(screen.getByRole('button', { name: 'Sources' }));
@@ -156,6 +155,24 @@ describe('the home screen', () => {
     }
   // Renders the list (with every mountain's snow forecast) and then the whole map: a full-app walk like the others here.
   }, 15_000);
+
+  it('scores the list for a day you pick, and that day carries into today\'s pick and POW PLANNER', async () => {
+    render(<App />);
+    const picker = screen.getByRole('combobox', { name: /day to score/i });
+    const options = within(picker).getAllByRole('option').map((option) => option.textContent);
+    expect(options.slice(0, 2)).toEqual(['Today', 'Tomorrow']);
+    expect(options).toHaveLength(14);
+    expect(screen.getByRole('button', { name: "See today's pick" })).toBeInTheDocument();
+
+    await user().selectOptions(picker, within(picker).getAllByRole('option')[1]!);
+    expect(screen.getByText(/score out of 10 for tomorrow/i)).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: /\d+ mountains, alphabetical/i });
+    await waitFor(() => expect(within(list).getAllByLabelText(/^Score for tomorrow: \d+\.\d out of 10$/).length).toBeGreaterThan(0), {
+      timeout: 12_000,
+    });
+    await user().click(screen.getByRole('button', { name: "See tomorrow's pick" }));
+    expect(screen.getByText(/^TOMORROW · from Denver$/i)).toBeInTheDocument();
+  }, 20_000);
 
   it('lists every mountain alphabetically, and a row opens its profile — no ranking', async () => {
     render(<App />);

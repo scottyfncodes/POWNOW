@@ -19,7 +19,7 @@ import { type Route, type Screen, useScreen } from '@/ui/hooks/useScreen';
 import { HomeScreen } from '@/ui/screens/HomeScreen';
 import { LaterScreen } from '@/ui/screens/LaterScreen';
 import type { ListScore, ListScores, ListSnow } from '@/ui/components/MountainList';
-import { ListScreen } from '@/ui/screens/ListScreen';
+import { dayName, ListScreen } from '@/ui/screens/ListScreen';
 import { MapScreen } from '@/ui/screens/MapScreen';
 import { MountainScreen } from '@/ui/screens/MountainScreen';
 import { PicksScreen } from '@/ui/screens/PicksScreen';
@@ -135,10 +135,10 @@ export default function App({ registry: injected }: AppProps = {}) {
       for (const plan of plans.data.all) {
         byId[plan.mountain.id] = { score: plan.score.score, offSeason: Boolean(plan.offSeasonMessage) };
       }
-      return { status: 'ready', byId, originName: origin.shortName };
+      return { status: 'ready', byId, originName: origin.shortName, dayName: dayName(date, clock.today) };
     }
     return plans.status === 'error' ? { status: 'error' } : { status: 'loading' };
-  }, [plans, origin.shortName]);
+  }, [plans, origin.shortName, date, clock.today]);
 
   const goBackTo = (target: Route) => navigate(target.screen, target.mountainId);
 
@@ -269,6 +269,10 @@ export default function App({ registry: injected }: AppProps = {}) {
       default:
         return (
           <ListScreen
+            date={date}
+            today={clock.today}
+            onDateChange={setChosenDate}
+            usingDemoData={registry.usingDemoData}
             scores={listScores}
             snow={snow}
             onToday={() => navigate('today')}

@@ -4993,3 +4993,32 @@
   display: flex;
   gap: 8px;
 }
+
+/* The day the scores are for: a chip that is a native select, so the phone's own picker opens. */
+.listscreen-date {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.listscreen-date select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.listscreen-date select option {
+  color: var(--ink);
+  background: var(--bg-raise);
+}
+
+.listscreen-date:focus-within {
+  border-color: var(--line-strong);
+}

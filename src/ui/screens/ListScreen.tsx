@@ -5,8 +5,17 @@ import { PASS_LABELS, type PassAffiliation } from '@/domain/mountain';
 import { BrowseBar } from '@/ui/components/BrowseBar';
 import { MountainList, type ListOrder, type ListScores, type ListSnow } from '@/ui/components/MountainList';
 import { ScreenHeader } from '@/ui/components/ScreenHeader';
+import { SourcesSheet } from '@/ui/components/SourcesSheet';
+import { addDays, daysBetween, type DateKey, formatDateLabel, weekdayLong } from '@/domain/dates';
 
 export interface ListScreenProps {
+  /** The day the scores are for, and today, so the picker can say Today and Tomorrow. */
+  date: DateKey;
+  today: DateKey;
+  /** Picking a day re-scores every mountain for it; POW PLANNER starts from the same day. */
+  onDateChange: (date: DateKey) => void;
+  /** Whether every number is simulated, for the Sources sheet. */
+  usingDemoData?: boolean;
   /** Today's score per mountain, from the same ranking the home screen shows. */
   scores?: ListScores;
   /** Every mountain's next five days of snow, shown on each card and sortable. */
@@ -29,6 +38,29 @@ const STATE_FILTERS: string[] = Object.keys(ORIGIN_STATE_LABELS).filter((state) 
   MOUNTAINS.some((mountain) => mountain.state === state),
 );
 
+/** How far ahead the list's day picker reaches: two weeks, past which a forecast is mostly guesswork. */
+const DAY_PICKER_DAYS = 14;
+
+/** "Today", "Tomorrow", "Sat, Nov 8": the picker's option text. */
+const dayOption = (date: DateKey, today: DateKey): string => {
+  const delta = daysBetween(today, date);
+  if (delta === 0) return 'Today';
+  if (delta === 1) return 'Tomorrow';
+  return formatDateLabel(date);
+};
+
+/** "today", "tomorrow", "Saturday", "Sat, Nov 22": the day in a sentence. */
+export const dayName = (date: DateKey, today: DateKey): string => {
+  const delta = daysBetween(today, date);
+  if (delta === 0) return 'today';
+  if (delta === 1) return 'tomorrow';
+  if (delta > 1 && delta < 7) return weekdayLong(date);
+  return formatDateLabel(date);
+};
+
+/** "today's", "Saturday's"; a date reads "the Sat, Nov 22" instead of a possessive. */
+const possessive = (day: string): string => (/\d/.test(day) ? `the ${day}` : `${day}'s`);
+
 /** "Colorado, Utah, New Mexico and California" — whatever the dataset covers. */
 const STATES_SENTENCE = ((names: string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)(
@@ -42,7 +74,15 @@ const STATES_SENTENCE = ((names: string[]) =>
  * point, but the list stays alphabetical. A search box, state chips and pass chips narrow it; a row opens that
  * mountain's profile, separate from any ranking.
  */
-export function ListScreen({ scores, snow, onToday, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
+export function ListScreen({ date, today, onDateChange, usingDemoData = false, scores, snow, onToday, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const days = useMemo(() => {
+    const options = Array.from({ length: DAY_PICKER_DAYS }, (_, i) => addDays(today, i));
+    // A day picked further out in POW PLANNER stays selectable here.
+    return options.includes(date) ? options : [...options, date];
+  }, [date, today]);
+  const day = dayName(date, today);
+  const isToday = date === today;
   const [query, setQuery] = useState('');
   const [order, setOrder] = useState<ListOrder>('name');
   const [pass, setPass] = useState<PassAffiliation | null>(null);
@@ -61,7 +101,14 @@ export function ListScreen({ scores, snow, onToday, onOpenMountain, onShowMap, o
 
   return (
     <div className="screen listscreen">
-      <ScreenHeader title="MOUNTAINS" />
+      <ScreenHeader
+        title="MOUNTAINS"
+        right={
+          <button type="button" className="home-sources" onClick={() => setSourcesOpen(true)} aria-haspopup="dialog">
+            Sources
+          </button>
+        }
+      />
       <div className="screen-body shell">
         <BrowseBar view="list" onShowMap={onShowMap} onShowList={() => {}} onRank={onRank} />
 
@@ -70,15 +117,15 @@ export function ListScreen({ scores, snow, onToday, onOpenMountain, onShowMap, o
             <span className="numeral">{MOUNTAINS.length}</span> mountains
           </h1>
           <p className="listscreen-intro">
-            Across {STATES_SENTENCE}. Each card shows today's score out of 10
+            Across {STATES_SENTENCE}. Each card shows the score out of 10 for {day}
             {scores?.status === 'ready' ? ` from ${scores.originName}` : ''} and the snow forecast for the next five days. A to Z unless you
             sort by snow. Open any one for its full profile: the terrain, today's snow, the drive, parking and where to eat.
           </p>
           {onToday && (
             <p className="listscreen-today">
-              Going today?{' '}
+              Going {day}?{' '}
               <button type="button" className="linkbutton" onClick={onToday}>
-                See today's pick
+                See {possessive(day)} pick
               </button>
             </p>
           )}
@@ -99,6 +146,19 @@ export function ListScreen({ scores, snow, onToday, onOpenMountain, onShowMap, o
               >
                 Most snow coming
               </button>
+              <label className={`filterchip listscreen-date${isToday ? '' : ' is-active'}`}>
+                <span className="visually-hidden">Day to score</span>
+                <select value={date} onChange={(event) => onDateChange(event.target.value)}>
+                  {days.map((option) => (
+                    <option key={option} value={option}>
+                      {dayOption(option, today)}
+                    </option>
+                  ))}
+                </select>
+                <svg aria-hidden="true" viewBox="0 0 12 12" width="10" height="10">
+                  <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </label>
             </div>
           )}
           <label className="listscreen-search">
@@ -172,6 +232,7 @@ export function ListScreen({ scores, snow, onToday, onOpenMountain, onShowMap, o
           </p>
         )}
       </div>
+      {sourcesOpen && <SourcesSheet usingDemoData={usingDemoData} onClose={() => setSourcesOpen(false)} />}
     </div>
   );
 }
