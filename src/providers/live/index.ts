@@ -54,7 +54,7 @@ export interface LiveRegistryOptions {
  * | traffic | `trafficApiBaseUrl` set | `unavailable` |
  * | roads | proxy set and `enableRoadConditions` (default true) | `unavailable` |
  * | snowpack | `trafficApiBaseUrl` set (SNOTEL via the proxy) | `unavailable` |
- * | mountain (operations) | Liftie covers the resort | `unavailable` |
+ * | mountain (operations) | the resort's own feed (via proxy), else Liftie | `unavailable` |
  * | mountain (crowds) | never — retired, see `mountainStatus.ts` | `unavailable` |
  * | pricing | never — no verifiable source, see `pricing.ts` | `unavailable` |
  * | parking | always, for a researched mountain — see `parking.ts` | `unavailable` for an unresearched mountain |
@@ -73,7 +73,7 @@ export function createLiveRegistry(options: LiveRegistryOptions = {}): ProviderR
   return {
     weather: new OpenMeteoWeatherProvider(),
     traffic: hasProxy ? new LiveTrafficProvider({ apiBaseUrl: apiBaseUrl! }) : new UnavailableTrafficProvider(),
-    mountain: new LiveMountainProvider(),
+    mountain: new LiveMountainProvider({ apiBaseUrl }),
     pricing: new LivePricingProvider(),
     places: new UnavailablePlacesProvider(),
     alerts: new NwsAlertsProvider(),

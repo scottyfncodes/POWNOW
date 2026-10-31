@@ -24,7 +24,16 @@ export interface ResortSource {
   officialPurchaseUrl?: string;
   /** Liftie resort id — a third-party aggregator, never the resort itself. */
   liftieSlug?: string;
+  /**
+   * The resort's own structured lift/trail feed, read through the proxy
+   * (`/api/resort-status`). Tried before Liftie. Only feeds that were checked
+   * against the live endpoint are listed; see `providers/live/officialResortFeed.ts`.
+   */
+  officialFeed?: OfficialFeed;
 }
+
+/** `mtnpowder`: Alterra's conditions platform, keyed by its numeric resort id. `powdr`: POWDR's day-of-report API, keyed by resort. */
+export type OfficialFeed = { kind: 'mtnpowder'; id: string } | { kind: 'powdr'; id: 'copper' | 'eldora' | 'snowbird' };
 
 export const RESORT_SOURCES: Record<string, ResortSource> = {
   vail: {
@@ -50,17 +59,19 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
   'crested-butte': {
     officialOpsUrl: 'https://www.skicb.com/the-mountain/mountain-conditions/terrain-and-lift-status.aspx',
     officialPurchaseUrl: 'https://www.skicb.com/plan-your-trip/lift-tickets.aspx',
-    liftieSlug: 'crestedbutte',
+    liftieSlug: 'crested-butte',
   },
   'winter-park': {
     officialOpsUrl: 'https://www.winterparkresort.com/the-mountain/mountain-report',
     officialPurchaseUrl: 'https://www.winterparkresort.com/tickets-and-passes',
-    liftieSlug: 'winterpark',
+    liftieSlug: 'winter-park',
+    officialFeed: { kind: 'mtnpowder', id: '5' },
   },
   copper: {
     officialOpsUrl: 'https://www.coppercolorado.com/mountain-report',
     officialPurchaseUrl: 'https://www.coppercolorado.com/lift-tickets',
     liftieSlug: 'copper',
+    officialFeed: { kind: 'powdr', id: 'copper' },
   },
   purgatory: {
     // Official domain is purgatory.ski (purgatoryresort.com was an earlier
@@ -68,17 +79,16 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
     // and the purchase URL is its store's one-day ticket calendar.
     officialOpsUrl: 'https://www.purgatory.ski/mountain/weather-conditions-webcams/',
     officialPurchaseUrl: 'https://store.purgatory.ski/Calendar.aspx?Department=TICKET%3AWIN&Category=VARIABLE&Item=1DAY&Link=Lift+Tickets',
-    liftieSlug: 'purgatory',
   },
   'wolf-creek': {
     officialOpsUrl: 'https://wolfcreekski.com/mountain-report/',
     officialPurchaseUrl: 'https://wolfcreekski.com/lift-tickets/',
-    liftieSlug: 'wolfcreek',
   },
   'arapahoe-basin': {
     officialOpsUrl: 'https://www.arapahoebasin.com/mountain/conditions-and-weather/',
     officialPurchaseUrl: 'https://www.arapahoebasin.com/tickets/',
     liftieSlug: 'abasin',
+    officialFeed: { kind: 'mtnpowder', id: '93' },
   },
   loveland: {
     officialOpsUrl: 'https://www.skiloveland.com/conditions/',
@@ -89,11 +99,13 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
     officialOpsUrl: 'https://www.eldora.com/the-mountain/mountain-report/',
     officialPurchaseUrl: 'https://www.eldora.com/tickets-passes/lift-tickets/',
     liftieSlug: 'eldora',
+    officialFeed: { kind: 'powdr', id: 'eldora' },
   },
   steamboat: {
     officialOpsUrl: 'https://www.steamboat.com/the-mountain/mountain-report',
     officialPurchaseUrl: 'https://www.steamboat.com/lift-tickets',
     liftieSlug: 'steamboat',
+    officialFeed: { kind: 'mtnpowder', id: '6' },
   },
   monarch: {
     officialOpsUrl: 'https://skimonarch.com/conditions/',
@@ -107,4 +119,45 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
   },
 };
 
-export const resortSourceFor = (mountainId: string): ResortSource => RESORT_SOURCES[mountainId] ?? {};
+/**
+ * The Utah, New Mexico and California batches carry no ops/purchase links of
+ * their own here; they get the same two live sources where one exists.
+ * Liftie ids are from Liftie's resort directory (github.com/pirxpilot/liftie,
+ * `lib/resorts/`, read 2026-10-31). MtnPowder ids were read off the live
+ * feed, each one's `Name` matching the mountain.
+ */
+const REGION_SOURCES: Record<string, ResortSource> = {
+  'aspen-mountain': { liftieSlug: 'aspen-mountain' },
+  'aspen-highlands': { liftieSlug: 'aspen-highlands' },
+  buttermilk: { liftieSlug: 'buttermilk' },
+  snowmass: { liftieSlug: 'snowmass' },
+  alta: { liftieSlug: 'alta' },
+  snowbird: { liftieSlug: 'snowbird', officialFeed: { kind: 'powdr', id: 'snowbird' } },
+  brighton: { liftieSlug: 'brighton' },
+  solitude: { liftieSlug: 'solitude', officialFeed: { kind: 'mtnpowder', id: '65' } },
+  'park-city': { liftieSlug: 'parkcity' },
+  'deer-valley': { liftieSlug: 'deer-valley', officialFeed: { kind: 'mtnpowder', id: '49' } },
+  snowbasin: { liftieSlug: 'snowbasin' },
+  'brian-head': { liftieSlug: 'brianhead' },
+  taos: { liftieSlug: 'taos' },
+  'angel-fire': { liftieSlug: 'angel-fire' },
+  'palisades-tahoe': { liftieSlug: 'palisades', officialFeed: { kind: 'mtnpowder', id: '61' } },
+  northstar: { liftieSlug: 'northstar' },
+  heavenly: { liftieSlug: 'heavenly' },
+  kirkwood: { liftieSlug: 'kirkwood' },
+  'sierra-at-tahoe': { liftieSlug: 'sierra' },
+  'sugar-bowl': { liftieSlug: 'sugarbowl' },
+  boreal: { liftieSlug: 'boreal' },
+  'donner-ski-ranch': { liftieSlug: 'donner-ski-ranch' },
+  'tahoe-donner': { liftieSlug: 'tahoe-donner' },
+  'china-peak': { liftieSlug: 'chinapeak' },
+  mammoth: { liftieSlug: 'mammoth-lakes', officialFeed: { kind: 'mtnpowder', id: '60' } },
+  'june-mountain': { liftieSlug: 'june-mountain', officialFeed: { kind: 'mtnpowder', id: '59' } },
+  'bear-mountain': { officialFeed: { kind: 'mtnpowder', id: '57' } },
+  'snow-summit': { officialFeed: { kind: 'mtnpowder', id: '58' } },
+  'snow-valley': { liftieSlug: 'snow-valley' },
+  'mountain-high': { liftieSlug: 'mthigh' },
+};
+
+export const resortSourceFor = (mountainId: string): ResortSource =>
+  RESORT_SOURCES[mountainId] ?? REGION_SOURCES[mountainId] ?? {};

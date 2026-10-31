@@ -610,6 +610,125 @@ async function buildSnotelReading(triplet, days) {
   };
 }
 
+/* ------------------------------------------------- official resort feeds */
+
+/**
+ * Two resort-operated JSON feeds, both checked against the live endpoints on
+ * 2026-10-31 (neither sends CORS headers, so the browser can't call them):
+ *
+ *   - MtnPowder (`mtnpowder.com/feed?resortId=N`), the conditions platform
+ *     behind Alterra's resorts and Arapahoe Basin. Per-lift and per-trail
+ *     status plus the snow report's own update time. Its top-level
+ *     `OperatingStatus` is not trustworthy (A-Basin read "Closed" with a
+ *     lift spinning; a summer-only resort read "Open" in October), so it is
+ *     ignored and the lift and trail lists are counted instead.
+ *   - POWDR's day-of-report API (`api.<resort>.com/api/v1/dor/drupal/...`),
+ *     behind Copper, Eldora and Snowbird. Lift and trail arrays with status.
+ *
+ * Only the ids and hosts below are reachable through this endpoint, so it is
+ * not an open proxy. The response is normalized to counts; a feed this code
+ * doesn't understand is a 502, never a guessed "closed".
+ */
+export const MTNPOWDER_IDS = new Set(['5', '6', '49', '57', '58', '59', '60', '61', '65', '93']);
+export const POWDR_HOSTS = { copper: 'api.coppercolorado.com', eldora: 'api.eldora.com', snowbird: 'api.snowbird.com' };
+const RESORT_FEED_CACHE_TTL_MS = Number(process.env.RESORT_FEED_CACHE_TTL_SECONDS ?? 300) * 1000;
+
+/** Feed status words → the four this app counts. Anything else is "unknown". */
+export function liftWord(value) {
+  const text = String(value ?? '').trim().toLowerCase();
+  if (!text) return 'unknown';
+  if (/^open/.test(text)) return 'open';
+  if (/hold|delay/.test(text)) return 'hold';
+  if (/schedul|expected|planned|anticipated|pending/.test(text)) return 'scheduled';
+  if (/clos/.test(text)) return 'closed';
+  return 'unknown';
+}
+
+function tally(items, statusOf) {
+  const counts = { open: 0, hold: 0, scheduled: 0, closed: 0, unknown: 0 };
+  for (const item of items) counts[liftWord(statusOf(item))] += 1;
+  return counts;
+}
+
+/** ISO string or epoch seconds/ms → epoch ms, or null. */
+function toMs(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value > 1e12 ? value : value * 1000;
+  if (typeof value === 'string' && value.trim()) {
+    // MtnPowder writes offsets without a colon ("-0600"), which Date parses.
+    const ms = new Date(value).getTime();
+    return Number.isNaN(ms) ? null : ms;
+  }
+  return null;
+}
+
+const latest = (values) => {
+  const list = values.filter((value) => value !== null);
+  return list.length ? Math.max(...list) : null;
+};
+
+export function normalizeMtnPowder(payload) {
+  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.MountainAreas)) return null;
+  const lifts = payload.MountainAreas.flatMap((area) => (Array.isArray(area?.Lifts) ? area.Lifts : []));
+  const trails = payload.MountainAreas.flatMap((area) => (Array.isArray(area?.Trails) ? area.Trails : []));
+  if (lifts.length === 0) return null;
+  const liftCounts = tally(lifts, (lift) => lift?.StatusEnglish ?? lift?.Status);
+  if (liftCounts.unknown > lifts.length * 0.4) return null;
+  const trailCounts = tally(trails, (trail) => trail?.StatusEnglish ?? trail?.Status);
+  const report = payload.SnowReport ?? {};
+  const acresOpen = Number(report.OpenTerrainAcres);
+  const acresTotal = Number(report.TotalTerrainAcres);
+  return {
+    feed: 'mtnpowder',
+    resortName: typeof payload.Name === 'string' ? payload.Name : null,
+    lifts: liftCounts,
+    trails: { open: trailCounts.open, total: trails.length },
+    acres: Number.isFinite(acresOpen) && Number.isFinite(acresTotal) && acresTotal > 0 ? { open: acresOpen, total: acresTotal } : null,
+    // The board is as fresh as its newest stamp: the snow report or any lift change.
+    boardUpdatedAt: latest([toMs(report.LastUpdate), ...lifts.map((lift) => toMs(lift?.UpdateDate))]),
+  };
+}
+
+export function normalizePowdr(liftsPayload, trailsPayload) {
+  if (!Array.isArray(liftsPayload)) return null;
+  const inWinter = (item) => item && (item.season === 'winter' || item.season === 'all' || item.season === undefined);
+  const lifts = liftsPayload.filter(inWinter);
+  if (lifts.length === 0) return null;
+  const liftCounts = tally(lifts, (lift) => lift.status);
+  if (liftCounts.unknown > lifts.length * 0.4) return null;
+  const trails = Array.isArray(trailsPayload)
+    ? trailsPayload.filter((trail) => inWinter(trail) && trail.type === 'alpine_trail' && trail.include !== false)
+    : [];
+  const trailCounts = tally(trails, (trail) => trail.status);
+  return {
+    feed: 'powdr',
+    resortName: null,
+    lifts: liftCounts,
+    trails: { open: trailCounts.open, total: trails.length },
+    acres: null,
+    boardUpdatedAt: latest([...lifts, ...trails].map((item) => toMs(item.updated))),
+  };
+}
+
+async function fetchJsonOrThrow(url) {
+  const response = await fetchWithTimeout(url, { headers: { Accept: 'application/json', 'User-Agent': 'POW NOW (+https://snownow.vercel.app)' } }, REQUEST_TIMEOUT_MS);
+  if (!response.ok) throw new Error(`${new URL(url).host} returned ${response.status}`);
+  return response.json();
+}
+
+async function buildResortStatus(feed, id) {
+  if (feed === 'mtnpowder') {
+    const normalized = normalizeMtnPowder(await fetchJsonOrThrow(`https://mtnpowder.com/feed?resortId=${id}`));
+    return normalized && { ...normalized, sourceTimestamp: new Date().toISOString() };
+  }
+  const host = POWDR_HOSTS[id];
+  const [lifts, trails] = await Promise.all([
+    fetchJsonOrThrow(`https://${host}/api/v1/dor/drupal/lifts`),
+    fetchJsonOrThrow(`https://${host}/api/v1/dor/drupal/trails`).catch(() => null),
+  ]);
+  const normalized = normalizePowdr(lifts, trails);
+  return normalized && { ...normalized, sourceTimestamp: new Date().toISOString() };
+}
+
 /* ---------------------------------------------------------------- router */
 
 function corsHeadersFor(req) {
@@ -858,6 +977,30 @@ async function handle(req, res) {
       return;
     }
     sendJson(req, res, 200, reading, cdnCache(Math.round(SNOTEL_CACHE_TTL_MS / 1000)));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/resort-status') {
+    const feed = url.searchParams.get('feed');
+    const id = url.searchParams.get('id') ?? '';
+    const allowed =
+      (feed === 'mtnpowder' && MTNPOWDER_IDS.has(id)) || (feed === 'powdr' && Object.hasOwn(POWDR_HOSTS, id));
+    if (!allowed) {
+      sendJson(req, res, 400, { error: 'Unknown resort feed.' });
+      return;
+    }
+    let status;
+    try {
+      status = await cachedOrCompute(`resort:${feed}:${id}`, RESORT_FEED_CACHE_TTL_MS, () => buildResortStatus(feed, id));
+    } catch (error) {
+      sendJson(req, res, 502, { error: error instanceof Error ? error.message : 'Resort feed request failed.' });
+      return;
+    }
+    if (!status) {
+      sendJson(req, res, 502, { error: 'The resort feed returned a shape this proxy does not recognize.' });
+      return;
+    }
+    sendJson(req, res, 200, status, cdnCache(Math.round(RESORT_FEED_CACHE_TTL_MS / 1000)));
     return;
   }
 

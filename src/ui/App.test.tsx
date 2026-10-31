@@ -481,7 +481,7 @@ describe('another day', () => {
     expect(screen.getByText('BEST BET')).toBeInTheDocument();
     expect(screen.getByText(/a projection, not a promise/i)).toBeInTheDocument();
     await user().click(within(picksList()).getAllByRole('button')[0]!);
-    await waitFor(() => expect(screen.getByText(/^Projected$/i)).toBeInTheDocument(), { timeout: 12_000 });
+    await waitFor(() => expect(screen.getByText(/^Projected$/)).toBeInTheDocument(), { timeout: 12_000 });
     expect(screen.getByText(/CONFIDENCE/)).toBeInTheDocument();
   }, 20_000);
 
@@ -489,7 +489,7 @@ describe('another day', () => {
     render(<App />);
     await openSetup();
     await user().click(screen.getByRole('button', { name: /compare a whole range/i }));
-    await waitFor(() => expect(screen.getByText(/^Projected$/i)).toBeInTheDocument(), {
+    await waitFor(() => expect(screen.getByText(/^Projected$/)).toBeInTheDocument(), {
       timeout: 12_000,
     });
     expect(screen.getAllByText('FORECAST').length).toBeGreaterThan(0);
@@ -705,7 +705,7 @@ describe('navigation history', () => {
     window.history.replaceState(null, '', '/#/later');
     render(<App />);
     expect(screen.getByText('LATER')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/^Projected$/i)).toBeInTheDocument(), { timeout: 12_000 });
+    await waitFor(() => expect(screen.getByText(/^Projected$/)).toBeInTheDocument(), { timeout: 12_000 });
   });
 
   it('opens a mountain straight from its link, and the old NOW link lands on today\'s picks', async () => {

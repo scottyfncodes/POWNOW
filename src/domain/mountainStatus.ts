@@ -9,6 +9,7 @@
  */
 export type MountainOperationalState =
   | 'OFF_SEASON'
+  | 'PRESEASON'
   | 'NO_SNOW'
   | 'INSUFFICIENT_COVERAGE'
   | 'CLOSED'
@@ -27,6 +28,7 @@ export type MountainOperationalState =
  */
 export const NON_SKIABLE_STATES: ReadonlySet<MountainOperationalState> = new Set([
   'OFF_SEASON',
+  'PRESEASON',
   'NO_SNOW',
   'INSUFFICIENT_COVERAGE',
   'CLOSED',

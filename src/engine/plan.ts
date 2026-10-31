@@ -34,6 +34,7 @@ import { optimizeDay } from './optimize';
 import { mountainsInReach } from './routing';
 import { scoreDay } from './scoring';
 import { buildSnowClock, resolveOperations, resolveWeather } from './snowClock';
+import { seasonFor, shortDate } from './season';
 import { classifySnowState } from './snowState';
 
 export interface PlanOptions {
@@ -324,9 +325,15 @@ export async function recommend(
 
   const plans = inputs
     .map((dayInputs) => buildPlan(dayInputs, options))
-    // A day we can't call never outranks one we can: its score is built on
-    // neutral stand-ins, and letting that win would put a guess on the home screen.
-    .sort((a, b) => Number(a.noCall !== null) - Number(b.noCall !== null) || b.score.raw - a.score.raw);
+    // A closed or preseason mountain is never recommended, whatever its
+    // weather would score; and a day we can't call never outranks one we
+    // can, since its score is built on neutral stand-ins.
+    .sort(
+      (a, b) =>
+        Number(isNotSkiable(a)) - Number(isNotSkiable(b)) ||
+        Number(a.noCall !== null) - Number(b.noCall !== null) ||
+        b.score.raw - a.score.raw,
+    );
 
   const best = plans[0];
   if (!best) {
@@ -339,6 +346,8 @@ export async function recommend(
   }
 
   const caveats = [...new Set(plans.flatMap((plan) => plan.caveats))];
+  const noneOpen = plans.every(isNotSkiable);
+  const nextOpening = noneOpen ? soonestOpening(plans, options.date) : null;
 
   return {
     date: options.date,
@@ -346,11 +355,37 @@ export async function recommend(
     best,
     alternatives,
     all: plans,
-    comparison: comparisonFor(best, alternatives[0]),
+    comparison: noneOpen ? noneOpenLine(plans.length, nextOpening) : comparisonFor(best, alternatives[0]),
     generatedAt: new Date().toISOString(),
     usingDemoData: registry.usingDemoData,
     caveats,
+    noneOpen,
+    nextOpening,
   };
+}
+
+/** The plain answer when nothing in the field is open. */
+export function noneOpenLine(count: number, next: Recommendation['nextOpening']): string {
+  const field = count === 1 ? 'The one mountain in reach is' : `None of the ${count} mountains in reach are`;
+  const first = next
+    ? ` First to open: ${next.shortName}, ${shortDate(next.date)}${next.status === 'projected' ? ' (projected)' : ''}.`
+    : ' No opening dates announced yet.';
+  return `${count === 1 ? `${field} not open today.` : `${field} open today.`}${first}`;
+}
+
+const isNotSkiable = (plan: SkiDayPlan): boolean => NON_SKIABLE_STATES.has(plan.operationalState);
+
+/** The earliest announced opening day after `date` among the field, from each resort's own published date. */
+function soonestOpening(plans: SkiDayPlan[], date: DateKey): Recommendation['nextOpening'] {
+  let soonest: Recommendation['nextOpening'] = null;
+  for (const plan of plans) {
+    const opening = seasonFor(plan.mountain, date).opening;
+    if (!opening?.date || opening.status === 'tbd' || opening.date <= date) continue;
+    if (!soonest || opening.date < soonest.date) {
+      soonest = { mountainId: plan.mountain.id, shortName: plan.mountain.shortName, date: opening.date, status: opening.status };
+    }
+  }
+  return soonest;
 }
 
 /** ---- Stay or go --------------------------------------------------------- */

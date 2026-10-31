@@ -45,6 +45,8 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
   const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
 
   const best = state.status === 'ready' ? state.data.best : null;
+  // Everything in reach closed or not open yet: say that, never dress the first closed mountain up as a pick.
+  const noneOpen = state.status === 'ready' && state.data.noneOpen;
   const loading = state.status === 'loading' || state.status === 'idle';
   const dayLabel = relativeDateLabel(date, clock.today);
   const from = origin.id === 'gps' ? 'your location' : origin.shortName;
@@ -71,7 +73,9 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
             {usingDemoData && <span className="chip chip-demo">DEMO DATA</span>}
           </p>
 
-          {best ? (
+          {best && noneOpen && state.status === 'ready' ? (
+            <NoneOpen line={state.data.comparison} />
+          ) : best ? (
             <Pick plan={best} />
           ) : (
             <>
@@ -116,10 +120,16 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
             type="button"
             className="home-cta"
             disabled={!best}
-            onClick={() => best && onOpenMountain(best.mountain.id)}
-            aria-label={best ? `See why ${best.mountain.shortName}: the full day plan` : 'See why (waiting on the call)'}
+            onClick={() => (noneOpen ? onBrowse() : best && onOpenMountain(best.mountain.id))}
+            aria-label={
+              noneOpen
+                ? 'See every mountain and when each one opens'
+                : best
+                  ? `See why ${best.mountain.shortName}: the full day plan`
+                  : 'See why (waiting on the call)'
+            }
           >
-            <span>SEE WHY</span>
+            <span>{noneOpen ? 'SEE OPENING DAYS' : 'SEE WHY'}</span>
             <span className="home-cta-go" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="22" height="22">
                 <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -185,6 +195,21 @@ function Pick({ plan }: { plan: SkiDayPlan }) {
   );
 }
 
+/** No mountain in reach is open: the honest answer, with the first announced opening day. */
+function NoneOpen({ line }: { line: string }) {
+  return (
+    <>
+      <h1 id="home-pick" className="home-pick" style={{ '--chars': 8 } as CSSProperties}>
+        NOT YET.
+      </h1>
+      <div className="home-call">
+        <p className="home-verdict is-offseason">Nothing in reach is open today.</p>
+      </div>
+      <p className="home-offseason">{line}</p>
+    </>
+  );
+}
+
 function snowLine(plan: SkiDayPlan): string {
   if (plan.freshSnowIn == null) return 'Weather feed down';
   if (plan.freshSnowIn > 0) return `${plan.freshSnowIn.toFixed(plan.freshSnowIn < 10 ? 1 : 0)}" overnight`;
@@ -194,6 +219,9 @@ function snowLine(plan: SkiDayPlan): string {
 function liftsLine(plan: SkiDayPlan): string {
   const ops = plan.operations;
   if (!ops) return 'Lift report silent';
+  if (ops.trailsOpen != null && ops.trailsTotal) {
+    return `${ops.liftsExpectedOpen} of ${ops.liftsTotal} lifts · ${ops.trailsOpen} of ${ops.trailsTotal} runs open`;
+  }
   return `${ops.liftsExpectedOpen} of ${ops.liftsTotal} spinning · ${Math.round(ops.terrainOpenShare * 100)}% terrain open`;
 }
 

@@ -132,6 +132,8 @@ export function scoreDay(input: ScoreInput): DayScore {
       });
     }
   }
+  const limited = limitedTerrainPenalty(inputs, weighted - penalties.reduce((sum, p) => sum + p.points, 0));
+  if (limited) penalties.push(limited);
   const rawScore = clamp(weighted - penalties.reduce((sum, p) => sum + p.points, 0), 0, 100);
 
   const ranked = [...factors].sort(
@@ -147,6 +149,31 @@ export function scoreDay(input: ScoreInput): DayScore {
     strengths: ranked.filter((f) => f.value >= 70).slice(0, 3),
     weaknesses: ranked.reverse().filter((f) => f.value < 62).slice(0, 3),
   };
+}
+
+/**
+ * An early-season mountain with one run open can have fresh snow, no wind
+ * and an empty highway, and the weighted average alone would call that a
+ * great day. Terrain is only one factor of many, so a live report of under
+ * 45% open caps the score instead: the ceiling is 3.0 plus the open share
+ * (one run of 147 tops out near 3.1, a quarter of the mountain near 5.5,
+ * 45% near 7.5). Applied only to a real lift report, never to an imputed one.
+ */
+const LIMITED_TERRAIN_SHARE = 0.45;
+
+function limitedTerrainPenalty(inputs: DayInputs, current: number): ScorePenalty | null {
+  if (inputs.operations.status !== 'ok') return null;
+  const ops = inputs.operations.data;
+  const share = ops.terrainOpenShare;
+  if (ops.status === 'closed' || share >= LIMITED_TERRAIN_SHARE) return null;
+  const ceiling = 30 + share * 100;
+  const points = Math.round(Math.max(0, current - ceiling) * 10) / 10;
+  if (points <= 0) return null;
+  const what =
+    ops.trailsOpen != null && ops.trailsTotal
+      ? `${ops.trailsOpen} of ${ops.trailsTotal} runs open`
+      : `${ops.liftsOpen ?? ops.liftsExpectedOpen} of ${ops.liftsTotal} lifts open`;
+  return { label: `Limited terrain: ${what}`, points };
 }
 
 function confidenceFor(inputs: DayInputs, factors: ScoreFactor[]): ConfidenceLevel {
