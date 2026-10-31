@@ -35,7 +35,7 @@ export interface ResortSource {
 /** `mtnpowder`: Alterra's conditions platform, keyed by its numeric resort id. `powdr`: POWDR's day-of-report API, keyed by resort. */
 export type OfficialFeed =
   | { kind: 'mtnpowder'; id: string }
-  | { kind: 'powdr'; id: 'copper' | 'eldora' | 'snowbird' }
+  | { kind: 'powdr'; id: 'copper' | 'eldora' | 'snowbird' | 'boreal' | 'soda-springs' }
   | { kind: 'aspen'; id: 'AspenMountain' | 'AspenHighlands' | 'Snowmass' | 'Buttermilk' }
   | { kind: 'boyne'; id: 'br' };
 
@@ -151,7 +151,8 @@ const REGION_SOURCES: Record<string, ResortSource> = {
   kirkwood: { liftieSlug: 'kirkwood' },
   'sierra-at-tahoe': { liftieSlug: 'sierra' },
   'sugar-bowl': { liftieSlug: 'sugarbowl' },
-  boreal: { liftieSlug: 'boreal' },
+  boreal: { liftieSlug: 'boreal', officialFeed: { kind: 'powdr', id: 'boreal' } },
+  'soda-springs': { officialFeed: { kind: 'powdr', id: 'soda-springs' } },
   'donner-ski-ranch': { liftieSlug: 'donner-ski-ranch' },
   'tahoe-donner': { liftieSlug: 'tahoe-donner' },
   'china-peak': { liftieSlug: 'chinapeak' },

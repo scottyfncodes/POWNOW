@@ -93,6 +93,14 @@ describe('proxy normalizers', () => {
     expect(normalizeLiftList({ nope: true }, 'aspen')).toBeNull();
   });
 
+  it('wires every POWDR resort in the proxy allowlist to a mountain, and back', async () => {
+    const { POWDR_HOSTS } = await import('../../../server/index.mjs');
+    const { MOUNTAINS } = await import('@/data/mountains');
+    const { resortSourceFor } = await import('@/data/resortSources');
+    const wired = MOUNTAINS.map((m) => resortSourceFor(m.id).officialFeed).filter((f) => f?.kind === 'powdr').map((f) => f!.id);
+    expect(wired.sort()).toEqual(Object.keys(POWDR_HOSTS).sort());
+  });
+
   it('maps status words without guessing', () => {
     expect(liftWord('Open')).toBe('open');
     expect(liftWord('Wind Hold')).toBe('hold');
