@@ -105,13 +105,19 @@ describe('mountain profiles — data integrity', () => {
     if (profile.trailMap.pdfUrl) expect(new URL(profile.trailMap.pdfUrl).hostname).toMatch(/(^|\.)purgatory\.ski$/);
   });
 
-  it('never claims a confirmed opening/closing date this early in the 2026-27 season research pass', () => {
-    // Every date recorded as of this research pass is, at best, a resort's own
-    // published "target" — never treat that as `confirmed`.
+  it('only confirms an opening day that has actually happened, and never a closing day this early', () => {
+    // The September research pass recorded targets as projected. A date is
+    // confirmed only once the resort has opened and that was checked: as of
+    // 2026-10-31, Arapahoe Basin (Oct 28) and Keystone (Oct 30).
+    const CONFIRMED_OPENINGS: Record<string, string> = { 'arapahoe-basin': '2026-10-28', keystone: '2026-10-30' };
     for (const mountain of MOUNTAINS) {
       const profile = mountainProfileFor(mountain.id)!;
-      expect(profile.openingDate.status).not.toBe('confirmed');
+      if (profile.openingDate.status === 'confirmed') {
+        expect(CONFIRMED_OPENINGS[mountain.id], mountain.id).toBe(profile.openingDate.date);
+      }
       expect(profile.closingDate.status).not.toBe('confirmed');
     }
+    expect(Object.keys(CONFIRMED_OPENINGS).every((id) => mountainProfileFor(id)?.openingDate.status === 'confirmed')).toBe(true);
   });
+
 });

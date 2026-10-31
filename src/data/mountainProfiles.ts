@@ -188,7 +188,7 @@ const CORE_MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     passInfoUrl: 'https://www.epicpass.com',
     phone: '855-603-0049',
     address: '22101 US Hwy 6, Keystone, CO 80435',
-    openingDate: TBD_DATE,
+    openingDate: { date: '2026-10-30', status: 'confirmed' },
     closingDate: TBD_DATE,
     grub: {
       picks: [
@@ -211,7 +211,7 @@ const CORE_MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       ],
     },
     notes:
-      'Vail Resorts’ 8/18/2026 release says Keystone is targeting "as soon as possible in October 2026" with no specific date, so no date is recorded despite the target being real. Not fetch-verified.',
+      'UPDATED 2026-10-31: opened Friday, Oct 30, 2026 (Vail Resorts release and Summit Daily opening-day coverage; River Run Gondola and Montezuma Express, Schoolmarm and Silver Spoon). Keystone’s own lift page showed 2 lifts and 1 run open on Oct 31. Not fetch-verified.',
   },
   'crested-butte': {
     officialWebsite: 'https://www.skicb.com',
@@ -444,7 +444,7 @@ const CORE_MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
     passInfoUrl: 'https://www.ikonpass.com/en/destinations/arapahoe-basin',
     phone: '888-272-7246',
     address: '28194 Highway 6, Dillon, CO 80435',
-    openingDate: TBD_DATE,
+    openingDate: { date: '2026-10-28', status: 'confirmed' },
     closingDate: TBD_DATE,
     grub: {
       picks: [
@@ -467,7 +467,7 @@ const CORE_MOUNTAIN_PROFILES: Record<string, MountainProfile> = {
       distilleries: [{ name: 'Pullman Distillery', note: 'Frisco Main Street, housed in a restored 1800s railcar, about 20 minutes away.' }],
     },
     notes:
-      'A-Basin’s own materials describe 2026-27 opening as explicitly TBD, pending sufficient snow. Trail map links the official page only. UPDATED: parking reservation window shifted to Jan 2–May 2, 2027 (was Jan 17–May 3). A-Basin adjusted its reservation program for the season that also brought unlimited access to the full Ikon Pass; also clarified the Admin Lot\'s $40 fee applies every day, not just weekend reservation days. Sunshine Café corrected to Silverthorne (every current listing places it there, not Dillon). Not fetch-verified.',
+      'UPDATED 2026-10-31: opened Wednesday, Oct 28, 2026, its 80th season, first in Colorado (Denver7, SKI, Summit Daily; Black Mountain Express and High Noon). Trail map links the official page only. UPDATED: parking reservation window shifted to Jan 2–May 2, 2027 (was Jan 17–May 3). A-Basin adjusted its reservation program for the season that also brought unlimited access to the full Ikon Pass; also clarified the Admin Lot\'s $40 fee applies every day, not just weekend reservation days. Sunshine Café corrected to Silverthorne (every current listing places it there, not Dillon). Not fetch-verified.',
   },
   loveland: {
     officialWebsite: 'https://www.skiloveland.com',
