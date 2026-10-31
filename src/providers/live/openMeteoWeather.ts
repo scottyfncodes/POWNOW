@@ -49,6 +49,9 @@ const MIN_FORWARD_DAYS = 7;
  */
 const STORM_DAY_IN = 1.5;
 
+/** Points per batched outlook request; keeps the URL comfortably short. */
+const OUTLOOK_BATCH = 25;
+
 /** A forecast is good for this long before the badge should say STALE. */
 const FRESHNESS_MINUTES = { today: 30, future: 120 } as const;
 
@@ -280,6 +283,64 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
         validUntil: validUntil.toISOString(),
       },
     );
+  }
+
+  /**
+   * The snowfall strip for every mountain in a few requests instead of three
+   * per mountain: Open-Meteo accepts comma-separated coordinates and answers
+   * with one result per point, in order. Same point, same elevation, same
+   * `daily=snowfall_sum` and the same `buildSnowHistory` as
+   * `getMountainWeather`, so a mountain's "next 5 days" here is the number
+   * its own page shows.
+   */
+  async getSnowOutlooks(
+    mountains: Mountain[],
+    context: ProviderContext,
+  ): Promise<Record<string, Availability<SnowHistory>>> {
+    const out: Record<string, Availability<SnowHistory>> = {};
+    const chunks: Mountain[][] = [];
+    for (let i = 0; i < mountains.length; i += OUTLOOK_BATCH) chunks.push(mountains.slice(i, i + OUTLOOK_BATCH));
+
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        const base = this.options.baseUrl ?? BASE_URL;
+        const params = new URLSearchParams({
+          latitude: chunk.map((m) => m.weatherLocation.point.lat.toFixed(4)).join(','),
+          longitude: chunk.map((m) => m.weatherLocation.point.lon.toFixed(4)).join(','),
+          elevation: chunk.map((m) => String(Math.round(m.weatherLocation.forecastElevationFt / 3.28084))).join(','),
+          daily: DAILY_FIELDS.join(','),
+          forecast_days: String(MIN_FORWARD_DAYS),
+          past_days: String(PAST_DAYS),
+          timezone: 'auto',
+          precipitation_unit: 'mm',
+        });
+        try {
+          const result = await cachedJson<OpenMeteoResponse | OpenMeteoResponse[]>(`${base}?${params.toString()}`, {
+            timeoutMs: 10000,
+            ttlMs: 30 * 60 * 1000,
+          });
+          const payloads = Array.isArray(result.value) ? result.value : [result.value];
+          const fetchedAt = new Date(result.fetchedAt);
+          chunk.forEach((mountain, index) => {
+            const history = payloads.length === chunk.length ? buildSnowHistory(payloads[index]?.daily, context.today) : null;
+            out[mountain.id] = history
+              ? ok(history, {
+                  source: 'live',
+                  observation: 'forecast',
+                  confidence: 'medium',
+                  provider: this.id,
+                  horizonDays: 0,
+                  fetchedAt: fetchedAt.toISOString(),
+                  validUntil: new Date(fetchedAt.getTime() + FRESHNESS_MINUTES.future * 60 * 1000).toISOString(),
+                })
+              : unavailable(this.id, 'Open-Meteo returned no daily snowfall for this point.');
+          });
+        } catch (error) {
+          for (const mountain of chunk) out[mountain.id] = unavailable(this.id, describeError(error));
+        }
+      }),
+    );
+    return out;
   }
 
   private buildUrl(mountain: Mountain, context: ProviderContext): string {

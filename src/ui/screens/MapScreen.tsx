@@ -18,6 +18,7 @@ import { tierFor } from '@/ui/scoreTier';
 import { BrowseBar } from '@/ui/components/BrowseBar';
 import { MountainMap, type MapRoutePreview, type MountainMarkerInfo } from '@/ui/components/MountainMap';
 import { MountainProfile } from '@/ui/components/MountainProfile';
+import type { ListSnow } from '@/ui/components/MountainList';
 import { NavigateLinks } from '@/ui/components/NavigateLinks';
 import { OriginPicker } from '@/ui/components/OriginPicker';
 import { ScreenHeader } from '@/ui/components/ScreenHeader';
@@ -28,6 +29,8 @@ type RouteResult =
 
 export interface MapScreenProps {
   registry: ProviderRegistry;
+  /** Every mountain's next five days of snow, for the selected mountain's sheet. */
+  snow?: ListSnow;
   clock: ClockState;
   origin: Origin;
   onOriginChange: (origin: Origin) => void;
@@ -61,6 +64,7 @@ export interface MapScreenProps {
  */
 export function MapScreen({
   registry,
+  snow,
   clock,
   origin,
   onOriginChange,
@@ -297,6 +301,12 @@ export function MapScreen({
                       {selectedPlan?.freshSnowIn != null ? `${selectedPlan.freshSnowIn.toFixed(1)}″` : '–'}
                     </dd>
                   </div>
+                  {snow && (
+                    <div>
+                      <dt>Next 5 days</dt>
+                      <dd className="numeral">{nextFiveDays(snow, selectedMountain.id)}</dd>
+                    </div>
+                  )}
                   <div>
                     <dt>Vertical</dt>
                     <dd className="numeral">{selectedMountain.elevations.verticalFt.toLocaleString()}′</dd>
@@ -369,4 +379,11 @@ export function MapScreen({
       </div>
     </div>
   );
+}
+
+/** The selected mountain's five-day snow total for the sheet: a number, "…" while loading, "–" when unavailable. */
+function nextFiveDays(snow: ListSnow, mountainId: string): string {
+  if (snow.status === 'loading') return '…';
+  const entry = snow.status === 'ready' ? snow.byId[mountainId] : undefined;
+  return entry?.status === 'ok' ? `${entry.data.futureTotalIn.toFixed(1)}″` : '–';
 }

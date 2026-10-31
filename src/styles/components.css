@@ -3001,7 +3001,7 @@
 
 .mapscreen-peek-facts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -4855,4 +4855,96 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ---- Snow outlook: next five days on a list card ------------------------ */
+
+.snowoutlook {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.snowoutlook-label {
+  align-self: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.snowoutlook-total {
+  align-self: center;
+  min-width: 3.2ch;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.snowoutlook.is-dry .snowoutlook-total {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+
+.snowoutlook.is-big .snowoutlook-total {
+  color: var(--ice);
+}
+
+.snowoutlook-bars {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.snowoutlook-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.snowoutlook-track {
+  display: flex;
+  align-items: flex-end;
+  width: 12px;
+  height: 26px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.snowoutlook-fill {
+  width: 100%;
+  border-radius: 4px;
+  background: var(--ice);
+}
+
+.snowoutlook-dow {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink-ghost);
+}
+
+.snowoutlook-none {
+  align-self: center;
+  font-size: 12px;
+  color: var(--ink-ghost);
+}
+
+.snowoutlook.is-loading .snowoutlook-total {
+  color: var(--ink-ghost);
+}
+
+.listscreen-sort {
+  display: flex;
+  gap: 8px;
 }

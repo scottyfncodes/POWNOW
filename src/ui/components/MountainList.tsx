@@ -1,4 +1,6 @@
 import { PASS_LABELS, type Mountain } from '@/domain/mountain';
+import { forecastTotal, type SnowOutlooks } from '@/engine/snowOutlook';
+import { SnowOutlook } from '@/ui/components/SnowOutlook';
 import { tierFor } from '@/ui/scoreTier';
 
 /** One mountain's score for today, as the engine scored it from the rider's starting point. */
@@ -18,6 +20,11 @@ export type ListScores =
   | { status: 'ready'; byId: Record<string, ListScore>; originName: string }
   | { status: 'error' };
 
+/** Every mountain's five-day snow forecast: loading, loaded, or the whole request failed. */
+export type ListSnow = { status: 'loading' } | { status: 'ready'; byId: SnowOutlooks } | { status: 'error' };
+
+export type ListOrder = 'name' | 'snow';
+
 export interface MountainListProps {
   mountains: Mountain[];
   onSelectMountain: (mountainId: string) => void;
@@ -25,6 +32,10 @@ export interface MountainListProps {
   label?: string;
   /** Today's 0–10 score per mountain. Omitted, the cards show no score at all. */
   scores?: ListScores;
+  /** The next five days of snow per mountain. Omitted, the cards show no forecast strip. */
+  snow?: ListSnow;
+  /** A to Z (the default), or most snow coming first. */
+  order?: ListOrder;
 }
 
 function ScoreBadge({ mountain, scores }: { mountain: Mountain; scores: ListScores }) {
@@ -63,12 +74,21 @@ const maxVertical = (mountains: Mountain[]) => Math.max(1, ...mountains.map((mou
  * explanations) without running the whole day-plan pipeline just to fill a
  * list — that runs only when someone asks for a mountain's call.
  */
-export function MountainList({ mountains, onSelectMountain, label, scores }: MountainListProps) {
-  const sorted = [...mountains].sort((a, b) => a.name.localeCompare(b.name));
+export function MountainList({ mountains, onSelectMountain, label, scores, snow, order = 'name' }: MountainListProps) {
+  const byName = [...mountains].sort((a, b) => a.name.localeCompare(b.name));
+  const outlooks = snow?.status === 'ready' ? snow.byId : null;
+  // Most snow first; a mountain with no forecast goes last, never guessed into the order.
+  const sorted =
+    order === 'snow' && outlooks
+      ? [...byName].sort((a, b) => (forecastTotal(outlooks, b.id) ?? -1) - (forecastTotal(outlooks, a.id) ?? -1))
+      : byName;
   const tallest = maxVertical(sorted);
 
   return (
-    <ul className="mountainlist" aria-label={label ?? `${sorted.length} mountains, alphabetical`}>
+    <ul
+      className="mountainlist"
+      aria-label={label ?? `${sorted.length} mountains, ${order === 'snow' && outlooks ? 'most snow coming first' : 'alphabetical'}`}
+    >
       {sorted.map((mountain) => (
         <li key={mountain.id}>
           <button type="button" className="mountainlist-row" onClick={() => onSelectMountain(mountain.id)}>
@@ -79,6 +99,17 @@ export function MountainList({ mountains, onSelectMountain, label, scores }: Mou
               </span>
               {scores && <ScoreBadge mountain={mountain} scores={scores} />}
             </span>
+            {snow && (
+              <SnowOutlook
+                outlook={
+                  snow.status === 'ready'
+                    ? (snow.byId[mountain.id] ?? { status: 'unavailable', reason: 'No forecast.', provider: 'none' })
+                    : snow.status === 'error'
+                      ? { status: 'unavailable', reason: 'Forecast request failed.', provider: 'none' }
+                      : undefined
+                }
+              />
+            )}
             <span className="mountainlist-stats">
               <span>
                 <strong className="numeral">{mountain.elevations.verticalFt.toLocaleString()}′</strong> vert

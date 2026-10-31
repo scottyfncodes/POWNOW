@@ -4,6 +4,7 @@ import type {
   CrowdCurve,
   MountainWeather,
   OperationsReport,
+  SnowHistory,
   TravelCurve,
 } from '@/domain/conditions';
 import type { AccessRoute, Mountain, Origin } from '@/domain/mountain';
@@ -36,6 +37,18 @@ export interface WeatherProvider {
     mountain: Mountain,
     context: ProviderContext,
   ): Promise<Availability<MountainWeather>>;
+  /**
+   * Just the snowfall strip (five days back, five forward) for many
+   * mountains at once, for the at-a-glance views. Optional: a provider that
+   * can batch (Open-Meteo takes many points in one request) implements it;
+   * otherwise `engine/snowOutlook.ts` falls back to `getMountainWeather`.
+   * The numbers must match what `getMountainWeather` reports for the same
+   * mountain, so the list and the mountain's page never disagree.
+   */
+  getSnowOutlooks?(
+    mountains: Mountain[],
+    context: ProviderContext,
+  ): Promise<Record<string, Availability<SnowHistory>>>;
 }
 
 export interface TrafficProvider {
