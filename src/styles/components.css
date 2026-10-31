@@ -4539,15 +4539,27 @@
   gap: 6px;
 }
 
+/* The call on its own row; the site and Share as an even pair under it. */
 .profilehero-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
 
+.profilehero-call {
+  grid-column: 1 / -1;
+}
+
+/* No official site to link: Share takes the whole second row. */
+.profilehero-actions > :last-child:nth-child(2) {
+  grid-column: 1 / -1;
+}
+
 .profilehero-actions .button {
   display: inline-flex;
+  padding: 0 14px;
+  white-space: nowrap;
   align-items: center;
   justify-content: center;
   text-decoration: none;
