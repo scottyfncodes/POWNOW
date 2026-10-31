@@ -53,6 +53,7 @@ const FEED_LABEL: Record<string, string> = {
   vail: "Read from the resort's own lift and terrain status page.",
   alta: "Read from Alta's own lift and terrain status page.",
   loveland: "Read from Loveland's own lift report page.",
+  markup: "Read from the resort's own lift status page.",
 };
 
 const count = (value: unknown): number | null => {

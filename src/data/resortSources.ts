@@ -41,7 +41,9 @@ export type OfficialFeed =
   /** Read from the resort's own lift status page, see server/index.mjs "resort status pages". */
   | { kind: 'vail'; id: string }
   | { kind: 'alta'; id: 'alta' }
-  | { kind: 'loveland'; id: 'loveland' };
+  | { kind: 'loveland'; id: 'loveland' }
+  /** A plain-markup lift list, see MARKUP_PAGES in server/index.mjs. */
+  | { kind: 'markup'; id: 'telluride' | 'monarch' | 'snowbasin' | 'brianhead' | 'sugarbowl' | 'sierra' };
 
 export const RESORT_SOURCES: Record<string, ResortSource> = {
   vail: {
@@ -125,11 +127,13 @@ export const RESORT_SOURCES: Record<string, ResortSource> = {
     officialOpsUrl: 'https://skimonarch.com/conditions/',
     officialPurchaseUrl: 'https://skimonarch.com/tickets/',
     liftieSlug: 'monarch',
+    officialFeed: { kind: 'markup', id: 'monarch' },
   },
   telluride: {
     officialOpsUrl: 'https://tellurideskiresort.com/lifts/',
     officialPurchaseUrl: 'https://shop.tellurideskiresort.com/s/passes-and-tickets/winter-lift-tickets/',
     liftieSlug: 'telluride',
+    officialFeed: { kind: 'markup', id: 'telluride' },
   },
 };
 
@@ -151,16 +155,16 @@ const REGION_SOURCES: Record<string, ResortSource> = {
   solitude: { liftieSlug: 'solitude', officialFeed: { kind: 'mtnpowder', id: '65' } },
   'park-city': { liftieSlug: 'parkcity', officialFeed: { kind: 'vail', id: 'parkcity' } },
   'deer-valley': { liftieSlug: 'deer-valley', officialFeed: { kind: 'mtnpowder', id: '49' } },
-  snowbasin: { liftieSlug: 'snowbasin' },
-  'brian-head': { liftieSlug: 'brianhead' },
+  snowbasin: { liftieSlug: 'snowbasin', officialFeed: { kind: 'markup', id: 'snowbasin' } },
+  'brian-head': { liftieSlug: 'brianhead', officialFeed: { kind: 'markup', id: 'brianhead' } },
   taos: { liftieSlug: 'taos' },
   'angel-fire': { liftieSlug: 'angel-fire' },
   'palisades-tahoe': { liftieSlug: 'palisades', officialFeed: { kind: 'mtnpowder', id: '61' } },
   northstar: { liftieSlug: 'northstar', officialFeed: { kind: 'vail', id: 'northstar' } },
   heavenly: { liftieSlug: 'heavenly', officialFeed: { kind: 'vail', id: 'heavenly' } },
   kirkwood: { liftieSlug: 'kirkwood', officialFeed: { kind: 'vail', id: 'kirkwood' } },
-  'sierra-at-tahoe': { liftieSlug: 'sierra' },
-  'sugar-bowl': { liftieSlug: 'sugarbowl' },
+  'sierra-at-tahoe': { liftieSlug: 'sierra', officialFeed: { kind: 'markup', id: 'sierra' } },
+  'sugar-bowl': { liftieSlug: 'sugarbowl', officialFeed: { kind: 'markup', id: 'sugarbowl' } },
   boreal: { liftieSlug: 'boreal', officialFeed: { kind: 'powdr', id: 'boreal' } },
   'soda-springs': { officialFeed: { kind: 'powdr', id: 'soda-springs' } },
   'donner-ski-ranch': { liftieSlug: 'donner-ski-ranch' },
