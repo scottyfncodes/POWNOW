@@ -24,13 +24,18 @@ import { createRng, hashSeed } from '@/lib/random';
  */
 
 type LineFn = (month: string) => string;
-type NonSkiableState = 'OFF_SEASON' | 'NO_SNOW' | 'INSUFFICIENT_COVERAGE' | 'CLOSED';
-type MountainLineBank = Record<NonSkiableState, LineFn[]>;
+type NonSkiableState = 'OFF_SEASON' | 'PRESEASON' | 'NO_SNOW' | 'INSUFFICIENT_COVERAGE' | 'CLOSED';
+/** Per-mountain banks predate PRESEASON; a mountain without its own lines uses the generic ones. */
+type MountainLineBank = Record<Exclude<NonSkiableState, 'PRESEASON'>, LineFn[]> & { PRESEASON?: LineFn[] };
 
-const GENERIC_LINES: MountainLineBank = {
+const GENERIC_LINES: Record<NonSkiableState, LineFn[]> = {
   OFF_SEASON: [
     (month) => `Buddy. It's ${month}. Put the skis away. We have work to do.`,
     () => "Technically ski season. Spiritually, it's still dirt season.",
+  ],
+  PRESEASON: [
+    () => 'Not open yet. The lifts are waiting on opening day like the rest of us.',
+    () => 'Season has not started here yet. Soon.',
   ],
   NO_SNOW: [
     () => "There's a mountain under there somewhere. Just not enough of it in white.",
@@ -235,15 +240,16 @@ const MOUNTAIN_LINES: Record<string, MountainLineBank> = {
   },
 };
 
+const isNonSkiable = (state: MountainOperationalState): state is NonSkiableState =>
+  state === 'OFF_SEASON' || state === 'PRESEASON' || state === 'NO_SNOW' || state === 'INSUFFICIENT_COVERAGE' || state === 'CLOSED';
+
 function pickLine(state: MountainOperationalState, mountain: Mountain, date: DateKey): string {
   const monthName = MONTH_LONG[fromDateKey(date).getMonth()] ?? '';
   if (state === 'UNKNOWN') {
     const rng = createRng(hashSeed(mountain.id, date, state));
     return rng.pick(UNKNOWN_LINES)(monthName);
   }
-  if (state !== 'OFF_SEASON' && state !== 'NO_SNOW' && state !== 'INSUFFICIENT_COVERAGE' && state !== 'CLOSED') {
-    return '';
-  }
+  if (!isNonSkiable(state)) return '';
   const lines = MOUNTAIN_LINES[mountain.id]?.[state] ?? GENERIC_LINES[state];
   const rng = createRng(hashSeed(mountain.id, date, state));
   return rng.pick(lines)(monthName);
@@ -268,6 +274,9 @@ function detailFor(
   switch (state) {
     case 'OFF_SEASON':
       return `${reason}${recentNote}${incomingNote || ' Nothing meaningful in the forecast yet.'}`;
+    case 'PRESEASON':
+      // Snow falling ahead of opening day is worth knowing; "not today" is the point.
+      return `${reason}${recentNote}${future !== null && future >= 6 ? ` ${future.toFixed(0)}" is forecast over the next 5 days.` : ''}`;
     case 'NO_SNOW':
     case 'INSUFFICIENT_COVERAGE':
       return `${reason}${recentNote}${incomingNote}`;
@@ -286,9 +295,7 @@ export function buildOffSeasonMessage(
   date: DateKey,
   weather: MountainWeather | null,
 ): OffSeasonMessage | null {
-  if (state !== 'OFF_SEASON' && state !== 'NO_SNOW' && state !== 'INSUFFICIENT_COVERAGE' && state !== 'CLOSED' && state !== 'UNKNOWN') {
-    return null;
-  }
+  if (!isNonSkiable(state) && state !== 'UNKNOWN') return null;
   const line = pickLine(state, mountain, date);
   if (!line) return null;
   return {

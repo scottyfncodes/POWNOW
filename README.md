@@ -162,7 +162,7 @@ Day 0 is deliberately shaped into a storm day — the product story starts at
 | **Snowpack** (measured) | NRCS SNOTEL | browser → proxy → API | `server/` deployed + `VITE_API_BASE_URL`. No key. |
 | **Traffic** | Google Routes | browser → proxy → API | `server/` + `GOOGLE_ROUTES_API_KEY` + `VITE_API_BASE_URL` |
 | **Road conditions** | CDOT / COtrip | browser → proxy → API | `server/` + `COTRIP_API_KEY` (free) + `VITE_API_BASE_URL`; `VITE_ENABLE_ROAD_CONDITIONS=false` disables |
-| **Lift ops** | Liftie (third-party) | browser → API | Nothing — every resort in the dataset has a Liftie id |
+| **Lift ops** | The resort's own feed (MtnPowder, POWDR), else Liftie | proxy → resort; browser → Liftie | Nothing. 13 mountains have a resort feed; most others a Liftie id |
 | **Crowds** | — | — | Unavailable, always. No trustworthy live source exists |
 | **Pricing** | — | — | Unavailable, always. Investigated, unverifiable — official purchase link shown instead |
 | **Places** | — | — | Unavailable, always. Never in scope |
@@ -217,6 +217,7 @@ function. Endpoints:
 | `POST /api/route-preview` | Google Routes, one "now" reading (the map) | 15 min |
 | `GET /api/road-conditions` | CDOT `roadConditions` + `incidents`, normalized to one event list | 5 min, one statewide fetch serves every corridor |
 | `GET /api/snotel?station=842:CO:SNTL` | NRCS AWDB daily depth + SWE, plus station metadata | 30 min |
+| `GET /api/resort-status?feed=mtnpowder&id=93` | A resort's own lift and trail board (MtnPowder or POWDR), allowlisted ids only | 5 min |
 | `GET /api/health`, `GET /api/test-drive` | — | — |
 
 Guard rails: an origin allowlist (`CORS_ORIGIN`, moot when same-origin), a
@@ -292,22 +293,60 @@ keeps a future edit honest.
 `LiveMountainProvider.getOperations` (`providers/live/mountainStatus.ts`)
 tries, in order:
 
-1. **Official resort feed.** Not implemented — no resort publishes a
-   verified, structured endpoint this project could confirm.
+1. **The resort's own feed** (`providers/live/officialResortFeed.ts`), read
+   through the proxy's `GET /api/resort-status`. Two structured JSON
+   platforms were found and checked against the live endpoints on
+   2026-10-31: **MtnPowder** (Winter Park, Steamboat, Arapahoe Basin, Deer
+   Valley, Solitude, Palisades Tahoe, Mammoth, June, Bear Mountain, Snow
+   Summit) and **POWDR's day-of-report API** (Copper, Eldora, Snowbird).
+   Neither sends CORS headers, so the browser can't call them directly; the
+   proxy allowlists the ids and normalizes each board to lift and run counts.
+   These report runs as well as lifts, so "terrain open" is the real share of
+   runs open. MtnPowder's top-level `OperatingStatus` is ignored: A-Basin's
+   read "Closed" that morning with Black Mountain Express spinning. A board
+   claiming open lifts that hasn't been touched in 36 hours is refused; an
+   all-closed board may be old, because a resort that hasn't opened doesn't
+   update it. Vail Resorts (Vail, Beaver Creek, Breck, Keystone, Crested
+   Butte), Loveland and the rest publish their boards only inside HTML
+   pages, which this project doesn't scrape, so they stay on Liftie.
 2. **Liftie** (`providers/live/liftieOperations.ts`), an open-source
    lift-status aggregator with a public JSON endpoint per resort
    (`GET https://liftie.info/api/resort/:id`). The adapter reads Liftie's
    real shape — a `status` map of lift name → `open | hold | scheduled |
    closed` plus a `stats` tally — and cross-checks the two; a disagreement
-   is an unrecognized shape and reports `unavailable`. `data/resortSources.ts`
-   carries Liftie's compact ids (`breck`, `abasin`, `winterpark`…) for all
-   fifteen mountains. A pre-opening board reads "scheduled to open", not
-   closed; a board Liftie itself last scraped hours ago is refused. Every
-   value sourced this way carries `Provenance.attribution` saying plainly
-   "Third-party aggregator (Liftie) — not the resort's own feed".
+   is an unrecognized shape and reports `unavailable`. Ids come from Liftie's
+   own resort directory (`crested-butte` and `winter-park` are hyphenated;
+   Liftie has no Purgatory or Wolf Creek). A pre-opening board reads
+   "scheduled to open" only when lifts are actually listed as scheduled; a
+   board with nothing open and nothing scheduled is closed at 6am too. As of
+   2026-10-31 liftie.info answers cloud servers with a Cloudflare challenge,
+   so it could not be verified from here; whether a phone's browser gets the
+   same challenge is untested. Every value sourced this way carries
+   `Provenance.attribution` saying plainly "Third-party aggregator (Liftie),
+   not the resort's own feed".
 3. **Unavailable.** No real signal, no invented one. `scoring.ts` and
    `snowClock.ts` impute a neutral value and flag it as imputed, which lowers
    the plan's confidence rather than quietly scoring a made-up number.
+
+### Opening day, closed resorts and early season
+
+Each resort's announced opening date lives in `data/mountainProfiles.ts`,
+and `engine/season.ts` reads it. A mountain whose board shows nothing
+running before its opening day, or one with no date announced in the autumn
+months, is **PRESEASON**: it says "Not open for the season yet. Opening day
+is Nov 6 (the resort's projected date)." and is never recommended. A live
+board with lifts turning always wins over the calendar, since resorts open
+early on good snow. An empty board on a closed resort is never read as a lift
+outage or a weather day, and lifts on hold are a hold day, not a closure.
+
+Closed and preseason mountains rank below every open one. When nothing in
+reach is open, the home screen says so ("NOT YET.") and names the first
+announced opening day instead of dressing a closed mountain up as a pick.
+
+A mountain with lifts turning but under 45% of its terrain open is open with
+limited operations, and its score is capped at 3.0 plus the open share, shown
+on the card as a named "Limited terrain: 1 of 147 runs open" deduction. One
+run open on a bluebird day scores about 3, not like a normal day.
 
 ### Road conditions: authoritative, per corridor, right now
 

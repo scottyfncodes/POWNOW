@@ -41,7 +41,8 @@ describe('classifyOperationalState', () => {
     expect(result.state).toBe('OPEN_WITH_RESTRICTIONS');
   });
 
-  it('reports INSUFFICIENT_COVERAGE for next-to-nothing open outside the off-season', () => {
+  it('reports a thin but running mountain as LIMITED_OPERATIONS, not as unskiable', () => {
+    // Two lifts turning is an open mountain; the score, not a takeover, says how little.
     const result = classifyOperationalState(
       testInputs({
         date: '2026-01-17', // January — not the calendar off-season
@@ -49,7 +50,7 @@ describe('classifyOperationalState', () => {
         operations: testOperations({ terrainOpenShare: 0.05, liftsExpectedOpen: 2 }),
       }),
     );
-    expect(result.state).toBe('INSUFFICIENT_COVERAGE');
+    expect(result.state).toBe('LIMITED_OPERATIONS');
   });
 
   it('reports OFF_SEASON for next-to-nothing open during the calendar off-season, in live mode', () => {

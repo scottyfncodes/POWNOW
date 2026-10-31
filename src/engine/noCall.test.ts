@@ -39,10 +39,23 @@ describe('classifyOperationalState with a dead weather feed', () => {
       weather: 'unavailable',
       operations: 'unavailable',
       snowpack: testSnowpack({ snowDepthIn: 2, newSnow5dIn: 1 }),
-      date: '2026-10-29',
+      date: '2026-04-29',
       usingDemoData: false,
     });
     expect(classifyOperationalState(inputs).state).toBe('NO_SNOW');
+  });
+
+  it('does not read a bare station as NO_SNOW in the opening months, when the base is machine-made', () => {
+    // 2026-10-31: A-Basin open on an 18" made base, every SNOTEL near it at 0".
+    const inputs = testInputs({
+      weather: 'unavailable',
+      operations: 'unavailable',
+      snowpack: testSnowpack({ snowDepthIn: 0, newSnow5dIn: 0 }),
+      date: '2026-10-29',
+      usingDemoData: false,
+    });
+    expect(classifyOperationalState(inputs).state).toBe('UNKNOWN');
+    expect(noCallReason(inputs, 'UNKNOWN')).not.toBeNull();
   });
 
   it('stays UNKNOWN when the station shows a real pack', () => {

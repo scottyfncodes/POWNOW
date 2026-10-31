@@ -121,17 +121,22 @@ export async function getLiftieOperations(
   // the clock, not a closure. `scheduled` lifts are the tell: a resort that
   // is opening today lists its lifts as scheduled, not closed. Only when
   // nothing is open *and* nothing is scheduled does the board mean closed.
-  const preOpening = context.horizonDays === 0 && context.now < scheduledOpen && open === 0;
+  // A closed-for-the-season resort reads the same at 6am as at noon: nothing
+  // open, nothing scheduled. Only a board with lifts *scheduled* is a resort
+  // waiting for first chair; without that, early morning used to turn a
+  // closed resort into an "open" one with no terrain.
+  const preOpening = context.horizonDays === 0 && context.now < scheduledOpen && open === 0 && scheduled > 0;
+  // Lifts on hold are a weather day, not a closed resort.
   const status: OperationsReport['status'] =
-    open === 0 && scheduled === 0 && !preOpening
+    open === 0 && scheduled === 0 && hold === 0
       ? 'closed'
-      : hold / total > 0.3
+      : hold / total > 0.3 || (open === 0 && hold > 0)
         ? 'hold'
         : open > 0 && closed > open
           ? 'delayed'
           : 'open';
 
-  const expectedRunning = preOpening ? scheduled + open : open;
+  const expectedRunning = preOpening ? scheduled : open;
   const liftShare = clampShare(expectedRunning / total);
 
   const notes: string[] = [];

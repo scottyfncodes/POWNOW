@@ -89,8 +89,9 @@ export function MapScreen({
         now: clock.now,
         preferences: preferences ?? DEFAULT_PREFERENCES,
       });
-      // No BEST NOW pin on a day nobody can call.
-      return { all: recommendation.all, bestId: recommendation.best.noCall ? '' : recommendation.best.mountain.id };
+      // No BEST NOW pin on a day nobody can call, or on a mountain that isn't open.
+      const pinless = recommendation.best.noCall || recommendation.noneOpen;
+      return { all: recommendation.all, bestId: pinless ? '' : recommendation.best.mountain.id };
     },
     // `clock.now` is read inside but deliberately not a dependency: the
     // whole-map ranking must not re-run every minute the tab is open.

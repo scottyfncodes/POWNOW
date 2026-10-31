@@ -287,6 +287,14 @@ export interface Recommendation {
   generatedAt: string;
   usingDemoData: boolean;
   caveats: string[];
+  /**
+   * True when every mountain in the field is closed, preseason or otherwise
+   * not skiable. `best` is then only the first of them, never a pick, and
+   * the UI says so instead of presenting it as a recommendation.
+   */
+  noneOpen: boolean;
+  /** When `noneOpen`: the soonest announced opening day in the field, if any resort has announced one. */
+  nextOpening: { mountainId: string; shortName: string; date: DateKey; status: 'confirmed' | 'projected' } | null;
 }
 
 export interface StayOrGoAdvice {

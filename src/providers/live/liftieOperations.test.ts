@@ -43,10 +43,19 @@ describe('getLiftieOperations — Tier 3 gating', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('every resort in the dataset has a Liftie id in Liftie\'s compact, hyphen-free style', () => {
+  it('every Liftie id is a real directory name in Liftie\'s resort list', () => {
+    // Read from github.com/pirxpilot/liftie lib/resorts/ on 2026-10-31. Liftie
+    // has no Purgatory or Wolf Creek, so those two carry no id at all.
+    const LIFTIE_RESORT_DIRS = new Set([
+      'abasin', 'beavercreek', 'breck', 'copper', 'crested-butte', 'eldora', 'keystone', 'loveland', 'monarch',
+      'steamboat', 'telluride', 'vail', 'winter-park',
+    ]);
     for (const [mountainId, source] of Object.entries(RESORT_SOURCES)) {
-      expect(source.liftieSlug, `${mountainId} should have a Liftie id`).toBeTruthy();
-      expect(source.liftieSlug).toMatch(/^[a-z0-9]+$/);
+      if (mountainId === 'purgatory' || mountainId === 'wolf-creek') {
+        expect(source.liftieSlug).toBeUndefined();
+        continue;
+      }
+      expect(LIFTIE_RESORT_DIRS.has(source.liftieSlug ?? ''), `${mountainId}: ${source.liftieSlug}`).toBe(true);
     }
   });
 });

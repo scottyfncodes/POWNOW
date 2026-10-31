@@ -3,20 +3,18 @@ import type { Mountain } from '@/domain/mountain';
 import { type Availability, unavailable } from '@/domain/provenance';
 import type { MountainProvider, ProviderContext } from '@/providers/types';
 import { getLiftieOperations } from './liftieOperations';
+import { getOfficialOperations } from './officialResortFeed';
 
 /**
  * Live-mode mountain status: a three-tier strategy, tried in order.
  *
- * **Tier 1 — official resort feed.** Not implemented in this pass. It would
- * need a per-resort, verified, structured (JSON/REST/GraphQL) endpoint — not
- * an HTML page — and this sandbox has no network path to any resort's site
- * to find and confirm one for even a single mountain, let alone thirteen.
- * Guessing at undocumented endpoints for a dozen different commerce/CMS
- * platforms without verification is exactly the fragile, unaccountable
- * integration this project avoids elsewhere (see the CDOT scaffold's own
- * warning). `getOperations` is written so a real Tier-1 adapter — keyed by
- * mountain id, same registry as Tier 2 — drops in per-resort without
- * touching this method's shape.
+ * **Tier 1 — the resort's own feed** (`officialResortFeed.ts`). A
+ * structured JSON lift-and-trail board, read through the proxy, for the
+ * resorts whose board was verified against the live endpoint: the MtnPowder
+ * platform (Winter Park, Steamboat, Arapahoe Basin, Deer Valley, Solitude,
+ * Palisades, Mammoth, June, Bear Mountain, Snow Summit) and POWDR's
+ * day-of-report API (Copper, Eldora, Snowbird). It needs the proxy; without
+ * one, or when the feed fails, Tier 2 answers.
  *
  * **Tier 2 — Liftie** (`liftieOperations.ts`), a real third-party aggregator
  * with a documented API and existing Colorado coverage. Tried whenever
@@ -40,16 +38,29 @@ import { getLiftieOperations } from './liftieOperations';
  * "we don't have this," not a reason to keep serving a proxy that looks
  * like data.
  */
+export interface LiveMountainOptions {
+  /** The proxy's base URL; `undefined` means no proxy, so Tier 1 is skipped. */
+  apiBaseUrl?: string;
+}
+
 export class LiveMountainProvider implements MountainProvider {
   readonly id = 'live-mountain-status';
+
+  constructor(private readonly options: LiveMountainOptions = {}) {}
 
   async getOperations(
     mountain: Mountain,
     context: ProviderContext,
   ): Promise<Availability<OperationsReport>> {
-    // Tier 1 (official per-resort feed) has no implementation to try — see
-    // the docblock above for exactly why, not just that it's missing.
-    return getLiftieOperations(mountain, context);
+    const official =
+      this.options.apiBaseUrl !== undefined
+        ? await getOfficialOperations(mountain, context, { apiBaseUrl: this.options.apiBaseUrl })
+        : null;
+    if (official?.status === 'ok') return official;
+    const liftie = await getLiftieOperations(mountain, context);
+    if (liftie.status === 'ok' || !official) return liftie;
+    // Both tiers failed: say why for each, never pick one silently.
+    return { ...liftie, reason: `${official.reason} Liftie: ${liftie.reason}` };
   }
 
   async getCrowdForecast(
