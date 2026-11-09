@@ -149,6 +149,9 @@ export function ListScreen({ date, today, onDateChange, usingDemoData = false, s
               </button>
               <label className={`filterchip listscreen-date${isToday ? '' : ' is-active'}`}>
                 <span className="visually-hidden">Day to score</span>
+                <span className="listscreen-date-value" aria-hidden="true">
+                  {dayOption(date, today)}
+                </span>
                 <select value={date} onChange={(event) => onDateChange(event.target.value)}>
                   {days.map((option) => (
                     <option key={option} value={option}>
