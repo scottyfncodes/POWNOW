@@ -1,7 +1,7 @@
 {
   "name": "POW NOW",
   "short_name": "POW NOW",
-  "description": "Find your best mountain day.",
+  "description": "POW NOW by HaveAnApp. Find your best mountain day.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
