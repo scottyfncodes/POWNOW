@@ -7,6 +7,7 @@ import { MountainList, type ListOrder, type ListScores, type ListSnow } from '@/
 import { ScreenHeader } from '@/ui/components/ScreenHeader';
 import { SourcesSheet } from '@/ui/components/SourcesSheet';
 import { addDays, daysBetween, type DateKey, formatDateLabel, weekdayLong } from '@/domain/dates';
+import { Byline } from '@/ui/components/Byline';
 
 export interface ListScreenProps {
   /** The day the scores are for, and today, so the picker can say Today and Tomorrow. */
@@ -231,6 +232,7 @@ export function ListScreen({ date, today, onDateChange, usingDemoData = false, s
             </button>
           </p>
         )}
+        <Byline />
       </div>
       {sourcesOpen && <SourcesSheet usingDemoData={usingDemoData} onClose={() => setSourcesOpen(false)} />}
     </div>
