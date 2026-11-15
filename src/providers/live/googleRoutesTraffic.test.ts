@@ -123,6 +123,26 @@ describe('LiveTrafficProvider — talks to the server, never to Google', () => {
     expect(result.status).toBe('unavailable');
   });
 
+  it('returns unavailable when Google refuses the proxy (502 with a reason), never a drive time', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: "The Routes API key's restrictions do not allow this request.",
+              upstream: { service: 'google-routes', kind: 'key_restricted', status: 403, googleStatus: 'PERMISSION_DENIED', reason: 'API_KEY_SERVICE_BLOCKED' },
+            }),
+            { status: 502 },
+          ),
+      ),
+    );
+    const provider = new LiveTrafficProvider({ apiBaseUrl: 'https://proxy.example.test' });
+    const result = await provider.getTravelCurve(route, 'outbound', context);
+    expect(result.status).toBe('unavailable');
+    expect(result).not.toHaveProperty('data');
+  });
+
   it('returns unavailable when the server reports no samples at all', async () => {
     vi.stubGlobal(
       'fetch',

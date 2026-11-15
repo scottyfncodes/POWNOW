@@ -11,6 +11,26 @@ export function planDepartureMinutes(
   nowMs: number,
   timeZone: string,
 ): PlannedDeparture[];
+/** Why Google Routes gave no usable route, reduced to Google's own enumerated codes. */
+export interface RoutesFailure {
+  kind: string;
+  upstreamStatus: number | null;
+  googleStatus: string | null;
+  reason: string | null;
+  /** Google's free text: for the server log only, never sent to a client. */
+  message: string | null;
+}
+export function classifyRoutesFailure(upstreamStatus: number, body: unknown): RoutesFailure;
+export function publicRoutesFailure(failure: RoutesFailure): {
+  error: string;
+  upstream: { service: 'google-routes'; kind: string; status: number | null; googleStatus: string | null; reason: string | null };
+};
+export function redactForLog(text: unknown, secrets?: string[]): string | null;
+export function dominantFailure(failures: RoutesFailure[]): RoutesFailure;
+export class RoutesUnavailableError extends Error {
+  failure: RoutesFailure;
+  constructor(failure: RoutesFailure);
+}
 /** A client-requested zone if it's one the dataset uses, else the server's default. */
 export function resolveTimeZone(requested: unknown): string;
 export function createPownowServer(): import('node:http').Server;
