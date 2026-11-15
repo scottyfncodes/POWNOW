@@ -271,12 +271,136 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 /* --------------------------------------------------------------- traffic */
 
 /**
- * One Google Routes call for one departure time. `departureIso` may be null,
- * which Google reads as "now". Returns null on any failure — callers skip the point.
+ * Why Google Routes did not give us a route, reduced to what is safe to say out
+ * loud. A failure used to collapse into `null`, so "the key is restricted",
+ * "billing is off", "over quota" and "no road between these points" all
+ * surfaced as the same bare 502 with nothing in the logs to tell them apart.
+ *
+ * Only Google's own enumerated codes pass through (`PERMISSION_DENIED`,
+ * `API_KEY_SERVICE_BLOCKED`...), and only if they look like one. Its free-text
+ * message can carry a project number and is kept for the server log alone.
  */
-async function fetchOneSample(origin, destination, departureIso, { withPolyline = false } = {}) {
+const ROUTES_REASON_KINDS = {
+  API_KEY_INVALID: 'key_invalid',
+  API_KEY_SERVICE_BLOCKED: 'key_restricted',
+  API_KEY_HTTP_REFERRER_BLOCKED: 'key_restricted',
+  API_KEY_IP_ADDRESS_BLOCKED: 'key_restricted',
+  API_KEY_ANDROID_APP_BLOCKED: 'key_restricted',
+  API_KEY_IOS_APP_BLOCKED: 'key_restricted',
+  SERVICE_DISABLED: 'api_not_enabled',
+  BILLING_DISABLED: 'billing_disabled',
+  RATE_LIMIT_EXCEEDED: 'quota_exceeded',
+  RESOURCE_QUOTA_EXCEEDED: 'quota_exceeded',
+  CONSUMER_SUSPENDED: 'project_suspended',
+  CONSUMER_INVALID: 'project_invalid',
+};
+
+const ROUTES_FAILURE_TEXT = {
+  key_invalid: 'Google rejected the Routes API key as invalid.',
+  key_restricted: "The Routes API key's restrictions do not allow this request.",
+  api_not_enabled: 'The Routes API is not enabled for the key\'s Google Cloud project.',
+  billing_disabled: 'Billing is not enabled on the Google Cloud project behind the Routes API key.',
+  quota_exceeded: 'The Google Routes quota is exhausted.',
+  project_suspended: 'The Google Cloud project behind the Routes API key is suspended.',
+  project_invalid: 'The Google Cloud project behind the Routes API key is not valid.',
+  permission_denied: 'Google refused the Routes request.',
+  bad_request: 'Google rejected the Routes request as malformed.',
+  upstream_error: 'Google Routes had an error of its own.',
+  timeout: 'Google Routes did not answer in time.',
+  network: 'Google Routes could not be reached.',
+  unreadable: 'Google Routes answered with something this proxy could not read.',
+  no_route: 'Google Routes found no drivable route for this request.',
+};
+
+const enumLike = (value) => (typeof value === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(value) ? value : null);
+
+/** A Routes response that is not a usable route, as `{ kind, upstreamStatus, googleStatus, reason, message }`. */
+export function classifyRoutesFailure(upstreamStatus, body) {
+  const error = body && typeof body === 'object' ? body.error : null;
+  const googleStatus = enumLike(error?.status);
+  const details = Array.isArray(error?.details) ? error.details : [];
+  const reason = enumLike(details.find((detail) => enumLike(detail?.reason))?.reason);
+  const message = typeof error?.message === 'string' ? error.message : null;
+
+  let kind = reason ? ROUTES_REASON_KINDS[reason] : undefined;
+  if (!kind) {
+    if (upstreamStatus === 429 || googleStatus === 'RESOURCE_EXHAUSTED') kind = 'quota_exceeded';
+    else if (upstreamStatus === 400 && /api key not valid/i.test(message ?? '')) kind = 'key_invalid';
+    else if (upstreamStatus === 400) kind = 'bad_request';
+    else if (upstreamStatus === 401 || upstreamStatus === 403) kind = 'permission_denied';
+    else if (upstreamStatus >= 500) kind = 'upstream_error';
+    else if (upstreamStatus >= 200 && upstreamStatus < 300) kind = 'no_route';
+    else kind = 'unreadable';
+  }
+  return { kind, upstreamStatus, googleStatus, reason, message };
+}
+
+/** What a client may be told about a Routes failure: codes and a fixed sentence, never Google's own text. */
+export function publicRoutesFailure(failure) {
+  return {
+    error: ROUTES_FAILURE_TEXT[failure.kind] ?? 'Google Routes returned no usable route.',
+    upstream: {
+      service: 'google-routes',
+      kind: failure.kind,
+      status: failure.upstreamStatus ?? null,
+      googleStatus: failure.googleStatus ?? null,
+      reason: failure.reason ?? null,
+    },
+  };
+}
+
+/** Google's message for the server log, with anything shaped like a credential removed. */
+export function redactForLog(text, secrets = []) {
+  if (typeof text !== 'string') return null;
+  let out = text;
+  for (const secret of secrets) if (secret) out = out.split(secret).join('[redacted]');
+  return out.replace(/AIza[0-9A-Za-z_-]{10,}/g, '[redacted]').replace(/([?&]key=)[^&\s]+/gi, '$1[redacted]').slice(0, 400);
+}
+
+/** Thrown when no sampled departure produced a route; carries the commonest reason why. */
+export class RoutesUnavailableError extends Error {
+  constructor(failure) {
+    super(ROUTES_FAILURE_TEXT[failure.kind] ?? 'Google Routes returned no usable route.');
+    this.name = 'RoutesUnavailableError';
+    this.failure = failure;
+  }
+}
+
+/** The failure most of the samples hit, so one stray timeout does not hide that the key is blocked. */
+export function dominantFailure(failures) {
+  const counts = new Map();
+  for (const failure of failures) counts.set(failure.kind, (counts.get(failure.kind) ?? 0) + 1);
+  let best = null;
+  for (const failure of failures) {
+    if (!best || counts.get(failure.kind) > counts.get(best.kind)) best = failure;
+  }
+  return best ?? { kind: 'no_route', upstreamStatus: null, googleStatus: null, reason: null, message: null };
+}
+
+/** One line per failed curve or preview, so the function log says what Google actually answered. */
+function logRoutesFailure(where, failure, sampled) {
+  console.warn(
+    `[google-routes] ${where} failed: ` +
+      JSON.stringify({
+        kind: failure.kind,
+        upstreamStatus: failure.upstreamStatus ?? null,
+        googleStatus: failure.googleStatus ?? null,
+        reason: failure.reason ?? null,
+        sampled,
+        message: redactForLog(failure.message, [API_KEY]),
+      }),
+  );
+}
+
+/**
+ * One Google Routes call for one departure time. `departureIso` may be null,
+ * which Google reads as "now". Resolves to `{ sample }` or `{ failure }` and
+ * never throws: callers skip a failed point and keep its reason.
+ */
+async function requestRoute(origin, destination, departureIso, { withPolyline = false } = {}) {
+  let response;
   try {
-    const response = await fetchWithTimeout(
+    response = await fetchWithTimeout(
       ROUTES_ENDPOINT,
       {
         method: 'POST',
@@ -299,22 +423,32 @@ async function fetchOneSample(origin, destination, departureIso, { withPolyline 
       },
       REQUEST_TIMEOUT_MS,
     );
-    if (!response.ok) return null;
-    const data = await response.json();
-    const route = data.routes?.[0];
-    if (!route?.duration) return null;
-    // Google returns duration as e.g. "1234s".
-    const seconds = Number(String(route.duration).replace('s', ''));
-    if (!Number.isFinite(seconds)) return null;
-    const distanceMeters = Number(route.distanceMeters);
-    return {
+  } catch (error) {
+    const kind = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'network';
+    return { failure: { kind, upstreamStatus: null, googleStatus: null, reason: null, message: null } };
+  }
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    // Not JSON: classified below from the status alone.
+  }
+  if (!response.ok) return { failure: classifyRoutesFailure(response.status, data) };
+  if (data === null) return { failure: { ...classifyRoutesFailure(response.status, null), kind: 'unreadable' } };
+
+  const route = data.routes?.[0];
+  // Google returns duration as e.g. "1234s".
+  const seconds = route?.duration ? Number(String(route.duration).replace('s', '')) : NaN;
+  if (!Number.isFinite(seconds)) return { failure: classifyRoutesFailure(response.status, data) };
+  const distanceMeters = Number(route.distanceMeters);
+  return {
+    sample: {
       durationMinutes: Math.round(seconds / 60),
       distanceMiles: Number.isFinite(distanceMeters) ? distanceMeters / 1609.344 : null,
       polyline: typeof route.polyline?.encodedPolyline === 'string' ? route.polyline.encodedPolyline : null,
-    };
-  } catch {
-    return null;
-  }
+    },
+  };
 }
 
 /**
@@ -363,14 +497,15 @@ async function buildTravelCurve(origin, destination, direction, date, timeZone =
   const grid = direction === 'outbound' ? OUTBOUND_MINUTES : RETURN_MINUTES;
   const plan = planDepartureMinutes(grid, date, Date.now(), timeZone);
   const samplesRaw = await Promise.all(
-    plan.map(async ({ minute, departureIso }) => {
-      const sample = await fetchOneSample(origin, destination, departureIso);
-      return { minute, sample };
-    }),
+    plan.map(async ({ minute, departureIso }) => ({ minute, ...(await requestRoute(origin, destination, departureIso)) })),
   );
 
-  const resolved = samplesRaw.filter((d) => d.sample !== null);
-  if (resolved.length === 0) return null;
+  const resolved = samplesRaw.filter((d) => d.sample);
+  if (resolved.length === 0) {
+    const failure = dominantFailure(samplesRaw.map((d) => d.failure).filter(Boolean));
+    logRoutesFailure(`travel curve (${direction}, ${date})`, failure, samplesRaw.length);
+    throw new RoutesUnavailableError(failure);
+  }
 
   const floor = Math.min(...resolved.map((d) => d.sample.durationMinutes));
   const samples = resolved.map(({ minute, sample }) => ({
@@ -405,8 +540,11 @@ async function buildTravelCurve(origin, destination, direction, date, timeZone =
  * the route's encoded polyline so the map can draw the real road.
  */
 async function fetchRoutePreview(origin, destination) {
-  const sample = await fetchOneSample(origin, destination, null, { withPolyline: true });
-  if (!sample) return null;
+  const { sample, failure } = await requestRoute(origin, destination, null, { withPolyline: true });
+  if (!sample) {
+    logRoutesFailure('route preview', failure, 1);
+    throw new RoutesUnavailableError(failure);
+  }
   return {
     durationMinutes: sample.durationMinutes,
     distanceMiles: sample.distanceMiles === null ? null : Math.round(sample.distanceMiles * 10) / 10,
@@ -1130,9 +1268,12 @@ async function handle(req, res) {
       sendJson(req, res, 503, { error: 'GOOGLE_ROUTES_API_KEY is not configured on this server.' });
       return;
     }
-    const curve = await buildTravelCurve(origin, destination, direction, date);
-    if (!curve) {
-      sendJson(req, res, 502, { error: 'No route data returned by Google Routes for any sampled departure time.' });
+    let curve;
+    try {
+      curve = await buildTravelCurve(origin, destination, direction, date);
+    } catch (error) {
+      if (!(error instanceof RoutesUnavailableError)) throw error;
+      sendJson(req, res, 502, publicRoutesFailure(error.failure));
       return;
     }
     sendJson(req, res, 200, { origin, destination, direction, date, ...curve });
@@ -1157,9 +1298,12 @@ async function handle(req, res) {
       return;
     }
     const cacheKey = ['preview', origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3)].join(':');
-    const preview = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => fetchRoutePreview(origin, destination));
-    if (!preview) {
-      sendJson(req, res, 502, { error: 'No route returned by Google Routes.' });
+    let preview;
+    try {
+      preview = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => fetchRoutePreview(origin, destination));
+    } catch (error) {
+      if (!(error instanceof RoutesUnavailableError)) throw error;
+      sendJson(req, res, 502, publicRoutesFailure(error.failure));
       return;
     }
     sendJson(req, res, 200, preview);
@@ -1200,9 +1344,12 @@ async function handle(req, res) {
     const slot = date === local.dateKey ? `:${Math.floor(local.minuteOfDay / 15)}` : '';
     const cacheKey = [origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3), direction, date, timeZone].join(':') + slot;
 
-    const curve = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => buildTravelCurve(origin, destination, direction, date, timeZone));
-    if (!curve) {
-      sendJson(req, res, 502, { error: 'No route data returned by Google Routes for any sampled departure time.' });
+    let curve;
+    try {
+      curve = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => buildTravelCurve(origin, destination, direction, date, timeZone));
+    } catch (error) {
+      if (!(error instanceof RoutesUnavailableError)) throw error;
+      sendJson(req, res, 502, publicRoutesFailure(error.failure));
       return;
     }
     sendJson(req, res, 200, curve);

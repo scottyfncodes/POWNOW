@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
-import { localToUtcIso, planDepartureMinutes, readBody, resolveTimeZone } from '../../server/index.mjs';
-import type { IncomingMessage } from 'node:http';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  classifyRoutesFailure,
+  dominantFailure,
+  localToUtcIso,
+  planDepartureMinutes,
+  publicRoutesFailure,
+  readBody,
+  redactForLog,
+  resolveTimeZone,
+} from '../../server/index.mjs';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
 
 /**
@@ -85,5 +94,189 @@ describe('readBody — the same router serves a stream (node:http) and a pre-par
     expect(await readBody(parsed)).toBe('{"a":1}');
     const raw = { body: '{"b":2}' } as unknown as IncomingMessage & { body?: unknown };
     expect(await readBody(raw)).toBe('{"b":2}');
+  });
+});
+
+/** Google's error envelope, as the Routes API sends it. */
+const googleError = (code: number, status: string, reason: string | null, message: string) => ({
+  error: {
+    code,
+    message,
+    status,
+    details: reason ? [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason, domain: 'googleapis.com' }] : [],
+  },
+});
+
+describe('classifyRoutesFailure: says which thing is wrong with Google Routes', () => {
+  it.each([
+    [403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED', 'key_restricted'],
+    [403, 'PERMISSION_DENIED', 'API_KEY_HTTP_REFERRER_BLOCKED', 'key_restricted'],
+    [403, 'PERMISSION_DENIED', 'API_KEY_IP_ADDRESS_BLOCKED', 'key_restricted'],
+    [403, 'PERMISSION_DENIED', 'SERVICE_DISABLED', 'api_not_enabled'],
+    [403, 'PERMISSION_DENIED', 'BILLING_DISABLED', 'billing_disabled'],
+    [400, 'INVALID_ARGUMENT', 'API_KEY_INVALID', 'key_invalid'],
+    [429, 'RESOURCE_EXHAUSTED', 'RATE_LIMIT_EXCEEDED', 'quota_exceeded'],
+    [403, 'PERMISSION_DENIED', 'CONSUMER_SUSPENDED', 'project_suspended'],
+  ])('%i %s %s is %s', (code, status, reason, kind) => {
+    const failure = classifyRoutesFailure(code, googleError(code, status, reason, 'text'));
+    expect(failure).toMatchObject({ kind, upstreamStatus: code, googleStatus: status, reason });
+  });
+
+  it('falls back to the HTTP status when Google names no reason', () => {
+    expect(classifyRoutesFailure(429, googleError(429, 'RESOURCE_EXHAUSTED', null, 'Quota exceeded')).kind).toBe('quota_exceeded');
+    expect(classifyRoutesFailure(403, googleError(403, 'PERMISSION_DENIED', null, 'Denied')).kind).toBe('permission_denied');
+    expect(classifyRoutesFailure(400, googleError(400, 'INVALID_ARGUMENT', null, 'Timestamp must be set to a future time.')).kind).toBe('bad_request');
+    expect(classifyRoutesFailure(400, googleError(400, 'INVALID_ARGUMENT', null, 'API key not valid. Please pass a valid API key.')).kind).toBe('key_invalid');
+    expect(classifyRoutesFailure(503, null).kind).toBe('upstream_error');
+  });
+
+  it('calls a 200 with no route what it is, rather than an error of ours', () => {
+    expect(classifyRoutesFailure(200, {}).kind).toBe('no_route');
+    expect(classifyRoutesFailure(200, { routes: [] }).kind).toBe('no_route');
+  });
+
+  it('passes through only values shaped like Google enums', () => {
+    const failure = classifyRoutesFailure(403, {
+      error: { status: 'see https://evil.example', details: [{ reason: '<script>' }] },
+    });
+    expect(failure.googleStatus).toBeNull();
+    expect(failure.reason).toBeNull();
+    expect(failure.kind).toBe('permission_denied');
+  });
+});
+
+describe('publicRoutesFailure: what a browser is told', () => {
+  it('carries the codes and a fixed sentence, never Google\'s own text', () => {
+    const failure = classifyRoutesFailure(
+      403,
+      googleError(403, 'PERMISSION_DENIED', 'BILLING_DISABLED', 'Billing is disabled for project #123456789012.'),
+    );
+    const body = publicRoutesFailure(failure);
+    expect(body.upstream).toEqual({
+      service: 'google-routes',
+      kind: 'billing_disabled',
+      status: 403,
+      googleStatus: 'PERMISSION_DENIED',
+      reason: 'BILLING_DISABLED',
+    });
+    expect(body.error).toMatch(/billing/i);
+    expect(JSON.stringify(body)).not.toContain('123456789012');
+  });
+});
+
+describe('redactForLog: Google\'s message is logged, a credential never is', () => {
+  it('removes the configured key and anything shaped like one', () => {
+    const text = 'Bad key secret-key-value and AIzaSyA1234567890abcdefghij, see ?key=abc123&x=1';
+    const out = redactForLog(text, ['secret-key-value']);
+    expect(out).not.toContain('secret-key-value');
+    expect(out).not.toContain('AIzaSyA1234567890abcdefghij');
+    expect(out).not.toContain('abc123');
+    expect(out).toContain('[redacted]');
+  });
+
+  it('is null when Google sent no message', () => {
+    expect(redactForLog(null)).toBeNull();
+  });
+});
+
+describe('dominantFailure: one stray timeout does not hide the real reason', () => {
+  it('reports the reason most samples hit', () => {
+    const blocked = classifyRoutesFailure(403, googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED', 'x'));
+    const timeout = { kind: 'timeout', upstreamStatus: null, googleStatus: null, reason: null, message: null };
+    expect(dominantFailure([timeout, blocked, blocked]).kind).toBe('key_restricted');
+  });
+});
+
+describe('the traffic routes, end to end with Google stubbed', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  /** The router with a key configured, and a Google that answers every call the same way. */
+  async function routerWithGoogle(status: number, payload: unknown) {
+    vi.resetModules();
+    vi.stubEnv('GOOGLE_ROUTES_API_KEY', 'test-key-not-a-real-one');
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(payload), { status, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchSpy);
+    const { handleRequest } = await import('../../server/index.mjs');
+    return { handleRequest, fetchSpy };
+  }
+
+  async function call(handleRequest: (req: never, res: never) => Promise<void>, path: string, body: unknown) {
+    const req = Object.assign(Readable.from([]), {
+      method: 'POST',
+      url: path,
+      headers: { host: 'localhost', 'content-type': 'application/json' },
+      body,
+      socket: { remoteAddress: '127.0.0.1' },
+    }) as unknown as IncomingMessage;
+    let status = 0;
+    let text = '';
+    const res = {
+      headersSent: false,
+      writeHead(code: number) {
+        status = code;
+        return res;
+      },
+      setHeader() {},
+      end(chunk?: string) {
+        text = chunk ?? '';
+      },
+    } as unknown as ServerResponse;
+    await handleRequest(req as never, res as never);
+    return { status, json: JSON.parse(text) };
+  }
+
+  const curveBody = {
+    origin: { lat: 39.7392, lon: -104.9903 },
+    destination: { lat: 39.4817, lon: -106.1614 },
+    direction: 'outbound',
+    date: '2099-01-17',
+  };
+
+  it('answers a blocked key with a 502 that names the reason, logs it once, and leaks nothing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { handleRequest } = await routerWithGoogle(
+      403,
+      googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED', 'Requests to this API routes.googleapis.com are blocked. key test-key-not-a-real-one'),
+    );
+    const { status, json } = await call(handleRequest, '/api/travel-curve', curveBody);
+    expect(status).toBe(502);
+    expect(json.upstream).toMatchObject({ kind: 'key_restricted', status: 403, reason: 'API_KEY_SERVICE_BLOCKED' });
+    expect(json.samples).toBeUndefined();
+    expect(JSON.stringify(json)).not.toContain('test-key-not-a-real-one');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('API_KEY_SERVICE_BLOCKED');
+    expect(String(warn.mock.calls[0]?.[0])).not.toContain('test-key-not-a-real-one');
+  });
+
+  it('does the same for the single-call route preview', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { handleRequest } = await routerWithGoogle(403, googleError(403, 'PERMISSION_DENIED', 'BILLING_DISABLED', 'x'));
+    const { status, json } = await call(handleRequest, '/api/route-preview', curveBody);
+    expect(status).toBe(502);
+    expect(json.upstream.kind).toBe('billing_disabled');
+  });
+
+  it('still returns a real curve, built only from what Google reported', async () => {
+    const { handleRequest, fetchSpy } = await routerWithGoogle(200, { routes: [{ duration: '5400s', distanceMeters: 120_000 }] });
+    const { status, json } = await call(handleRequest, '/api/travel-curve', curveBody);
+    expect(status).toBe(200);
+    expect(json.samples).toHaveLength(9);
+    expect(json.samples[0]).toEqual({ departure: 240, durationMinutes: 90, congestion: 0 });
+    expect(json.distanceMiles).toBeCloseTo(74.6, 1);
+    expect(fetchSpy).toHaveBeenCalledTimes(9);
+  });
+
+  it('reports a 200 with no route as no_route, not as a fabricated time', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { handleRequest } = await routerWithGoogle(200, {});
+    const { status, json } = await call(handleRequest, '/api/travel-curve', curveBody);
+    expect(status).toBe(502);
+    expect(json.upstream.kind).toBe('no_route');
+    expect(json.samples).toBeUndefined();
   });
 });
