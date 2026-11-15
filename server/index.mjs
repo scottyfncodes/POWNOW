@@ -509,7 +509,9 @@ const BUDGET = {
 };
 const ROUTES_CONCURRENCY = Math.max(1, Number(process.env.ROUTES_CONCURRENCY ?? 8));
 const QUOTA_TIME_ZONE = 'America/Los_Angeles';
-const DATABASE_URL = process.env.DATABASE_URL ?? '';
+// POWNOW_DATABASE_URL names the pownow database explicitly. It wins over a DATABASE_URL that a
+// storage integration may have bound for something else; DATABASE_URL remains the plain fallback.
+const DATABASE_URL = process.env.POWNOW_DATABASE_URL || process.env.DATABASE_URL || '';
 /** On a serverless host each instance has its own memory: a budget kept there is no ceiling. */
 const SERVERLESS = Boolean(process.env.VERCEL);
 const routesStore = DATABASE_URL ? createNeonStore(DATABASE_URL) : createMemoryStore();
