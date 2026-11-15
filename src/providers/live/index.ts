@@ -1,5 +1,6 @@
 import type { ProviderRegistry } from '@/providers/types';
 import { CotripRoadProvider } from './cotripRoad';
+import { RankingTrafficProvider } from './rankingTraffic';
 import { LiveTrafficProvider } from './googleRoutesTraffic';
 import { LiveMountainProvider } from './mountainStatus';
 import { NwsAlertsProvider } from './nwsAlerts';
@@ -72,7 +73,9 @@ export function createLiveRegistry(options: LiveRegistryOptions = {}): ProviderR
 
   return {
     weather: new OpenMeteoWeatherProvider(),
-    traffic: hasProxy ? new LiveTrafficProvider({ apiBaseUrl: apiBaseUrl! }) : new UnavailableTrafficProvider(),
+    // The ranking runs on one sampled drive each way per mountain; an opened mountain gets the full curve.
+    traffic: hasProxy ? new RankingTrafficProvider({ apiBaseUrl: apiBaseUrl! }) : new UnavailableTrafficProvider(),
+    ...(hasProxy ? { trafficDetail: new LiveTrafficProvider({ apiBaseUrl: apiBaseUrl! }) } : {}),
     mountain: new LiveMountainProvider({ apiBaseUrl }),
     pricing: new LivePricingProvider(),
     places: new UnavailablePlacesProvider(),

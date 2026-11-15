@@ -35,17 +35,19 @@ export function createMemoryStore() {
     async putSample(key, value, ttlMs) {
       samples.set(key, { value, expiresAt: Date.now() + ttlMs });
     },
-    async reserve(day, n, limit) {
-      const used = budget.get(day) ?? 0;
+    async reserve(day, pool, n, limit) {
+      const key = `${day}:${pool}`;
+      const used = budget.get(key) ?? 0;
       if (used + n > limit) return { ok: false, used };
-      budget.set(day, used + n);
+      budget.set(key, used + n);
       return { ok: true, used: used + n };
     },
-    async release(day, n) {
-      budget.set(day, Math.max(0, (budget.get(day) ?? 0) - n));
+    async release(day, pool, n) {
+      const key = `${day}:${pool}`;
+      budget.set(key, Math.max(0, (budget.get(key) ?? 0) - n));
     },
-    async used(day) {
-      return budget.get(day) ?? 0;
+    async used(day, pool) {
+      return budget.get(`${day}:${pool}`) ?? 0;
     },
     async getBreaker() {
       const entry = samples.get(BREAKER_KEY);
@@ -60,9 +62,11 @@ export function createMemoryStore() {
 /**
  * The shared store. Two tables, created on first use:
  *   routes_cache   key -> one Google sample (or the circuit breaker), with its expiry
- *   routes_budget  day (Pacific, when Google resets quotas) -> calls made that day
- * The budget is reserved with one atomic UPDATE, so instances racing for the
- * last few calls cannot overrun the ceiling.
+ *   routes_budget  (day, pool) -> calls made that day from that pool. The day is
+ *                  Pacific, when Google resets quotas; the pools are "ranking"
+ *                  and "detail", each with its own ceiling.
+ * A reservation is one atomic statement, so instances racing for the last few
+ * calls cannot overrun a pool's ceiling.
  */
 export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
   let ready = null;
@@ -71,7 +75,9 @@ export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
       await sql.query(
         'CREATE TABLE IF NOT EXISTS routes_cache (key text PRIMARY KEY, value jsonb NOT NULL, expires_at timestamptz NOT NULL)',
       );
-      await sql.query('CREATE TABLE IF NOT EXISTS routes_budget (day date PRIMARY KEY, used integer NOT NULL)');
+      await sql.query(
+        'CREATE TABLE IF NOT EXISTS routes_budget (day date NOT NULL, pool text NOT NULL, used integer NOT NULL, PRIMARY KEY (day, pool))',
+      );
     })().catch((error) => {
       ready = null;
       throw error;
@@ -94,25 +100,26 @@ export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
       // Expired rows are harmless (every read filters them) but need not pile up.
       if (Math.random() < 0.02) await sql.query("DELETE FROM routes_cache WHERE expires_at < now() - interval '1 day'");
     },
-    async reserve(day, n, limit) {
+    async reserve(day, pool, n, limit) {
       await schema();
+      // n is never above the limit (the caller checks), so a first insert cannot overrun it either.
       const rows = await sql.query(
-        `INSERT INTO routes_budget (day, used) VALUES ($1, $2)
-         ON CONFLICT (day) DO UPDATE SET used = routes_budget.used + EXCLUDED.used
-         WHERE routes_budget.used + EXCLUDED.used <= $3
+        `INSERT INTO routes_budget (day, pool, used) VALUES ($1, $2, $3)
+         ON CONFLICT (day, pool) DO UPDATE SET used = routes_budget.used + EXCLUDED.used
+         WHERE routes_budget.used + EXCLUDED.used <= $4
          RETURNING used`,
-        [day, n, limit],
+        [day, pool, n, limit],
       );
       if (rows.length > 0) return { ok: true, used: rows[0].used };
-      return { ok: false, used: await this.used(day) };
+      return { ok: false, used: await this.used(day, pool) };
     },
-    async release(day, n) {
+    async release(day, pool, n) {
       await schema();
-      await sql.query('UPDATE routes_budget SET used = GREATEST(0, used - $2) WHERE day = $1', [day, n]);
+      await sql.query('UPDATE routes_budget SET used = GREATEST(0, used - $3) WHERE day = $1 AND pool = $2', [day, pool, n]);
     },
-    async used(day) {
+    async used(day, pool) {
       await schema();
-      const rows = await sql.query('SELECT used FROM routes_budget WHERE day = $1', [day]);
+      const rows = await sql.query('SELECT used FROM routes_budget WHERE day = $1 AND pool = $2', [day, pool]);
       return rows[0]?.used ?? 0;
     },
     async getBreaker() {

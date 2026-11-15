@@ -895,3 +895,73 @@ describe('what you do with the answer', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('estimated rankings and full curves (live mode, budgeted traffic)', () => {
+  /**
+   * The live shape on demo data: the ranking's traffic is one drive each way
+   * (the curve's 6:00 and 3:00 points, labelled an estimate), and an opened
+   * mountain gets the full curve from `trafficDetail`.
+   */
+  function budgetedRegistry() {
+    const registry = createDemoRegistry();
+    const full = registry.traffic;
+    const ranking: typeof full = {
+      id: full.id,
+      async getTravelCurve(route, direction, context) {
+        const result = await full.getTravelCurve(route, direction, context);
+        if (result.status !== 'ok') return result;
+        const minute = direction === 'outbound' ? 360 : 900;
+        const sample = result.data.samples.reduce((a, b) => (Math.abs(b.departure - minute) < Math.abs(a.departure - minute) ? b : a));
+        return { ...result, data: { ...result.data, samples: [{ ...sample, departure: minute }], sampling: 'estimate' as const } };
+      },
+    };
+    return { ...registry, traffic: ranking, trafficDetail: full };
+  }
+
+  it("labels Today's pick and the picks as estimates", async () => {
+    window.history.replaceState(null, '', '/#/today');
+    render(<App registry={budgetedRegistry()} />);
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
+    expect(screen.getAllByText('ESTIMATE').length).toBeGreaterThan(0);
+    expect(screen.getByText(/one Google sample each way, not a full traffic curve/)).toBeInTheDocument();
+  });
+
+  it('replaces an opened mountain\'s estimate with its full curve, and says which is which', async () => {
+    window.history.replaceState(null, '', '/#/today');
+    render(<App registry={budgetedRegistry()} />);
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
+    await user().click(seeWhy());
+    await waitFor(() => expect(screen.getByText(/^Full traffic curve for/)).toBeInTheDocument(), { timeout: 12_000 });
+    expect(screen.getByText(/The other mountains are estimates from one sampled drive each way/)).toBeInTheDocument();
+  });
+
+  it('ranks a GPS fix from the nearest named city and says so, but opens a mountain from the fix itself', async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) => {
+      success({ coords: { latitude: 39.7047, longitude: -105.0814, accuracy: 10 } } as GeolocationPosition);
+    });
+    vi.stubGlobal('navigator', { ...navigator, geolocation: { getCurrentPosition } });
+    try {
+      render(<App registry={budgetedRegistry()} />);
+      await openSetup();
+      await user().click(screen.getByRole('button', { name: /use my current location/i }));
+      await waitFor(() => expect(screen.getByText(/using your current location/i)).toBeInTheDocument());
+      await user().click(showMe());
+      await waitFor(() => expect(picksList()).toBeInTheDocument(), { timeout: 12_000 });
+      expect(screen.getByText(/Ranked from Denver, the nearest city we sample, not your exact location/)).toBeInTheDocument();
+      await user().click(within(picksList()).getAllByRole('button')[0]!);
+      await waitFor(() => expect(screen.getByText(/^Full traffic curve for/)).toBeInTheDocument(), { timeout: 12_000 });
+      expect(screen.getAllByText(/Leave your location/i).length).toBeGreaterThan(0);
+    } finally {
+      vi.unstubAllGlobals();
+      // @ts-expect-error -- test cleanup of a jsdom global that has no type by default
+      delete navigator.geolocation;
+    }
+  }, 30_000);
+
+  it('demo mode, with full curves everywhere, shows no estimate label', async () => {
+    window.history.replaceState(null, '', '/#/today');
+    render(<App />);
+    await waitFor(() => expect(seeWhy()).toBeEnabled(), { timeout: 12_000 });
+    expect(screen.queryByText('ESTIMATE')).not.toBeInTheDocument();
+  });
+});

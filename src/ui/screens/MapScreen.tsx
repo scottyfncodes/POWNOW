@@ -29,6 +29,8 @@ type RouteResult =
 
 export interface MapScreenProps {
   registry: ProviderRegistry;
+  /** Where the ranking behind the BEST NOW pin is computed from: the nearest named city for a GPS fix in live mode. */
+  rankingOrigin?: Origin;
   /** Every mountain's next five days of snow, for the selected mountain's sheet. */
   snow?: ListSnow;
   clock: ClockState;
@@ -67,6 +69,7 @@ export function MapScreen({
   snow,
   clock,
   origin,
+  rankingOrigin,
   onOriginChange,
   preferences,
   onBack,
@@ -87,7 +90,7 @@ export function MapScreen({
     async () => {
       const recommendation = await recommend(registry, {
         mountains: MOUNTAINS,
-        origin,
+        origin: rankingOrigin ?? origin,
         date: clock.today,
         today: clock.today,
         now: clock.now,
@@ -99,7 +102,7 @@ export function MapScreen({
     },
     // `clock.now` is read inside but deliberately not a dependency: the
     // whole-map ranking must not re-run every minute the tab is open.
-    [origin.id, origin.coordinates.lat, origin.coordinates.lon, clock.today, preferences],
+    [origin.id, origin.coordinates.lat, origin.coordinates.lon, rankingOrigin?.id, clock.today, preferences],
   );
 
   const plans = recState.status === 'ready' ? recState.data.all : null;

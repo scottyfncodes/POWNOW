@@ -387,12 +387,12 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
 
   it('never spends past the daily ceiling, and never half-buys a curve', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
-    const { handleRequest, google } = await router({ ROUTES_DAILY_BUDGET: '12' }, route);
+    const { handleRequest, google } = await router({ ROUTES_DETAIL_BUDGET: '12' }, route);
     const first = await request(handleRequest, 'POST', '/api/travel-curve', curve());
     const second = await request(handleRequest, 'POST', '/api/travel-curve', curve({ date: '2099-01-18' }));
     expect(first.status).toBe(200);
     expect(second.status).toBe(503);
-    expect(second.json.upstream.kind).toBe('daily_budget_reached');
+    expect(second.json.upstream).toMatchObject({ kind: 'daily_budget_reached', pool: 'detail' });
     expect(second.json.samples).toBeUndefined();
     expect(Number(second.headers['Retry-After'])).toBeGreaterThan(0);
     expect(google.calls).toBe(9);
@@ -414,17 +414,17 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
     const later = await request(handleRequest, 'POST', '/api/travel-curve', curve({ date: '2099-01-18', direction: 'return' }));
     expect(first.status).toBe(502);
     expect(first.json.upstream.kind).toBe('quota_exceeded');
-    expect(callsAfterFirst).toBeLessThanOrEqual(4);
+    expect(callsAfterFirst).toBeLessThanOrEqual(8);
     expect(later.status).toBe(502);
     expect(later.json.upstream).toMatchObject({ kind: 'quota_exceeded', circuitOpen: true });
     expect(google.calls).toBe(callsAfterFirst);
     const health = await request(handleRequest, 'GET', '/api/health');
     expect(health.json.googleRoutes.breakerOpenUntil).not.toBeNull();
     // Calls that never left are given back to the budget.
-    expect(health.json.googleRoutes.usedToday).toBe(callsAfterFirst);
+    expect(health.json.googleRoutes.pools.detail.used).toBe(callsAfterFirst);
   });
 
-  it('keeps at most four Google calls in flight', async () => {
+  it('keeps at most eight Google calls in flight', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
     const { handleRequest, google } = await router({}, route, 15);
     await Promise.all([
@@ -432,7 +432,69 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
       request(handleRequest, 'POST', '/api/travel-curve', curve({ direction: 'return' })),
     ]);
     expect(google.calls).toBe(20);
-    expect(google.mostAtOnce).toBe(4);
+    expect(google.mostAtOnce).toBe(8);
+  });
+
+  const ranking = (overrides: Record<string, unknown> = {}) => ({
+    origin: { lat: 39.7392, lon: -104.9903 },
+    date: '2099-01-17',
+    destinations: [
+      { lat: 39.4817, lon: -106.1614, timeZone: 'America/Denver' },
+      { lat: 39.6403, lon: -106.3742, timeZone: 'America/Denver' },
+      { lat: 39.9375, lon: -105.5828, timeZone: 'America/Denver' },
+    ],
+    ...overrides,
+  });
+
+  it('buys a ranking as one batch: one drive out at 6:00 and one back at 3:00 per mountain, then reuses it', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({}, route);
+    const first = await request(handleRequest, 'POST', '/api/ranking-drives', ranking());
+    expect(first.status).toBe(200);
+    expect(first.json.drives).toHaveLength(3);
+    expect(first.json.drives[0]).toMatchObject({ outbound: { departure: 360, durationMinutes: 90 }, return: { departure: 900, durationMinutes: 90 }, distanceMiles: 74.6 });
+    expect(google.calls).toBe(6);
+    await request(handleRequest, 'POST', '/api/ranking-drives', ranking());
+    expect(google.calls).toBe(6);
+    const { json } = await request(handleRequest, 'GET', '/api/health');
+    expect(json.googleRoutes.pools).toMatchObject({ ranking: { used: 6 }, detail: { used: 0 } });
+  });
+
+  it('never buys part of a ranking: a batch the ranking pool cannot cover makes no call at all', async () => {
+    const { handleRequest, google } = await router({ ROUTES_RANKING_BUDGET: '5' }, route);
+    const res = await request(handleRequest, 'POST', '/api/ranking-drives', ranking());
+    expect(res.status).toBe(503);
+    expect(res.json.upstream).toMatchObject({ kind: 'daily_budget_reached', pool: 'ranking' });
+    expect(google.calls).toBe(0);
+  });
+
+  it('a spent ranking pool leaves the detail pool for opened mountains', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({ ROUTES_RANKING_BUDGET: '6' }, route);
+    expect((await request(handleRequest, 'POST', '/api/ranking-drives', ranking())).status).toBe(200);
+    expect((await request(handleRequest, 'POST', '/api/ranking-drives', ranking({ date: '2099-01-18' }))).status).toBe(503);
+    const opened = await request(handleRequest, 'POST', '/api/travel-curve', curve({ date: '2099-01-18' }));
+    expect(opened.status).toBe(200);
+    expect(google.calls).toBe(6 + 9);
+  });
+
+  it('an opened mountain reuses the ranking\'s 6:00 drive while it is fresh, and buys it again once it is not', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const t0 = Date.parse('2099-01-17T09:00:00Z'); // 2:00 in Denver; the 6:00 departure is 13:00Z
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(t0);
+    const fresh = await router({}, route);
+    await request(fresh.handleRequest, 'POST', '/api/ranking-drives', ranking());
+    clock.mockReturnValue(t0 + 5 * 60_000);
+    await request(fresh.handleRequest, 'POST', '/api/travel-curve', curve());
+    expect(fresh.google.calls).toBe(6 + 8);
+
+    clock.mockReturnValue(t0);
+    const stale = await router({}, route);
+    await request(stale.handleRequest, 'POST', '/api/ranking-drives', ranking());
+    // Three hours later the 6:00 departure is an hour away: a curve accepts only a sample under half an hour old.
+    clock.mockReturnValue(t0 + 3 * 3_600_000);
+    await request(stale.handleRequest, 'POST', '/api/travel-curve', curve());
+    expect(stale.google.calls).toBe(6 + 7);
   });
 
   it('makes no call on a serverless host without the shared store: a per-instance budget is no ceiling', async () => {
@@ -445,10 +507,15 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
 
   it('reports the budget on /api/health without anything secret', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
-    const { handleRequest } = await router({ ROUTES_DAILY_BUDGET: '100' }, route);
+    const { handleRequest } = await router({}, route);
     await request(handleRequest, 'POST', '/api/travel-curve', curve());
     const { json } = await request(handleRequest, 'GET', '/api/health');
-    expect(json.googleRoutes).toMatchObject({ dailyBudget: 100, usedToday: 9, sharedStore: false, breakerOpenUntil: null });
+    expect(json.googleRoutes).toMatchObject({
+      dailyBudget: 190,
+      pools: { ranking: { limit: 130, used: 0 }, detail: { limit: 60, used: 9 } },
+      sharedStore: false,
+      breakerOpenUntil: null,
+    });
     expect(JSON.stringify(json)).not.toContain('test-key-not-a-real-one');
   });
 });
@@ -482,7 +549,7 @@ describe('the shared Neon store', () => {
       query: vi.fn(async (text: string, params: unknown[] = []) => {
         queries.push(text);
         if (text.startsWith('INSERT INTO routes_budget')) {
-          const [, n, limit] = params as [string, number, number];
+          const [, , n, limit] = params as [string, string, number, number];
           if (used + n > limit) return [];
           used += n;
           return [{ used }];
@@ -492,9 +559,9 @@ describe('the shared Neon store', () => {
       }),
     };
     const store = createNeonStore('postgres://unused', { sql: sql as never });
-    expect(await store.reserve('2026-11-16', 4, 100)).toEqual({ ok: true, used: 99 });
-    expect(await store.reserve('2026-11-16', 4, 100)).toEqual({ ok: false, used: 99 });
+    expect(await store.reserve('2026-11-16', 'ranking', 4, 100)).toEqual({ ok: true, used: 99 });
+    expect(await store.reserve('2026-11-16', 'ranking', 4, 100)).toEqual({ ok: false, used: 99 });
     expect(queries.filter((q) => q.startsWith('CREATE TABLE'))).toHaveLength(2);
-    expect(queries.find((q) => q.startsWith('INSERT INTO routes_budget'))).toMatch(/WHERE routes_budget\.used \+ EXCLUDED\.used <= \$3/);
+    expect(queries.find((q) => q.startsWith('INSERT INTO routes_budget'))).toMatch(/ON CONFLICT \(day, pool\)[\s\S]*WHERE routes_budget\.used \+ EXCLUDED\.used <= \$4/);
   });
 });

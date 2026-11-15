@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_PREFERENCES } from '@/config/weights';
 import { resolveEnvironment } from '@/config/env';
 import { MOUNTAINS } from '@/data/mountains';
+import { ORIGINS } from '@/data/origins';
+import { nearest } from '@/lib/geo';
+import { tradeoffsAgainst } from '@/engine/explain';
 import type { DateKey } from '@/domain/dates';
 import { at } from '@/domain/time';
 import { makeContext } from '@/engine/inputs';
@@ -85,6 +88,15 @@ export default function App({ registry: injected }: AppProps = {}) {
     [origin.id, settings],
   );
 
+  // Live rankings are bought per starting city from a fixed daily budget, so a
+  // GPS fix is ranked from the nearest named city (and every ranking screen
+  // says so). An opened mountain still gets its full curve from the GPS fix.
+  const rankedFrom = useMemo(
+    () => (registry.trafficDetail && origin.id === 'gps' ? nearest(origin.coordinates, ORIGINS) : null),
+    [registry, origin],
+  );
+  const rankingOrigin = rankedFrom ?? origin;
+
   // A day chosen yesterday and left in the tab is today's problem now.
   const date = chosenDate < clock.today ? clock.today : chosenDate;
   const isToday = date === clock.today;
@@ -98,7 +110,7 @@ export default function App({ registry: injected }: AppProps = {}) {
     () =>
       recommend(registry, {
         mountains: MOUNTAINS,
-        origin,
+        origin: rankingOrigin,
         date,
         today: clock.today,
         // A future day is planned from a normal morning, not from whatever
@@ -108,7 +120,7 @@ export default function App({ registry: injected }: AppProps = {}) {
       }),
     // `clock.now` is read inside but deliberately not a dependency: the
     // ranking must not re-run every minute the tab is open.
-    [origin.id, origin.coordinates.lat, origin.coordinates.lon, date, clock.today, preferences],
+    [rankingOrigin.id, rankingOrigin.coordinates.lat, rankingOrigin.coordinates.lon, date, clock.today, preferences],
     // The home skeleton is already the waiting state; the "checking the
     // roads…" sequence only earns its floor on the picks screen.
     { enabled: wantsPlans, minimumMs: route.screen === 'today' || route.screen === 'list' ? 0 : 1900 },
@@ -139,6 +151,47 @@ export default function App({ registry: injected }: AppProps = {}) {
     }
     return plans.status === 'error' ? { status: 'error' } : { status: 'loading' };
   }, [plans, origin.shortName, date, clock.today]);
+
+  // An opened mountain gets its full departure curve (the detail budget), from
+  // the rider's own starting point, and replaces its estimate in the ranking.
+  const openedId = route.screen === 'mountain' ? route.mountainId : null;
+  const detail = useAsync(
+    async () => {
+      const mountain = MOUNTAINS.find((candidate) => candidate.id === openedId);
+      if (!registry.trafficDetail || !mountain) return null;
+      const full = await recommend(
+        { ...registry, traffic: registry.trafficDetail },
+        { mountains: [mountain], origin, date, today: clock.today, now: isToday ? clock.now : at(6, 0), preferences },
+      );
+      return full.best;
+    },
+    [openedId, origin.id, origin.coordinates.lat, origin.coordinates.lon, date, clock.today, preferences, registry],
+    { enabled: Boolean(openedId && registry.trafficDetail) },
+  );
+  const mountainState = useMemo(() => {
+    if (plans.status !== 'ready' || detail.status !== 'ready' || detail.data?.trafficSampling !== 'full') return plans;
+    const full = detail.data;
+    const { best } = plans.data;
+    const swap = (plan: typeof full) =>
+      plan.mountain.id !== full.mountain.id
+        ? plan
+        : { ...full, tradeoffs: best.mountain.id === full.mountain.id ? [] : tradeoffsAgainst(full.score, best.score) };
+    return {
+      ...plans,
+      data: { ...plans.data, best: swap(best), alternatives: plans.data.alternatives.map(swap), all: plans.data.all.map(swap) },
+    };
+  }, [plans, detail]);
+  const detailNote =
+    !registry.trafficDetail || !openedId
+      ? null
+      : detail.status === 'ready' && detail.data?.trafficSampling === 'full'
+        ? { status: 'full' as const }
+        : detail.status === 'ready' || detail.status === 'error'
+          ? {
+              status: 'unavailable' as const,
+              reason: (detail.status === 'ready' ? detail.data?.timingNote : null) ?? 'The traffic service did not answer.',
+            }
+          : { status: 'loading' as const };
 
   const goBackTo = (target: Route) => navigate(target.screen, target.mountainId);
 
@@ -195,6 +248,7 @@ export default function App({ registry: injected }: AppProps = {}) {
         return (
           <PicksScreen
             state={plans}
+            rankedFrom={rankedFrom}
             clock={clock}
             date={date}
             settings={settings}
@@ -207,7 +261,9 @@ export default function App({ registry: injected }: AppProps = {}) {
         return (
           <MountainScreen
             mountainId={route.mountainId ?? ''}
-            state={plans}
+            state={mountainState}
+            detail={detailNote}
+            rankedFrom={rankedFrom}
             clock={clock}
             date={date}
             settings={settings}
@@ -235,6 +291,7 @@ export default function App({ registry: injected }: AppProps = {}) {
             clock={clock}
             origin={origin}
             onOriginChange={setOrigin}
+            rankingOrigin={rankingOrigin}
             preferences={preferences}
             onBack={() => navigate('list')}
             onOpenMountain={openMountain('map')}
@@ -248,7 +305,8 @@ export default function App({ registry: injected }: AppProps = {}) {
           <LaterScreen
             registry={registry}
             clock={clock}
-            origin={origin}
+            origin={rankingOrigin}
+            rankedFrom={rankedFrom}
             preferences={preferences}
             onBack={() => navigate('setup')}
           />
@@ -257,6 +315,7 @@ export default function App({ registry: injected }: AppProps = {}) {
         return (
           <HomeScreen
             state={plans}
+            rankedFrom={rankedFrom}
             clock={clock}
             date={date}
             origin={origin}
@@ -274,6 +333,8 @@ export default function App({ registry: injected }: AppProps = {}) {
             onDateChange={setChosenDate}
             usingDemoData={registry.usingDemoData}
             scores={listScores}
+            estimated={plans.status === 'ready' && plans.data.estimated === true}
+            rankedFrom={rankedFrom}
             snow={snow}
             onToday={() => navigate('today')}
             onOpenMountain={openProfile('list')}

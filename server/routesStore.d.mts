@@ -3,9 +3,9 @@ export interface RoutesStore {
   shared: boolean;
   getSamples(keys: string[]): Promise<Map<string, unknown>>;
   putSample(key: string, value: unknown, ttlMs: number): Promise<void>;
-  reserve(day: string, n: number, limit: number): Promise<{ ok: boolean; used: number }>;
-  release(day: string, n: number): Promise<void>;
-  used(day: string): Promise<number>;
+  reserve(day: string, pool: string, n: number, limit: number): Promise<{ ok: boolean; used: number }>;
+  release(day: string, pool: string, n: number): Promise<void>;
+  used(day: string, pool: string): Promise<number>;
   getBreaker(): Promise<{ failure: unknown; until: number } | null>;
   setBreaker(untilMs: number, failure: unknown): Promise<void>;
 }

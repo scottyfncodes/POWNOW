@@ -1,3 +1,4 @@
+import { EstimateNote } from '@/ui/components/EstimateNote';
 import type { CSSProperties } from 'react';
 import { resolveEnvironment } from '@/config/env';
 import { type DateKey, relativeDateLabel } from '@/domain/dates';
@@ -18,6 +19,8 @@ export interface HomeScreenProps {
   clock: ClockState;
   date: DateKey;
   origin: Origin;
+  /** The named city a GPS user's ranking comes from (live mode), so the screen can say so. */
+  rankedFrom?: Origin | null;
   usingDemoData: boolean;
   /** SEE WHY: the pick's whole day on its own screen. */
   onOpenMountain: (mountainId: string) => void;
@@ -37,7 +40,7 @@ export interface HomeScreenProps {
  * failure is one line under the hero, never a box in front of it. Where the
  * numbers come from lives behind Sources on All mountains.
  */
-export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMountain, onBrowse }: HomeScreenProps) {
+export function HomeScreen({ state, clock, date, origin, rankedFrom = null, usingDemoData, onOpenMountain, onBrowse }: HomeScreenProps) {
   const environment = resolveEnvironment();
   // Only a separately hosted proxy naps; a same-origin one has nothing to warn about.
   const remoteProxy = environment.proxyConfigured && environment.trafficApiBaseUrl !== '';
@@ -66,6 +69,7 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
               {dayLabel} · from {from}
             </span>
             {usingDemoData && <span className="chip chip-demo">DEMO DATA</span>}
+            {state.status === 'ready' && state.data.estimated && <span className="chip chip-estimate">ESTIMATE</span>}
           </p>
 
           {best && noneOpen && state.status === 'ready' ? (
@@ -138,6 +142,9 @@ export function HomeScreen({ state, clock, date, origin, usingDemoData, onOpenMo
             All mountains
           </button>
 
+          {state.status === 'ready' && (
+            <EstimateNote className="home-note" estimated={state.data.estimated === true} rankedFrom={rankedFrom} />
+          )}
           {usingDemoData ? (
             <p className="home-note">
               <strong>DEMO DATA:</strong> No live weather, traffic or lift feeds are connected. Every number in

@@ -1,3 +1,5 @@
+import type { Origin } from '@/domain/mountain';
+import { EstimateNote } from '@/ui/components/EstimateNote';
 import type { Recommendation } from '@/domain/plan';
 import { type DateKey, formatDateLabel, relativeDateLabel } from '@/domain/dates';
 import { Caveats } from '@/ui/components/Caveats';
@@ -12,6 +14,8 @@ import { LoadingScreen } from './LoadingScreen';
 
 export interface PicksScreenProps {
   state: AsyncState<Recommendation> & { reload: () => void };
+  /** The named city a GPS user's ranking comes from (live mode), so the screen can say so. */
+  rankedFrom?: Origin | null;
   clock: ClockState;
   date: DateKey;
   settings: RiderSettings;
@@ -28,7 +32,7 @@ export interface PicksScreenProps {
  * winner leads with why it won; every other card wears its trade-offs
  * against the winner, so the list can be scanned rather than studied.
  */
-export function PicksScreen({ state, clock, date, settings, onBack, onEdit, onOpenMountain }: PicksScreenProps) {
+export function PicksScreen({ state, rankedFrom = null, clock, date, settings, onBack, onEdit, onOpenMountain }: PicksScreenProps) {
   const isToday = date === clock.today;
   const dayLabel = relativeDateLabel(date, clock.today);
 
@@ -86,6 +90,8 @@ export function PicksScreen({ state, clock, date, settings, onBack, onEdit, onOp
             <span>Every number here is simulated and labelled as such.</span>
           </p>
         )}
+
+        <EstimateNote className="picks-demo" estimated={recommendation.estimated === true} rankedFrom={rankedFrom} />
 
         <ol className="picks" aria-label="Mountains, best first">
           {recommendation.all.map((plan, index) => (
