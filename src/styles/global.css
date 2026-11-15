@@ -186,7 +186,7 @@ a {
 /* ------------------------------------------------------------- typography */
 
 .eyebrow {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -241,10 +241,10 @@ a {
   border-radius: var(--radius-tag);
   border: 1px solid var(--line);
   background: none;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-stretch: var(--wide);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-dim);
   white-space: nowrap;

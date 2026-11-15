@@ -8,8 +8,8 @@ const HEIGHT = 224;
 const PAD = { top: 44, right: 14, bottom: 26, left: 14 };
 /** Marker labels sit on the row just above the plot, or one row up when a neighbour is in the way. */
 const LABEL_ROWS = [PAD.top - 3, PAD.top - 16] as const;
-/** Width of a label's capitals at the chart's 11px lettering, near enough to keep two apart. */
-const labelWidth = (label: string): number => label.length * 8.2;
+/** Width of a label's capitals at the chart's 12px lettering, near enough to keep two apart. */
+const labelWidth = (label: string): number => label.length * 8.9;
 
 interface MarkerSpec {
   x: number;

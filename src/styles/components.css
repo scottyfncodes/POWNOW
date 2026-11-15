@@ -114,7 +114,7 @@
 
 .home-sources {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -220,7 +220,7 @@
 }
 
 .home-reason-key {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -522,7 +522,7 @@
 
 .originpicker-label {
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -662,7 +662,7 @@
 }
 
 .screenhead-mode {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -673,7 +673,7 @@
 .screenhead-date {
   flex: none;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -767,7 +767,7 @@
 
 .reccard-scorelabel {
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -792,7 +792,7 @@
 /* Metadata, not headlines: legible, checkable, and quiet enough that the
    verdict above still wins the page. */
 .reccard-badges .chip {
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 8px;
   letter-spacing: 0.1em;
   background: transparent;
@@ -819,7 +819,7 @@
 }
 
 .reccard-time dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -876,7 +876,7 @@
 }
 
 .reccard-ticket-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -956,7 +956,7 @@
 }
 
 .basepeak-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1006,7 +1006,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1015,7 +1015,7 @@
 }
 
 .snowpack-chip {
-  font-size: 11px;
+  font-size: 12px;
   padding: 2px 6px;
 }
 
@@ -1032,7 +1032,7 @@
 }
 
 .snowpack-grid dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -1093,7 +1093,7 @@
 }
 
 .ridersettings-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1133,7 +1133,7 @@
 .ridersettings-field legend {
   padding: 0;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1183,7 +1183,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1207,7 +1207,7 @@
 .ridersettings-slider-ends {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-ghost);
 }
 
@@ -1217,7 +1217,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 48px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1292,7 +1292,7 @@
 }
 
 .snowtimeline-total-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1355,12 +1355,12 @@
 }
 
 .snowtimeline-bar-value {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .snowtimeline-bar-day {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-faint);
   white-space: nowrap;
 }
@@ -1375,7 +1375,7 @@
 
 .snowtimeline-today span {
   writing-mode: vertical-rl;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--ink-faint);
@@ -1390,7 +1390,7 @@
 }
 
 .snowtimeline-chip {
-  font-size: 11px;
+  font-size: 12px;
   padding: 3px 7px;
 }
 
@@ -1465,7 +1465,7 @@
 }
 
 .snowclock-primelabel text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1490,7 +1490,7 @@
 }
 
 .snowclock-marker text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -1517,7 +1517,7 @@
 }
 
 .snowclock-tick {
-  font-size: 11px;
+  font-size: 12px;
   fill: var(--ink-ghost);
   font-variant-numeric: tabular-nums;
 }
@@ -1565,7 +1565,7 @@
 }
 
 .hourstrip-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-faint);
   letter-spacing: 0.02em;
 }
@@ -1669,7 +1669,7 @@
 }
 
 .travelchart-tick {
-  font-size: 11px;
+  font-size: 12px;
   fill: var(--ink-ghost);
   font-variant-numeric: tabular-nums;
 }
@@ -1752,7 +1752,7 @@
 }
 
 .whatif-grid dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -1868,7 +1868,7 @@
 
 .ladder thead th,
 .rangetable thead th {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -1906,7 +1906,7 @@
   border-radius: 999px;
   background: var(--ice);
   color: #04060a;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -2078,7 +2078,7 @@
   border-radius: 999px;
   border: 1px solid rgba(255, 194, 74, 0.4);
   color: var(--wait);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -2180,7 +2180,7 @@
 }
 
 .alertbanner-event {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--stop);
@@ -2228,7 +2228,7 @@
 
 .datasources-attribution {
   grid-column: 1 / -1;
-  font-size: 11px;
+  font-size: 12px;
   font-style: italic;
   color: var(--ink-faint);
 }
@@ -2272,7 +2272,7 @@
 }
 
 .pickchip-sub {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink-faint);
 }
@@ -2348,7 +2348,7 @@
 }
 
 .rangetable-date {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -2536,7 +2536,7 @@
 }
 
 .mapscreen-route-stats dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -2635,7 +2635,7 @@
 .leaflet-control-attribution {
   background: rgba(4, 6, 10, 0.72) !important;
   color: var(--ink-faint) !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .leaflet-control-attribution a {
@@ -2722,7 +2722,7 @@
   background: var(--surface) !important;
   border: 1px solid var(--line) !important;
   color: var(--ink) !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
   padding: 2px 6px !important;
   box-shadow: none !important;
@@ -2791,7 +2791,7 @@
   border: none !important;
   box-shadow: none !important;
   color: var(--ink) !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 800 !important;
   font-stretch: var(--wide);
   letter-spacing: 0.06em !important;
@@ -2871,7 +2871,7 @@
 }
 
 .profile-row dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -3074,7 +3074,7 @@
 }
 
 .mapscreen-peek-facts dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -3383,7 +3383,7 @@
 }
 
 .conditionspanel-ops dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -3511,7 +3511,7 @@
 }
 
 .gettherepanel-stats dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -3923,7 +3923,7 @@
 }
 
 .mcard-rank {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--ink-faint);
@@ -3990,7 +3990,7 @@
 }
 
 .mcard-stats dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -4115,7 +4115,7 @@
 
 .filterchip {
   flex: none;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -4198,7 +4198,7 @@
 }
 
 .mountainlist-region {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -4224,7 +4224,7 @@
 }
 
 .mountainlist-score-of {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   opacity: 0.72;
 }
@@ -4251,7 +4251,7 @@
 
 .mountainlist-score.is-none {
   padding: 6px 9px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -4450,7 +4450,7 @@
 
 .credits-heading {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -4609,7 +4609,7 @@
   position: absolute;
   right: 18px;
   transform: translateY(-110%);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -4630,7 +4630,7 @@
   bottom: 10px;
   display: flex;
   flex-direction: column;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -4663,7 +4663,7 @@
 }
 
 .profilestat dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -4697,7 +4697,7 @@
 }
 
 .profilestats-hours dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-stretch: var(--wide);
   letter-spacing: 0.06em;
@@ -4737,7 +4737,7 @@
 }
 
 .profilenow-snow dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -4948,7 +4948,7 @@
 
 .snowoutlook-label {
   align-self: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   font-stretch: var(--wide);
   letter-spacing: var(--track-label);
@@ -5008,7 +5008,7 @@
 }
 
 .snowoutlook-dow {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--ink-ghost);
 }
@@ -5035,6 +5035,13 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
+}
+
+/* The select laid over the chip is the control; the day and the caret under it are its face. */
+.listscreen-date > span,
+.listscreen-date > svg {
+  pointer-events: none;
+  cursor: default;
 }
 
 /* The native select sits invisibly over the chip at 16px, so iOS never zooms on focus;
@@ -5172,13 +5179,15 @@
 .snowpack-grid dt,
 .profilestat dt,
 .profilenow-snow dt,
+.snowoutlook-label,
 .ridersettings-select,
 .mountainlist-region {
-  font-stretch: 100%;
-  letter-spacing: 0.05em;
+  font-stretch: 94%;
+  letter-spacing: 0.04em;
 }
 
 .snowpack-grid dt {
+  font-stretch: 88%;
   white-space: nowrap;
 }
 
@@ -5209,4 +5218,50 @@
 .screenhead-date {
   font-stretch: 100%;
   letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------- the narrowest phones */
+
+/* At 320px a three-up row of tiles has about 70px a tile, and the sort chips
+   no longer fit on a line. Names and labels take the family's narrow cut and
+   tiles give back some padding, so nothing runs past the edge of the screen. */
+.listscreen-sort {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 359px) {
+  .mcard-name,
+  .reccard-name,
+  .home-pick {
+    font-stretch: 84%;
+  }
+
+  .profilestat,
+  .profilenow-snow > div {
+    padding: 10px 8px;
+  }
+
+  .profilestat dt,
+  .profilenow-snow dt,
+  .snowpack-grid dt,
+  .snowoutlook-label {
+    font-stretch: 78%;
+    letter-spacing: 0.02em;
+  }
+
+  .profilestat dd,
+  .profilenow-snow dd,
+  .snowoutlook-total {
+    font-stretch: 84%;
+  }
+
+  .snowoutlook {
+    gap: 8px;
+  }
+}
+
+/* A date under each day's bar: ten of them share a phone's width, so they take the narrow cut. */
+.snowtimeline-bar-day {
+  font-stretch: 80%;
+  white-space: nowrap;
 }
