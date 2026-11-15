@@ -4107,6 +4107,12 @@
   background: var(--surface-2);
 }
 
+/* A tint of the border is not a focus ring: Tab lands here with the same outline as everything else. */
+.listscreen-search input:focus-visible {
+  outline: 2px solid var(--ice);
+  outline-offset: 2px;
+}
+
 .listscreen-passes {
   display: flex;
   gap: 6px;
