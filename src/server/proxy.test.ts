@@ -158,6 +158,7 @@ describe('publicRoutesFailure: what a browser is told', () => {
       status: 403,
       googleStatus: 'PERMISSION_DENIED',
       reason: 'BILLING_DISABLED',
+      circuitOpen: false,
     });
     expect(body.error).toMatch(/billing/i);
     expect(JSON.stringify(body)).not.toContain('123456789012');
@@ -248,9 +249,13 @@ describe('the traffic routes, end to end with Google stubbed', () => {
     expect(json.upstream).toMatchObject({ kind: 'key_restricted', status: 403, reason: 'API_KEY_SERVICE_BLOCKED' });
     expect(json.samples).toBeUndefined();
     expect(JSON.stringify(json)).not.toContain('test-key-not-a-real-one');
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0]?.[0])).toContain('API_KEY_SERVICE_BLOCKED');
-    expect(String(warn.mock.calls[0]?.[0])).not.toContain('test-key-not-a-real-one');
+    const lines = warn.mock.calls.map((call) => String(call[0]));
+    const curveFailures = lines.filter((line) => line.includes('travel curve'));
+    expect(curveFailures).toHaveLength(1);
+    expect(curveFailures[0]).toContain('API_KEY_SERVICE_BLOCKED');
+    // The breaker opens once, and nothing logged carries the key.
+    expect(lines.filter((line) => line.includes('circuit breaker open'))).toHaveLength(1);
+    for (const line of lines) expect(line).not.toContain('test-key-not-a-real-one');
   });
 
   it('does the same for the single-call route preview', async () => {
@@ -278,5 +283,218 @@ describe('the traffic routes, end to end with Google stubbed', () => {
     expect(status).toBe(502);
     expect(json.upstream.kind).toBe('no_route');
     expect(json.samples).toBeUndefined();
+  });
+});
+
+describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrency', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  const curve = (overrides: Record<string, unknown> = {}) => ({
+    origin: { lat: 39.7392, lon: -104.9903 },
+    destination: { lat: 39.4817, lon: -106.1614 },
+    direction: 'outbound',
+    date: '2099-01-17',
+    ...overrides,
+  });
+
+  /** The router, and a Google that answers `respond()` after `delayMs`, counting calls and the most at once. */
+  async function router(env: Record<string, string>, respond: () => { status: number; body: unknown }, delayMs = 0) {
+    vi.resetModules();
+    vi.stubEnv('GOOGLE_ROUTES_API_KEY', 'test-key-not-a-real-one');
+    vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('VERCEL', '');
+    for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+    const google = { calls: 0, active: 0, mostAtOnce: 0 };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        google.calls += 1;
+        google.active += 1;
+        google.mostAtOnce = Math.max(google.mostAtOnce, google.active);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        google.active -= 1;
+        const { status, body } = respond();
+        return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+    const mod = await import('../../server/index.mjs');
+    return { ...mod, google };
+  }
+
+  async function request(handleRequest: (req: never, res: never) => Promise<void>, method: string, path: string, body?: unknown) {
+    const req = Object.assign(Readable.from([]), {
+      method,
+      url: path,
+      headers: { host: 'localhost', 'content-type': 'application/json' },
+      body,
+      socket: { remoteAddress: '127.0.0.1' },
+    }) as unknown as IncomingMessage;
+    let status = 0;
+    let headers: Record<string, string> = {};
+    let text = '';
+    const res = {
+      headersSent: false,
+      writeHead(code: number, h?: Record<string, string>) {
+        status = code;
+        headers = h ?? {};
+        return res;
+      },
+      setHeader() {},
+      end(chunk?: string) {
+        text = chunk ?? '';
+      },
+    } as unknown as ServerResponse;
+    await handleRequest(req as never, res as never);
+    return { status, headers, json: JSON.parse(text) };
+  }
+
+  const route = () => ({ status: 200, body: { routes: [{ duration: '5400s', distanceMeters: 120_000 }] } });
+
+  it('buys a curve once: the same request again costs no Google call', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({}, route);
+    const first = await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const again = await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    expect(first.status).toBe(200);
+    expect(again.json.samples).toEqual(first.json.samples);
+    expect(google.calls).toBe(9);
+  });
+
+  it('shares one call between identical requests in flight at the same time', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({}, route, 20);
+    const [a, b] = await Promise.all([
+      request(handleRequest, 'POST', '/api/travel-curve', curve()),
+      request(handleRequest, 'POST', '/api/travel-curve', curve()),
+    ]);
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    expect(google.calls).toBe(9);
+  });
+
+  it('starting points a few hundred metres apart share samples', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({}, route);
+    await request(handleRequest, 'POST', '/api/travel-curve', curve({ origin: { lat: 39.7392, lon: -104.9903 } }));
+    await request(handleRequest, 'POST', '/api/travel-curve', curve({ origin: { lat: 39.7411, lon: -104.9881 } }));
+    expect(google.calls).toBe(9);
+  });
+
+  it('never spends past the daily ceiling, and never half-buys a curve', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({ ROUTES_DAILY_BUDGET: '12' }, route);
+    const first = await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const second = await request(handleRequest, 'POST', '/api/travel-curve', curve({ date: '2099-01-18' }));
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(503);
+    expect(second.json.upstream.kind).toBe('daily_budget_reached');
+    expect(second.json.samples).toBeUndefined();
+    expect(Number(second.headers['Retry-After'])).toBeGreaterThan(0);
+    expect(google.calls).toBe(9);
+    // What is already bought is still served once the budget is spent.
+    expect((await request(handleRequest, 'POST', '/api/travel-curve', curve())).status).toBe(200);
+    expect(google.calls).toBe(9);
+  });
+
+  it('stops calling Google after a quota refusal, and keeps saying why', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const quota = {
+      status: 429,
+      body: { error: { code: 429, status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded', details: [{ reason: 'RATE_LIMIT_EXCEEDED' }] } },
+    };
+    const { handleRequest, google } = await router({}, () => quota);
+    const first = await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const callsAfterFirst = google.calls;
+    const later = await request(handleRequest, 'POST', '/api/travel-curve', curve({ date: '2099-01-18', direction: 'return' }));
+    expect(first.status).toBe(502);
+    expect(first.json.upstream.kind).toBe('quota_exceeded');
+    expect(callsAfterFirst).toBeLessThanOrEqual(4);
+    expect(later.status).toBe(502);
+    expect(later.json.upstream).toMatchObject({ kind: 'quota_exceeded', circuitOpen: true });
+    expect(google.calls).toBe(callsAfterFirst);
+    const health = await request(handleRequest, 'GET', '/api/health');
+    expect(health.json.googleRoutes.breakerOpenUntil).not.toBeNull();
+    // Calls that never left are given back to the budget.
+    expect(health.json.googleRoutes.usedToday).toBe(callsAfterFirst);
+  });
+
+  it('keeps at most four Google calls in flight', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest, google } = await router({}, route, 15);
+    await Promise.all([
+      request(handleRequest, 'POST', '/api/travel-curve', curve()),
+      request(handleRequest, 'POST', '/api/travel-curve', curve({ direction: 'return' })),
+    ]);
+    expect(google.calls).toBe(20);
+    expect(google.mostAtOnce).toBe(4);
+  });
+
+  it('makes no call on a serverless host without the shared store: a per-instance budget is no ceiling', async () => {
+    const { handleRequest, google } = await router({ VERCEL: '1' }, route);
+    const res = await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    expect(res.status).toBe(503);
+    expect(res.json.upstream.kind).toBe('budget_unverifiable');
+    expect(google.calls).toBe(0);
+  });
+
+  it('reports the budget on /api/health without anything secret', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { handleRequest } = await router({ ROUTES_DAILY_BUDGET: '100' }, route);
+    await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const { json } = await request(handleRequest, 'GET', '/api/health');
+    expect(json.googleRoutes).toMatchObject({ dailyBudget: 100, usedToday: 9, sharedStore: false, breakerOpenUntil: null });
+    expect(JSON.stringify(json)).not.toContain('test-key-not-a-real-one');
+  });
+});
+
+describe('sample lifetimes and quota resets', () => {
+  it('keeps a sample for half its lead time, between 15 minutes and a day', async () => {
+    const { sampleTtlMs } = await import('../../server/index.mjs');
+    const now = Date.parse('2026-12-12T12:00:00Z');
+    const at = (hours: number) => new Date(now + hours * 3_600_000).toISOString();
+    expect(sampleTtlMs(null, now)).toBe(15 * 60_000);
+    expect(sampleTtlMs(at(0.25), now)).toBe(15 * 60_000);
+    expect(sampleTtlMs(at(4), now)).toBe(2 * 3_600_000);
+    expect(sampleTtlMs(at(24 * 7), now)).toBe(24 * 3_600_000);
+  });
+
+  it('opens a quota breaker until just after midnight Pacific, a key or billing one for 30 minutes', async () => {
+    const { breakerUntilMs, nextQuotaResetMs } = await import('../../server/index.mjs');
+    const now = Date.parse('2026-11-15T18:00:00Z');
+    expect(new Date(nextQuotaResetMs(now)).toISOString()).toBe('2026-11-16T08:00:00.000Z');
+    expect(breakerUntilMs('quota_exceeded', now)).toBe(Date.parse('2026-11-16T08:05:00Z'));
+    expect(breakerUntilMs('billing_disabled', now)).toBe(now + 30 * 60_000);
+  });
+});
+
+describe('the shared Neon store', () => {
+  it('creates its tables once, reserves atomically and reports a refused reservation', async () => {
+    const { createNeonStore } = await import('../../server/routesStore.mjs');
+    const queries: string[] = [];
+    let used = 95;
+    const sql = {
+      query: vi.fn(async (text: string, params: unknown[] = []) => {
+        queries.push(text);
+        if (text.startsWith('INSERT INTO routes_budget')) {
+          const [, n, limit] = params as [string, number, number];
+          if (used + n > limit) return [];
+          used += n;
+          return [{ used }];
+        }
+        if (text.startsWith('SELECT used')) return [{ used }];
+        return [];
+      }),
+    };
+    const store = createNeonStore('postgres://unused', { sql: sql as never });
+    expect(await store.reserve('2026-11-16', 4, 100)).toEqual({ ok: true, used: 99 });
+    expect(await store.reserve('2026-11-16', 4, 100)).toEqual({ ok: false, used: 99 });
+    expect(queries.filter((q) => q.startsWith('CREATE TABLE'))).toHaveLength(2);
+    expect(queries.find((q) => q.startsWith('INSERT INTO routes_budget'))).toMatch(/WHERE routes_budget\.used \+ EXCLUDED\.used <= \$3/);
   });
 });

@@ -10,11 +10,12 @@
  *      devtools. The keys live here and never appear in any response.
  *   2. Reach hosts that don't serve CORS. The NRCS SNOTEL API (measured
  *      snowpack) and CDOT's feed are server-to-server APIs.
- *   3. Share a cache. Every (corridor, direction, date) travel curve is built
- *      once and served to every visitor for the next 15 minutes; the same
- *      statewide road feed answers every corridor question for 5 minutes.
+ *   3. Share a cache. Every Google Routes departure sample is bought once,
+ *      under one global daily budget, and served to every visitor while it is
+ *      fresh (see "the Google budget"); the same statewide road feed answers
+ *      every corridor question for 5 minutes.
  *
- * Deliberately framework-free (no Express; one dependency, an HTML parser for resort pages): a plain `node:http` router is
+ * Deliberately framework-free (no Express; two dependencies, an HTML parser for resort pages and the Neon driver for the shared Google budget): a plain `node:http` router is
  * easier to audit for "does this leak a key anywhere" than a framework.
  *
  * It runs two ways from the same file:
@@ -35,6 +36,7 @@
  */
 import { createServer } from 'node:http';
 import { parse as parseHtml } from 'node-html-parser';
+import { createMemoryStore, createNeonStore } from './routesStore.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const API_KEY = process.env.GOOGLE_ROUTES_API_KEY ?? '';
@@ -310,7 +312,15 @@ const ROUTES_FAILURE_TEXT = {
   network: 'Google Routes could not be reached.',
   unreadable: 'Google Routes answered with something this proxy could not read.',
   no_route: 'Google Routes found no drivable route for this request.',
+  daily_budget_reached: "Today's Google Routes budget is spent; drive times come back when it resets at midnight Pacific.",
+  budget_unverifiable: 'The Google Routes budget could not be checked, so no call was made.',
 };
+
+/** Kinds that are this proxy's own spending limits, not Google refusing: answered 503, not 502. */
+const OWN_LIMIT_KINDS = new Set(['daily_budget_reached', 'budget_unverifiable']);
+
+/** The HTTP status for a Routes failure: our own limit is 503 (try later), Google's refusal is 502. */
+export const routesFailureStatus = (failure) => (OWN_LIMIT_KINDS.has(failure.kind) ? 503 : 502);
 
 const enumLike = (value) => (typeof value === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(value) ? value : null);
 
@@ -345,6 +355,8 @@ export function publicRoutesFailure(failure) {
       status: failure.upstreamStatus ?? null,
       googleStatus: failure.googleStatus ?? null,
       reason: failure.reason ?? null,
+      // True when no call was made: an earlier failure of the same kind tripped the circuit breaker.
+      circuitOpen: failure.circuitOpen === true,
     },
   };
 }
@@ -355,6 +367,14 @@ export function redactForLog(text, secrets = []) {
   let out = text;
   for (const secret of secrets) if (secret) out = out.split(secret).join('[redacted]');
   return out.replace(/AIza[0-9A-Za-z_-]{10,}/g, '[redacted]').replace(/([?&]key=)[^&\s]+/gi, '$1[redacted]').slice(0, 400);
+}
+
+/** Answer a Routes failure: 503 with Retry-After for our own limit, 502 for Google's refusal (breaker or not). */
+function sendRoutesFailure(req, res, failure) {
+  const headers = failure.kind === 'daily_budget_reached' || failure.kind === 'quota_exceeded'
+    ? { 'Retry-After': String(Math.max(60, Math.ceil((nextQuotaResetMs() - Date.now()) / 1000))) }
+    : {};
+  sendJson(req, res, routesFailureStatus(failure), publicRoutesFailure(failure), headers);
 }
 
 /** Thrown when no sampled departure produced a route; carries the commonest reason why. */
@@ -379,6 +399,8 @@ export function dominantFailure(failures) {
 
 /** One line per failed curve or preview, so the function log says what Google actually answered. */
 function logRoutesFailure(where, failure, sampled) {
+  // Our own budget and a breaker already logged are not news on every request.
+  if (OWN_LIMIT_KINDS.has(failure.kind) || failure.circuitOpen) return;
   console.warn(
     `[google-routes] ${where} failed: ` +
       JSON.stringify({
@@ -451,6 +473,248 @@ async function requestRoute(origin, destination, departureIso, { withPolyline = 
   };
 }
 
+/* ------------------------------------------------------- the Google budget */
+
+/*
+ * Google Routes is billed per call and the project runs on a fixed daily
+ * ceiling, so every call goes through one gate:
+ *
+ *   1. Each departure sample is cached on its own, shared by every instance
+ *      (routesStore.mjs), for half the time left until that departure: a
+ *      departure next Saturday is a historical prediction and keeps for a
+ *      day, one 40 minutes out keeps for 20. Today's curve no longer starts
+ *      over every quarter hour; only its "leave now" point does.
+ *   2. Concurrent requests for the same sample in one instance share one call.
+ *   3. The day's calls are reserved all at once, atomically, against
+ *      ROUTES_DAILY_BUDGET (Pacific day, when Google resets quotas). A curve
+ *      the budget cannot cover is not half-bought.
+ *   4. At most ROUTES_CONCURRENCY calls are in flight per instance.
+ *   5. A quota, billing or key refusal opens a circuit breaker, shared by every
+ *      instance: no call is made until Google's quota resets (quota) or for 30
+ *      minutes (key, billing), and every answer meanwhile still names Google's
+ *      refusal, so the failure stays visible.
+ *
+ * Nothing here invents a drive time: a sample is Google's, cached, or absent.
+ */
+const ROUTES_DAILY_BUDGET = Math.max(0, Number(process.env.ROUTES_DAILY_BUDGET ?? 100));
+const ROUTES_CONCURRENCY = Math.max(1, Number(process.env.ROUTES_CONCURRENCY ?? 4));
+const QUOTA_TIME_ZONE = 'America/Los_Angeles';
+const DATABASE_URL = process.env.DATABASE_URL ?? '';
+/** On a serverless host each instance has its own memory: a budget kept there is no ceiling. */
+const SERVERLESS = Boolean(process.env.VERCEL);
+const routesStore = DATABASE_URL ? createNeonStore(DATABASE_URL) : createMemoryStore();
+
+const MIN_SAMPLE_TTL_MS = 15 * 60_000;
+const MAX_SAMPLE_TTL_MS = 24 * 3_600_000;
+/** How long a sample keeps: half its lead time, between 15 minutes and a day. "Now" keeps 15 minutes. */
+export function sampleTtlMs(departureIso, nowMs = Date.now()) {
+  const lead = departureIso ? Date.parse(departureIso) - nowMs : 0;
+  return Math.min(MAX_SAMPLE_TTL_MS, Math.max(MIN_SAMPLE_TTL_MS, Math.round(lead / 2)));
+}
+
+/** A starting point to about a kilometre, so neighbours share samples (a drive changes by a minute at most). */
+export const roundOrigin = (point) => ({ lat: Math.round(point.lat * 100) / 100, lon: Math.round(point.lon * 100) / 100 });
+
+const sampleKey = (origin, destination, departureIso, withPolyline) =>
+  ['s', origin.lat.toFixed(2), origin.lon.toFixed(2), destination.lat.toFixed(4), destination.lon.toFixed(4), departureIso ?? 'now', withPolyline ? 'p' : '']
+    .join(':');
+
+/** The instant Google's per-day quotas next reset: midnight Pacific. */
+export function nextQuotaResetMs(nowMs = Date.now()) {
+  const [year, month, day] = localParts(nowMs, QUOTA_TIME_ZONE).dateKey.split('-').map(Number);
+  const tomorrow = new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+  return localToUtcMs(tomorrow, 0, QUOTA_TIME_ZONE);
+}
+
+/** Refusals that will repeat on every call until something changes: worth stopping for. */
+const BREAKER_KINDS = new Set([
+  'quota_exceeded', 'key_invalid', 'key_restricted', 'api_not_enabled', 'billing_disabled', 'project_suspended', 'project_invalid', 'permission_denied',
+]);
+export function breakerUntilMs(kind, nowMs = Date.now()) {
+  return kind === 'quota_exceeded' ? nextQuotaResetMs(nowMs) + 5 * 60_000 : nowMs + 30 * 60_000;
+}
+
+const ownFailure = (kind) => ({ kind, upstreamStatus: null, googleStatus: null, reason: null, message: null });
+const warnStore = (what, error) => console.warn(`[google-routes] shared store ${what} failed: ${redactForLog(error instanceof Error ? error.message : String(error), [DATABASE_URL])}`);
+
+/** Tier 1 in front of the shared store: this instance's copy of samples it has seen. */
+const sampleMemo = new Map();
+const pendingSamples = new Map();
+let localBreaker = null;
+
+let googleActive = 0;
+const googleQueue = [];
+async function withGoogleSlot(run) {
+  if (googleActive >= ROUTES_CONCURRENCY) await new Promise((resolve) => googleQueue.push(resolve));
+  googleActive += 1;
+  try {
+    return await run();
+  } finally {
+    googleActive -= 1;
+    googleQueue.shift()?.();
+  }
+}
+
+async function openBreaker() {
+  if (localBreaker && localBreaker.until > Date.now()) return localBreaker.failure;
+  try {
+    const shared = await routesStore.getBreaker();
+    if (shared) {
+      localBreaker = { until: shared.until, failure: shared.failure };
+      return shared.failure;
+    }
+  } catch (error) {
+    warnStore('breaker read', error);
+  }
+  return null;
+}
+
+async function tripBreaker(failure) {
+  // Calls already in flight when the breaker opens come back with the same refusal: one trip is enough.
+  if (localBreaker && localBreaker.until > Date.now() && localBreaker.failure.kind === failure.kind) return;
+  const until = breakerUntilMs(failure.kind);
+  localBreaker = { until, failure };
+  console.warn(`[google-routes] circuit breaker open until ${new Date(until).toISOString()}: ${failure.kind}`);
+  try {
+    await routesStore.setBreaker(until, failure);
+  } catch (error) {
+    warnStore('breaker write', error);
+  }
+}
+
+/** Buy the samples nobody has: one budget reservation, then at most ROUTES_CONCURRENCY calls at a time. */
+async function spendOnGoogle(origin, destination, items, withPolyline) {
+  const blocked = await openBreaker();
+  if (blocked) return items.map(() => ({ failure: { ...blocked, circuitOpen: true } }));
+  if (SERVERLESS && !routesStore.shared) return items.map(() => ({ failure: ownFailure('budget_unverifiable') }));
+
+  const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
+  let reservation;
+  try {
+    reservation = items.length <= ROUTES_DAILY_BUDGET ? await routesStore.reserve(day, items.length, ROUTES_DAILY_BUDGET) : { ok: false };
+  } catch (error) {
+    warnStore('budget', error);
+    return items.map(() => ({ failure: ownFailure('budget_unverifiable') }));
+  }
+  if (!reservation.ok) return items.map(() => ({ failure: ownFailure('daily_budget_reached') }));
+  console.info(`[google-routes] calls ${items.length}, budget ${reservation.used}/${ROUTES_DAILY_BUDGET} for ${day} (Pacific)`);
+
+  let unspent = 0;
+  const results = await Promise.all(
+    items.map(({ key, departureIso }) =>
+      withGoogleSlot(async () => {
+        // The breaker may have opened while this call waited for a slot.
+        if (localBreaker && localBreaker.until > Date.now()) {
+          unspent += 1;
+          return { failure: { ...localBreaker.failure, circuitOpen: true } };
+        }
+        const result = await requestRoute(origin, destination, departureIso, { withPolyline });
+        if (result.sample) {
+          const ttl = sampleTtlMs(departureIso);
+          sampleMemo.set(key, { value: result.sample, expiresAt: Date.now() + ttl });
+          try {
+            await routesStore.putSample(key, result.sample, ttl);
+          } catch (error) {
+            warnStore('write', error);
+          }
+        } else if (BREAKER_KINDS.has(result.failure.kind)) {
+          await tripBreaker(result.failure);
+        }
+        return result;
+      }),
+    ),
+  );
+  if (unspent > 0) await routesStore.release(day, unspent).catch((error) => warnStore('budget release', error));
+  return results;
+}
+
+/**
+ * Google samples for these departures (null = now), in order, each `{ sample }` or `{ failure }`:
+ * from this instance, then the shared store, then a call shared with any identical one in flight,
+ * and only then a new, budgeted call.
+ */
+async function getRouteSamples(origin, destination, departures, { withPolyline = false } = {}) {
+  const now = Date.now();
+  const keys = departures.map((departureIso) => sampleKey(origin, destination, departureIso, withPolyline));
+  const out = new Array(keys.length);
+  let missing = [];
+  keys.forEach((key, i) => {
+    const hit = sampleMemo.get(key);
+    if (hit && hit.expiresAt > now) out[i] = { sample: hit.value };
+    else missing.push(i);
+  });
+
+  if (missing.length > 0) {
+    let stored = new Map();
+    try {
+      stored = await routesStore.getSamples(missing.map((i) => keys[i]));
+    } catch (error) {
+      warnStore('read', error);
+    }
+    missing = missing.filter((i) => {
+      const value = stored.get(keys[i]);
+      if (!value) return true;
+      out[i] = { sample: value };
+      // This instance keeps it briefly; the shared store stays the authority on expiry.
+      sampleMemo.set(keys[i], { value, expiresAt: now + Math.min(5 * 60_000, sampleTtlMs(departures[i], now)) });
+      return false;
+    });
+  }
+
+  const waits = [];
+  const fresh = [];
+  for (const i of missing) {
+    const pending = pendingSamples.get(keys[i]);
+    if (pending) waits.push(pending.then((result) => (out[i] = result)));
+    else fresh.push(i);
+  }
+
+  if (fresh.length > 0) {
+    const settle = new Map();
+    for (const i of fresh) {
+      pendingSamples.set(keys[i], new Promise((resolve) => settle.set(i, resolve)));
+    }
+    try {
+      const results = await spendOnGoogle(
+        origin,
+        destination,
+        fresh.map((i) => ({ key: keys[i], departureIso: departures[i] })),
+        withPolyline,
+      );
+      fresh.forEach((i, n) => {
+        out[i] = results[n];
+        settle.get(i)(results[n]);
+      });
+    } finally {
+      for (const i of fresh) {
+        if (out[i] === undefined) settle.get(i)({ failure: ownFailure('budget_unverifiable') });
+        pendingSamples.delete(keys[i]);
+      }
+    }
+  }
+  await Promise.all(waits);
+  return out;
+}
+
+/** Today's budget, for /api/health: what was spent and whether the breaker is open. Never a secret. */
+async function budgetStatus() {
+  const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
+  let usedToday = null;
+  try {
+    usedToday = await routesStore.used(day);
+  } catch {
+    // Reported as null: unknown, not zero.
+  }
+  const breaker = await openBreaker();
+  return {
+    day,
+    dailyBudget: ROUTES_DAILY_BUDGET,
+    usedToday,
+    sharedStore: routesStore.shared,
+    breakerOpenUntil: breaker && localBreaker ? new Date(localBreaker.until).toISOString() : null,
+  };
+}
+
 /**
  * Which departure minutes to actually ask Google about.
  *
@@ -496,9 +760,8 @@ export const resolveTimeZone = (requested) =>
 async function buildTravelCurve(origin, destination, direction, date, timeZone = TIME_ZONE) {
   const grid = direction === 'outbound' ? OUTBOUND_MINUTES : RETURN_MINUTES;
   const plan = planDepartureMinutes(grid, date, Date.now(), timeZone);
-  const samplesRaw = await Promise.all(
-    plan.map(async ({ minute, departureIso }) => ({ minute, ...(await requestRoute(origin, destination, departureIso)) })),
-  );
+  const results = await getRouteSamples(origin, destination, plan.map((p) => p.departureIso));
+  const samplesRaw = plan.map(({ minute }, i) => ({ minute, ...results[i] }));
 
   const resolved = samplesRaw.filter((d) => d.sample);
   if (resolved.length === 0) {
@@ -540,7 +803,7 @@ async function buildTravelCurve(origin, destination, direction, date, timeZone =
  * the route's encoded polyline so the map can draw the real road.
  */
 async function fetchRoutePreview(origin, destination) {
-  const { sample, failure } = await requestRoute(origin, destination, null, { withPolyline: true });
+  const [{ sample, failure }] = await getRouteSamples(origin, destination, [null], { withPolyline: true });
   if (!sample) {
     logRoutesFailure('route preview', failure, 1);
     throw new RoutesUnavailableError(failure);
@@ -1237,6 +1500,7 @@ async function handle(req, res) {
       hasCotripKey: COTRIP_API_KEY.length > 0,
       sharedCache: Boolean(KV_URL && KV_TOKEN),
       cacheSize: cache.size,
+      googleRoutes: await budgetStatus(),
     });
     return;
   }
@@ -1253,10 +1517,10 @@ async function handle(req, res) {
    */
   if (req.method === 'GET' && url.pathname === '/api/test-drive') {
     const params = url.searchParams;
-    const origin = {
+    const origin = roundOrigin({
       lat: Number(params.get('originLat') ?? 39.7392),
       lon: Number(params.get('originLon') ?? -104.9903),
-    };
+    });
     const destination = {
       lat: Number(params.get('destLat') ?? 39.4817),
       lon: Number(params.get('destLon') ?? -106.1614),
@@ -1273,7 +1537,7 @@ async function handle(req, res) {
       curve = await buildTravelCurve(origin, destination, direction, date);
     } catch (error) {
       if (!(error instanceof RoutesUnavailableError)) throw error;
-      sendJson(req, res, 502, publicRoutesFailure(error.failure));
+      sendRoutesFailure(req, res, error.failure);
       return;
     }
     sendJson(req, res, 200, { origin, destination, direction, date, ...curve });
@@ -1297,13 +1561,12 @@ async function handle(req, res) {
       sendJson(req, res, 400, { error: 'origin and destination must each be { lat, lon }.' });
       return;
     }
-    const cacheKey = ['preview', origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3)].join(':');
     let preview;
     try {
-      preview = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => fetchRoutePreview(origin, destination));
+      preview = await fetchRoutePreview(roundOrigin(origin), destination);
     } catch (error) {
       if (!(error instanceof RoutesUnavailableError)) throw error;
-      sendJson(req, res, 502, publicRoutesFailure(error.failure));
+      sendRoutesFailure(req, res, error.failure);
       return;
     }
     sendJson(req, res, 200, preview);
@@ -1337,19 +1600,14 @@ async function handle(req, res) {
       return;
     }
 
-    // Today's curve is anchored to "now", so its cache key includes the
-    // quarter-hour: a curve built at 6:03 shouldn't be served at 9:40 as if
-    // 6:03 were still an option.
-    const local = localParts(Date.now(), timeZone);
-    const slot = date === local.dateKey ? `:${Math.floor(local.minuteOfDay / 15)}` : '';
-    const cacheKey = [origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3), direction, date, timeZone].join(':') + slot;
-
+    // Each departure sample is cached on its own (see "the Google budget"), so
+    // today's curve reuses every future point and only re-asks "leave now".
     let curve;
     try {
-      curve = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => buildTravelCurve(origin, destination, direction, date, timeZone));
+      curve = await buildTravelCurve(roundOrigin(origin), destination, direction, date, timeZone);
     } catch (error) {
       if (!(error instanceof RoutesUnavailableError)) throw error;
-      sendJson(req, res, 502, publicRoutesFailure(error.failure));
+      sendRoutesFailure(req, res, error.failure);
       return;
     }
     sendJson(req, res, 200, curve);

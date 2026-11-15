@@ -17,6 +17,7 @@
     "server": "node server/index.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "1.2.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "node-html-parser": "^7.1.0",
