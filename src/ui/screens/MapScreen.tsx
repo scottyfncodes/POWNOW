@@ -218,7 +218,7 @@ export function MapScreen({
   return (
     <div className="screen mapscreen">
       <ScreenHeader onBack={onBack} title="MAP" />
-      <div className="mapscreen-top shell">
+      <div className="mapscreen-top shell" role="region" aria-label="Map options">
         {onShowList && onRank && <BrowseBar view="map" onShowMap={() => {}} onShowList={onShowList} onRank={onRank} />}
         <p className="mapscreen-intro">
           Every mountain, relative to {origin.id === 'gps' ? 'your location' : origin.shortName}. Tap one for the drive,
@@ -239,7 +239,7 @@ export function MapScreen({
         ) : null}
       </div>
 
-      <div className="mapscreen-body mapscreen-split">
+      <div role="main" className="mapscreen-body mapscreen-split">
         <MountainMap
           mountains={MOUNTAINS}
           origin={origin}

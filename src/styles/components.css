@@ -13,7 +13,8 @@
 
 .wordmark {
   font-weight: 900;
-  letter-spacing: -0.055em;
+  font-stretch: 120%;
+  letter-spacing: -0.045em;
   line-height: 0.86;
   display: inline-block;
   color: var(--ink);
@@ -21,7 +22,6 @@
 
 .wordmark-now {
   color: var(--ice);
-  text-shadow: 0 0 34px var(--ice-glow);
 }
 
 .wordmark-lg {
@@ -30,8 +30,8 @@
 }
 
 .wordmark-sm {
-  font-size: 17px;
-  letter-spacing: -0.03em;
+  font-size: 18px;
+  letter-spacing: -0.035em;
 }
 
 /* ================================================================= intro */
@@ -114,14 +114,15 @@
 
 .home-sources {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-dim);
 }
@@ -146,9 +147,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 10px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ice);
 }
@@ -164,7 +166,6 @@
   letter-spacing: -0.055em;
   line-height: 0.9;
   color: var(--ink);
-  text-shadow: 0 0 60px rgba(124, 231, 255, 0.18);
   overflow-wrap: break-word;
 }
 
@@ -187,7 +188,6 @@
   letter-spacing: -0.025em;
   line-height: 1;
   color: var(--ice);
-  text-shadow: 0 0 34px var(--ice-glow);
 }
 
 .home-verdict.is-offseason {
@@ -197,7 +197,7 @@
 }
 
 .home-offseason {
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--ink-dim);
 }
@@ -220,15 +220,16 @@
 }
 
 .home-reason-key {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .home-reason-val {
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
   color: var(--ink);
@@ -240,7 +241,7 @@
   display: inline-block;
   vertical-align: middle;
   height: 0.78em;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 45%, var(--surface) 90%);
   background-size: 220% 100%;
   animation: home-skel-sheen 1.4s var(--ease) infinite;
@@ -298,10 +299,9 @@
   border-radius: 999px;
   background: var(--ice);
   color: var(--bg);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.04em;
-  box-shadow: 0 18px 60px -22px rgba(124, 231, 255, 0.85);
   transition:
     transform 160ms var(--ease),
     opacity 200ms var(--ease);
@@ -432,7 +432,7 @@
   padding: 22px 24px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line-strong);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+  background: var(--bg-raise);
   text-align: left;
   transition:
     transform 160ms var(--ease),
@@ -445,7 +445,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(80% 120% at 100% 0%, var(--ice-glow), transparent 62%);
+  background: rgba(124, 231, 255, 0.05);
   opacity: 0;
   transition: opacity 220ms var(--ease);
   pointer-events: none;
@@ -475,7 +475,6 @@
 
 .bigbutton-now {
   border-color: rgba(124, 231, 255, 0.45);
-  box-shadow: 0 18px 60px -28px rgba(124, 231, 255, 0.65);
 }
 
 .bigbutton-now .bigbutton-word {
@@ -507,7 +506,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 2px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ice);
 }
@@ -523,9 +522,10 @@
 
 .originpicker-label {
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -662,18 +662,21 @@
 }
 
 .screenhead-mode {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
+  line-height: 1.15;
   color: var(--ink-faint);
 }
 
 .screenhead-date {
   flex: none;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -702,7 +705,7 @@
 }
 
 .panel-head-note {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
 }
 
@@ -717,11 +720,8 @@
   position: relative;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(124, 231, 255, 0.26);
-  background:
-    radial-gradient(120% 100% at 100% 0%, rgba(124, 231, 255, 0.14), transparent 58%),
-    linear-gradient(170deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02));
+  background: var(--bg-raise);
   padding: 22px 18px 20px;
-  box-shadow: 0 26px 70px -40px rgba(124, 231, 255, 0.7);
 }
 
 .reccard-top {
@@ -755,7 +755,7 @@
 
 .reccard-fullname {
   margin-top: 5px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
 }
 
@@ -767,9 +767,10 @@
 
 .reccard-scorelabel {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -791,7 +792,7 @@
 /* Metadata, not headlines: legible, checkable, and quiet enough that the
    verdict above still wins the page. */
 .reccard-badges .chip {
-  font-size: 9.5px;
+  font-size: 12px;
   padding: 4px 8px;
   letter-spacing: 0.1em;
   background: transparent;
@@ -818,9 +819,10 @@
 }
 
 .reccard-time dt {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -855,10 +857,10 @@
 .reccard-projection {
   margin-top: 12px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid rgba(124, 231, 255, 0.25);
   background: rgba(124, 231, 255, 0.05);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--ink-dim);
 }
@@ -874,15 +876,16 @@
 }
 
 .reccard-ticket-label {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .reccard-ticket-price {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -890,7 +893,7 @@
 .reccard-ticket-note {
   grid-column: 1 / -1;
   color: var(--ink-faint);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 /* The sixth question — "why this one?" — used to live three screens down. */
@@ -902,7 +905,7 @@
 
 .reccard-whyline {
   margin-top: 8px;
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--ink);
 }
@@ -917,7 +920,7 @@
 .reccard-reasons li {
   position: relative;
   padding-left: 16px;
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.45;
   color: var(--ink-dim);
 }
@@ -953,9 +956,10 @@
 }
 
 .basepeak-label {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -986,7 +990,7 @@
   margin-top: 14px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: #080d15;
 }
 
@@ -1002,15 +1006,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .snowpack-chip {
-  font-size: 9px;
+  font-size: 12px;
   padding: 2px 6px;
 }
 
@@ -1021,15 +1026,16 @@
 
 .snowpack-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
 
 .snowpack-grid dt {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -1087,9 +1093,10 @@
 }
 
 .ridersettings-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -1126,9 +1133,10 @@
 .ridersettings-field legend {
   padding: 0;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -1160,7 +1168,7 @@
 
 .ridersettings-hint {
   margin-top: 4px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--ink-faint);
 }
@@ -1175,9 +1183,10 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -1198,7 +1207,7 @@
 .ridersettings-slider-ends {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-ghost);
 }
 
@@ -1208,9 +1217,10 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 48px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -1282,16 +1292,17 @@
 }
 
 .snowtimeline-total-label {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .snowtimeline-total-value {
   margin-top: 3px;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -1344,12 +1355,12 @@
 }
 
 .snowtimeline-bar-value {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .snowtimeline-bar-day {
-  font-size: 9.5px;
+  font-size: 12px;
   color: var(--ink-faint);
   white-space: nowrap;
 }
@@ -1364,7 +1375,7 @@
 
 .snowtimeline-today span {
   writing-mode: vertical-rl;
-  font-size: 9.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--ink-faint);
@@ -1379,7 +1390,7 @@
 }
 
 .snowtimeline-chip {
-  font-size: 9px;
+  font-size: 12px;
   padding: 3px 7px;
 }
 
@@ -1426,7 +1437,7 @@
 
 .snowclock-svg {
   width: 100%;
-  height: 200px;
+  height: 224px;
   display: block;
   overflow: visible;
 }
@@ -1451,13 +1462,13 @@
 .snowclock-line.is-prime {
   opacity: 1;
   stroke-width: 3.4;
-  filter: drop-shadow(0 0 12px var(--ice-glow));
 }
 
 .snowclock-primelabel text {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.18em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   fill: var(--ice);
 }
 
@@ -1479,9 +1490,10 @@
 }
 
 .snowclock-marker text {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   fill: var(--ink-faint);
 }
 
@@ -1505,7 +1517,7 @@
 }
 
 .snowclock-tick {
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--ink-ghost);
   font-variant-numeric: tabular-nums;
 }
@@ -1521,7 +1533,7 @@
   flex: none;
   min-width: 68px;
   padding: 10px 8px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
   display: flex;
@@ -1553,7 +1565,7 @@
 }
 
 .hourstrip-label {
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--ink-faint);
   letter-spacing: 0.02em;
 }
@@ -1607,7 +1619,7 @@
 }
 
 .timeline-label {
-  font-size: 14.5px;
+  font-size: 15px;
 }
 
 .timeline-detail {
@@ -1632,7 +1644,7 @@
 
 .travelchart-svg {
   width: 100%;
-  height: 140px;
+  height: 150px;
   display: block;
   overflow: visible;
 }
@@ -1657,7 +1669,7 @@
 }
 
 .travelchart-tick {
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--ink-ghost);
   font-variant-numeric: tabular-nums;
 }
@@ -1740,16 +1752,17 @@
 }
 
 .whatif-grid dt {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .whatif-grid dd {
   margin: 3px 0 0;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -1827,7 +1840,7 @@
 
 .stayorgo-compare {
   margin-top: 8px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -1849,15 +1862,16 @@
   text-align: left;
   padding: 11px 6px;
   border-bottom: 1px solid var(--line);
-  font-size: 12.5px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
 .ladder thead th,
 .rangetable thead th {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
   padding-bottom: 8px;
@@ -1892,9 +1906,10 @@
   border-radius: 999px;
   background: var(--ice);
   color: #04060a;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   vertical-align: middle;
 }
@@ -1978,7 +1993,7 @@
 }
 
 .alt-fullname {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -1990,7 +2005,7 @@
 }
 
 .alt-meta {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -2002,10 +2017,10 @@
 }
 
 .alt-tradeoff {
-  padding: 4px 9px;
-  border-radius: 999px;
+  padding: 4px 8px;
+  border-radius: var(--radius-tag);
   border: 1px solid var(--line);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ink-dim);
 }
@@ -2053,7 +2068,7 @@
 }
 
 .factor-label {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -2063,8 +2078,9 @@
   border-radius: 999px;
   border: 1px solid rgba(255, 194, 74, 0.4);
   color: var(--wait);
-  font-size: 9.5px;
+  font-size: 12px;
   font-weight: 800;
+  font-stretch: var(--wide);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2125,7 +2141,7 @@
 
 .factors-footnote {
   margin-top: 16px;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--ink-ghost);
 }
@@ -2142,7 +2158,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--ink-dim);
 }
@@ -2164,7 +2180,7 @@
 }
 
 .alertbanner-event {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--stop);
@@ -2201,7 +2217,7 @@
 
 .datasources-provider {
   grid-column: 1 / -1;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -2212,7 +2228,7 @@
 
 .datasources-attribution {
   grid-column: 1 / -1;
-  font-size: 11px;
+  font-size: 12px;
   font-style: italic;
   color: var(--ink-faint);
 }
@@ -2240,7 +2256,7 @@
   align-items: flex-start;
   min-height: 52px;
   padding: 9px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--surface);
   font-size: 14px;
@@ -2256,7 +2272,7 @@
 }
 
 .pickchip-sub {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink-faint);
 }
@@ -2271,7 +2287,8 @@
   border-radius: var(--radius);
   background: var(--surface);
   font-size: 12px;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
   color: var(--ink-faint);
@@ -2331,7 +2348,7 @@
 }
 
 .rangetable-date {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -2508,7 +2525,7 @@
 
 .mapscreen-route-error {
   color: var(--wait);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -2519,16 +2536,17 @@
 }
 
 .mapscreen-route-stats dt {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .mapscreen-route-stats dd {
   margin: 4px 0 0;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -2617,11 +2635,12 @@
 .leaflet-control-attribution {
   background: rgba(4, 6, 10, 0.72) !important;
   color: var(--ink-faint) !important;
-  font-size: 9.5px !important;
+  font-size: 12px !important;
 }
 
 .leaflet-control-attribution a {
   color: var(--ink-dim) !important;
+  text-decoration: underline;
 }
 
 .leaflet-control-zoom a {
@@ -2703,7 +2722,7 @@
   background: var(--surface) !important;
   border: 1px solid var(--line) !important;
   color: var(--ink) !important;
-  font-size: 10.5px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
   padding: 2px 6px !important;
   box-shadow: none !important;
@@ -2772,8 +2791,9 @@
   border: none !important;
   box-shadow: none !important;
   color: var(--ink) !important;
-  font-size: 9.5px !important;
+  font-size: 12px !important;
   font-weight: 800 !important;
+  font-stretch: var(--wide);
   letter-spacing: 0.06em !important;
   text-transform: uppercase;
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
@@ -2796,7 +2816,7 @@
   gap: 6px 14px;
   margin-top: 6px;
   padding: 0 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -2833,7 +2853,7 @@
 }
 
 .profile-website {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ice);
 }
@@ -2851,16 +2871,17 @@
 }
 
 .profile-row dt {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .profile-row dd {
   margin: 4px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -2909,7 +2930,7 @@
 
 .profile-dining-note {
   margin: 4px 0 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--ink-dim);
 }
@@ -3007,7 +3028,8 @@
 .mapscreen-peek-sub {
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ice);
 }
@@ -3018,12 +3040,11 @@
   place-items: center;
   width: 54px;
   height: 54px;
-  border-radius: 16px;
-  font-size: 21px;
+  border-radius: var(--radius);
+  font-size: 20px;
   font-weight: 900;
   color: var(--bg);
   background: var(--ice);
-  box-shadow: 0 10px 30px -14px currentColor;
 }
 
 .mapscreen-peek-score.is-go {
@@ -3048,21 +3069,22 @@
 .mapscreen-peek-facts > div {
   padding: 9px 11px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
 .mapscreen-peek-facts dt {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .mapscreen-peek-facts dd {
   margin: 2px 0 0;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -3312,7 +3334,7 @@
 }
 
 .mountainprofile-reasons li {
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--ink-dim);
   padding-left: 16px;
@@ -3338,7 +3360,8 @@
   padding: 12px 0;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-dim);
 }
@@ -3360,9 +3383,10 @@
 }
 
 .conditionspanel-ops dt {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -3383,7 +3407,7 @@
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
   display: flex;
   flex-direction: column;
@@ -3394,11 +3418,11 @@
 
 .parkingpanel-unavailable {
   color: var(--ink-faint);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .parkingpanel-note {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
   margin: 0 0 10px;
 }
@@ -3410,7 +3434,7 @@
 }
 
 .parkingpanel-reservation {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--ink-dim);
   margin: 0 0 8px;
@@ -3432,7 +3456,7 @@
   display: flex;
   gap: 14px;
   align-items: center;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .parkingpanel-foot a {
@@ -3442,7 +3466,7 @@
 
 .parkingpanel-demo-note {
   margin-top: 8px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .chip-parking-good {
@@ -3487,9 +3511,10 @@
 }
 
 .gettherepanel-stats dt {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -3508,7 +3533,7 @@
 
 .gettherepanel-unavailable {
   color: var(--ink-faint);
-  font-size: 13.5px;
+  font-size: 14px;
   margin-top: 8px;
 }
 
@@ -3535,12 +3560,12 @@
 }
 
 .ticketpanel-note {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-faint);
 }
 
 .ticketpanel-unavailable {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-faint);
   margin: 0;
 }
@@ -3589,7 +3614,7 @@
 .trailmappanel-preview-cta {
   display: block;
   padding: 10px 14px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ice);
   border-top: 1px solid var(--line);
@@ -3598,13 +3623,13 @@
 
 .trailmappanel-unavailable {
   color: var(--ink-faint);
-  font-size: 13.5px;
+  font-size: 14px;
   margin: 0 0 10px;
 }
 
 .trailmappanel-official {
   display: inline-block;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ice);
 }
@@ -3661,7 +3686,7 @@
 }
 
 .trailmapviewer-official {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ice);
   white-space: nowrap;
@@ -3727,11 +3752,11 @@
 }
 
 .trailmapviewer-reset {
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .trailmapviewer-pdf-fallback {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ice);
 }
@@ -3760,7 +3785,7 @@
 
 .setup-hint {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--ink-faint);
 }
@@ -3777,8 +3802,8 @@
 .ridersettings-head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px 0;
+  gap: 6px;
+  padding: 16px 16px 4px;
 }
 
 .ridersettings-head .ridersettings-title {
@@ -3815,7 +3840,7 @@
 }
 
 .picks-summary-text {
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--ink-dim);
 }
@@ -3824,7 +3849,8 @@
   flex: none;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ice);
 }
@@ -3841,7 +3867,7 @@
   gap: 10px;
   align-items: flex-start;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--ink-faint);
 }
@@ -3871,7 +3897,7 @@
   padding: 16px 16px 14px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  background: var(--bg-raise);
   text-align: left;
   transition:
     border-color 160ms var(--ease),
@@ -3890,7 +3916,6 @@
 
 .mcard.is-best {
   border-color: rgba(124, 231, 255, 0.45);
-  box-shadow: 0 18px 60px -28px rgba(124, 231, 255, 0.65);
 }
 
 .mcard.is-offseason {
@@ -3898,7 +3923,7 @@
 }
 
 .mcard-rank {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--ink-faint);
@@ -3952,7 +3977,7 @@
 }
 
 .mcard-why {
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--ink-dim);
 }
@@ -3965,16 +3990,17 @@
 }
 
 .mcard-stats dt {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .mcard-stats dd {
   margin: 3px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--ink);
   overflow-wrap: anywhere;
@@ -3994,7 +4020,7 @@
 
 .mcard-cta {
   align-self: flex-end;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--ice);
 }
@@ -4063,7 +4089,7 @@
   min-height: 46px;
   padding: 0 14px 0 40px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -4081,6 +4107,12 @@
   background: var(--surface-2);
 }
 
+/* A tint of the border is not a focus ring: Tab lands here with the same outline as everything else. */
+.listscreen-search input:focus-visible {
+  outline: 2px solid var(--ice);
+  outline-offset: 2px;
+}
+
 .listscreen-passes {
   display: flex;
   gap: 6px;
@@ -4089,12 +4121,12 @@
 
 .filterchip {
   flex: none;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--ink-dim);
   white-space: nowrap;
@@ -4132,9 +4164,7 @@
   padding: 16px 44px 16px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(124, 231, 255, 0.07), transparent 55%),
-    var(--surface);
+  background: var(--surface);
   text-align: left;
   overflow: hidden;
   transition:
@@ -4147,10 +4177,7 @@
 .mountainlist-row:hover,
 .mountainlist-row:focus-visible {
   border-color: rgba(124, 231, 255, 0.35);
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(124, 231, 255, 0.13), transparent 55%),
-    var(--surface-2);
-  box-shadow: 0 18px 40px -26px rgba(124, 231, 255, 0.55);
+  background: var(--surface-2);
 }
 
 .mountainlist-row:active {
@@ -4170,16 +4197,17 @@
 }
 
 .mountainlist-name {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .mountainlist-region {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -4193,8 +4221,8 @@
   align-items: baseline;
   gap: 1px;
   padding: 5px 9px;
-  border-radius: 10px;
-  font-size: 17px;
+  border-radius: var(--radius-sm);
+  font-size: 18px;
   font-weight: 900;
   line-height: 1;
   color: var(--bg);
@@ -4202,7 +4230,7 @@
 }
 
 .mountainlist-score-of {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   opacity: 0.72;
 }
@@ -4229,9 +4257,10 @@
 
 .mountainlist-score.is-none {
   padding: 6px 9px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -4293,24 +4322,15 @@
 }
 
 /* Pass chips wear their network's colour, quietly. */
-.passchip-epic {
-  color: #8fb6ff;
-  border-color: rgba(143, 182, 255, 0.35);
-}
-
-.passchip-ikon {
-  color: #ffb27a;
-  border-color: rgba(255, 178, 122, 0.35);
-}
-
-.passchip-indy {
-  color: #b9f08a;
-  border-color: rgba(185, 240, 138, 0.35);
-}
-
+/* Which pass a mountain is on is a fact, not a verdict: the tag says it in the
+   board's own white. A hue per pass put four more colours beside the three
+   that mean go, wait and stop. */
+.passchip-epic,
+.passchip-ikon,
+.passchip-indy,
 .passchip-mountain-collective {
-  color: #e7a6ff;
-  border-color: rgba(231, 166, 255, 0.35);
+  color: var(--ink-dim);
+  border-color: var(--line-strong);
 }
 
 /* ========================================================== mountain screen */
@@ -4330,7 +4350,7 @@
 
 .mountainscreen-outnote {
   margin: 0 0 6px;
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--ink-dim);
 }
@@ -4368,7 +4388,6 @@
   position: relative;
   display: inline-grid;
   grid-template-columns: 1fr 1fr;
-  padding: 3px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
@@ -4379,20 +4398,19 @@
   top: 3px;
   bottom: 3px;
   left: 3px;
-  width: calc(50% - 3px);
+  width: calc(50% - 6px);
   border-radius: 999px;
   background: var(--ice);
-  box-shadow: 0 6px 20px -8px rgba(124, 231, 255, 0.8);
   transition: transform 260ms var(--ease);
 }
 
 .browsebar-tabs.is-map .browsebar-thumb {
-  transform: translateX(100%);
+  transform: translateX(calc(100% + 6px));
 }
 
 .browsebar-tab {
   position: relative;
-  min-height: 38px;
+  min-height: 44px;
   min-width: 76px;
   padding: 0 18px;
   border-radius: 999px;
@@ -4401,6 +4419,11 @@
   letter-spacing: 0.04em;
   color: var(--ink-dim);
   transition: color 200ms var(--ease);
+}
+
+.browsebar-tab:hover:not(.is-active),
+.browsebar-tab:focus-visible:not(.is-active) {
+  color: var(--ink);
 }
 
 .browsebar-tab.is-active {
@@ -4415,7 +4438,6 @@
   font-size: 13px;
   font-weight: 800;
   color: var(--ice);
-  box-shadow: 0 10px 34px -20px rgba(124, 231, 255, 0.7);
 }
 
 .browsebar-rank:hover,
@@ -4434,9 +4456,10 @@
 
 .credits-heading {
   margin: 0 0 8px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -4507,11 +4530,8 @@
   padding: 22px 18px 18px;
   border: 1px solid rgba(124, 231, 255, 0.22);
   border-radius: var(--radius-lg);
-  background:
-    radial-gradient(110% 90% at 100% 0%, rgba(124, 231, 255, 0.16), transparent 60%),
-    var(--bg-raise);
+  background: var(--bg-raise);
   overflow: hidden;
-  animation: rise-in 420ms var(--ease);
 }
 
 .profilehero-region {
@@ -4565,10 +4585,6 @@
   text-decoration: none;
 }
 
-.profilehero-call {
-  box-shadow: 0 14px 34px -16px rgba(124, 231, 255, 0.9);
-}
-
 /* -- elevation silhouette -- */
 
 .elevation {
@@ -4599,8 +4615,9 @@
   position: absolute;
   right: 18px;
   transform: translateY(-110%);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  font-stretch: var(--wide);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -4619,9 +4636,10 @@
   bottom: 10px;
   display: flex;
   flex-direction: column;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ice);
 }
@@ -4646,14 +4664,15 @@
 .profilestat {
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.025);
 }
 
 .profilestat dt {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -4670,7 +4689,7 @@
 }
 
 .profilestat-note {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -4684,16 +4703,17 @@
 }
 
 .profilestats-hours dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .profilestats-hours dd {
   margin: 2px 0 0;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -4712,7 +4732,7 @@
 
 .profilenow-snow > div {
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
 }
@@ -4723,9 +4743,10 @@
 }
 
 .profilenow-snow dt {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -4749,7 +4770,7 @@
 
 .profilenow-unavailable {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-faint);
 }
 
@@ -4761,7 +4782,7 @@
 
 .profilenow-skeleton span {
   height: 68px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.3s linear infinite;
@@ -4797,7 +4818,7 @@
 
 .profileroute-note {
   margin: 10px 0 4px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--ink-faint);
 }
@@ -4826,9 +4847,7 @@
   padding: 18px;
   border: 1px solid rgba(124, 231, 255, 0.35);
   border-radius: var(--radius);
-  background:
-    radial-gradient(100% 120% at 100% 0%, rgba(124, 231, 255, 0.16), transparent 60%),
-    var(--surface);
+  background: var(--surface);
   text-align: left;
   transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease);
 }
@@ -4836,11 +4855,10 @@
 .profilescreen-callout:hover,
 .profilescreen-callout:focus-visible {
   border-color: rgba(124, 231, 255, 0.6);
-  box-shadow: 0 18px 40px -24px rgba(124, 231, 255, 0.7);
 }
 
 .profilescreen-callout-line {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: -0.02em;
   color: var(--ice);
@@ -4877,7 +4895,7 @@
 
 .profilelink-note {
   grid-column: 1;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink-faint);
 }
@@ -4897,8 +4915,16 @@
 
 /* On the map, the demo notice is a single quiet line so the map sits higher. */
 .mapscreen-demo {
-  font-size: 13px;
+  display: flex;
   align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-faint);
+}
+
+.mapscreen-demo .chip {
+  flex: none;
 }
 
 /* Inside the map sheet the peek card already shows the name, verdict and
@@ -4928,9 +4954,10 @@
 
 .snowoutlook-label {
   align-self: center;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  font-stretch: var(--wide);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -4947,7 +4974,8 @@
 .snowoutlook.is-dry .snowoutlook-total {
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  font-stretch: var(--wide);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-ghost);
 }
@@ -4986,7 +5014,7 @@
 }
 
 .snowoutlook-dow {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--ink-ghost);
 }
@@ -5013,6 +5041,13 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
+}
+
+/* The select laid over the chip is the control; the day and the caret under it are its face. */
+.listscreen-date > span,
+.listscreen-date > svg {
+  pointer-events: none;
+  cursor: default;
 }
 
 /* The native select sits invisibly over the chip at 16px, so iOS never zooms on focus;
@@ -5135,11 +5170,104 @@
   text-decoration: underline;
 }
 
-/* iOS Safari zooms into any field under 16px on focus and stays zoomed. Touch screens get 16px fields. */
-@media (pointer: coarse) {
-  .listscreen-search input,
-  .originpicker select,
-  .ridersettings-select select {
-    font-size: 16px;
+/* iOS Safari zooms into any field under 16px on focus and stays zoomed, so fields are 16px everywhere. */
+.listscreen-search input,
+.originpicker select,
+.ridersettings-select select {
+  font-size: 16px;
+}
+
+/* ------------------------------------------------- labels in narrow cells */
+
+/* A label over a figure in a three or four column grid has no room for the
+   wide cut: it wraps and pushes its figure out of line with its neighbours.
+   These take the family's normal width, which is what the axis is for. */
+.snowpack-grid dt,
+.profilestat dt,
+.profilenow-snow dt,
+.snowoutlook-label,
+.ridersettings-select,
+.mountainlist-region {
+  font-stretch: 94%;
+  letter-spacing: 0.04em;
+}
+
+.snowpack-grid dt {
+  font-stretch: 88%;
+  white-space: nowrap;
+}
+
+/* Two-line labels beside one-line ones: the figures still share a baseline. */
+.profilestat,
+.profilenow-snow > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.profilestat dd,
+.profilenow-snow dd {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.ridersettings-select select {
+  font-stretch: 100%;
+}
+
+.mountainlist-region {
+  line-height: 1.3;
+}
+
+/* The header holds the back arrow, the name, the screen and the day on one
+   line of a phone: the screen's title and the day take the normal width. */
+.screenhead-mode,
+.screenhead-date {
+  font-stretch: 100%;
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------- the narrowest phones */
+
+/* At 320px a three-up row of tiles has about 70px a tile, and the sort chips
+   no longer fit on a line. Names and labels take the family's narrow cut and
+   tiles give back some padding, so nothing runs past the edge of the screen. */
+.listscreen-sort {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 359px) {
+  .mcard-name,
+  .reccard-name,
+  .home-pick {
+    font-stretch: 84%;
   }
+
+  .profilestat,
+  .profilenow-snow > div {
+    padding: 10px 8px;
+  }
+
+  .profilestat dt,
+  .profilenow-snow dt,
+  .snowpack-grid dt,
+  .snowoutlook-label {
+    font-stretch: 78%;
+    letter-spacing: 0.02em;
+  }
+
+  .profilestat dd,
+  .profilenow-snow dd,
+  .snowoutlook-total {
+    font-stretch: 84%;
+  }
+
+  .snowoutlook {
+    gap: 8px;
+  }
+}
+
+/* A date under each day's bar: ten of them share a phone's width, so they take the narrow cut. */
+.snowtimeline-bar-day {
+  font-stretch: 80%;
+  white-space: nowrap;
 }

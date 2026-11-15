@@ -111,7 +111,7 @@ export function ProfileScreen({ mountainId, registry, clock, origin, onBack, onS
   return (
     <div className="screen profilescreen">
       <ScreenHeader onBack={onBack} title="PROFILE" />
-      <div className="screen-body shell stack profilescreen-body">
+      <div role="main" className="screen-body shell stack profilescreen-body">
         <ProfileHero
           mountain={mountain}
           officialSite={reference?.officialWebsite ?? null}

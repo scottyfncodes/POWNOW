@@ -2,5 +2,9 @@
  "*": {
   "license": "LicenseRef-POWNOW-own-work",
   "attribution": "Drawn for POW NOW in this repository; all rights reserved by its owner."
+ },
+ "src/assets/fonts/archivo-latin.woff2": {
+  "license": "OFL-1.1",
+  "attribution": "Archivo, Copyright 2020 The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo). Licence text beside the file: src/assets/fonts/OFL.txt."
  }
 }

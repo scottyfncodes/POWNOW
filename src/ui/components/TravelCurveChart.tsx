@@ -1,8 +1,8 @@
 import { useId } from 'react';
 import { formatClockShort, formatDuration, type MinuteOfDay } from '@/domain/time';
-import { linearScale, smoothPath } from './chart';
+import { linearScale, smoothPath, useChartWidth } from './chart';
 
-const WIDTH = 720;
+const FALLBACK_WIDTH = 720;
 const HEIGHT = 150;
 const PAD = { top: 14, right: 12, bottom: 24, left: 12 };
 
@@ -24,6 +24,7 @@ export interface TravelCurveChartProps {
  */
 export function TravelCurveChart({ points, markedMinute, label }: TravelCurveChartProps) {
   const gradientId = useId();
+  const [svgRef, WIDTH] = useChartWidth<SVGSVGElement>(FALLBACK_WIDTH);
   if (points.length < 2) return null;
 
   const minutes = points.map((point) => point.departure);
@@ -54,6 +55,7 @@ export function TravelCurveChart({ points, markedMinute, label }: TravelCurveCha
   return (
     <figure className="travelchart">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
         aria-label={`${label}. Quickest around ${formatClockShort(best.departure)} at ${formatDuration(best.driveMinutes)}.`}

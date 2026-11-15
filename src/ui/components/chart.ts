@@ -1,4 +1,33 @@
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
+
 /** Shared plumbing for the hand-drawn SVG charts. No charting library, no runtime cost. */
+
+/**
+ * The width a chart is actually drawn at, so one unit in it is one pixel.
+ *
+ * The charts used to draw into a fixed 720-unit box stretched to whatever the
+ * card was, which on a phone squeezed every label to under half its width
+ * while leaving its height alone. Measuring the box instead keeps lettering
+ * and line weights true at every size. Where nothing can be measured (a test,
+ * the first paint) the fallback stands in.
+ */
+export function useChartWidth<T extends Element>(fallback: number): [RefObject<T | null>, number] {
+  const ref = useRef<T | null>(null);
+  const [width, setWidth] = useState(fallback);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const next = Math.round(element.getBoundingClientRect().width);
+      if (next > 0) setWidth(next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width];
+}
 
 export interface Scale {
   (value: number): number;

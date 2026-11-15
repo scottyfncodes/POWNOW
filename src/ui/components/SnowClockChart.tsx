@@ -1,11 +1,41 @@
 import { useId } from 'react';
 import type { SnowClock, SnowState } from '@/domain/plan';
 import { clamp, formatClock, formatClockShort, type MinuteOfDay } from '@/domain/time';
-import { linearScale, smoothPath } from './chart';
+import { linearScale, smoothPath, useChartWidth } from './chart';
 
-const WIDTH = 720;
-const HEIGHT = 210;
-const PAD = { top: 30, right: 14, bottom: 26, left: 14 };
+const FALLBACK_WIDTH = 720;
+const HEIGHT = 224;
+const PAD = { top: 44, right: 14, bottom: 26, left: 14 };
+/** Marker labels sit on the row just above the plot, or one row up when a neighbour is in the way. */
+const LABEL_ROWS = [PAD.top - 3, PAD.top - 16] as const;
+/** Width of a label's capitals at the chart's 12px lettering, near enough to keep two apart. */
+const labelWidth = (label: string): number => label.length * 8.9;
+
+interface MarkerSpec {
+  x: number;
+  label: string;
+  accent?: boolean;
+  pulse?: boolean;
+}
+
+/**
+ * Where each marker's label goes. Left to right, each label is centred on its
+ * line (pulled inboard at the edges) and drops onto the upper row when the
+ * one before it is still in the way: at phone width NOW and LIFTS OPEN are a
+ * few pixels apart on an early morning.
+ */
+function placeLabels(markers: MarkerSpec[], width: number): (MarkerSpec & { textX: number; textY: number })[] {
+  const rowEnd = [-Infinity, -Infinity];
+  return [...markers]
+    .sort((a, b) => a.x - b.x)
+    .map((marker) => {
+      const half = labelWidth(marker.label) / 2;
+      const textX = clamp(marker.x, half, Math.max(half, width - half));
+      const row = textX - half >= rowEnd[0]! + 6 ? 0 : 1;
+      rowEnd[row] = textX + half;
+      return { ...marker, textX, textY: LABEL_ROWS[row]! };
+    });
+}
 
 export interface SnowClockChartProps {
   clock: SnowClock;
@@ -35,6 +65,7 @@ export interface SnowClockChartProps {
 export function SnowClockChart({ clock, snowState, firstTurn, leaveAt, now }: SnowClockChartProps) {
   const gradientId = useId();
   const primeId = useId();
+  const [svgRef, WIDTH] = useChartWidth<SVGSVGElement>(FALLBACK_WIDTH);
   const points = clock.points;
   const isPrime = snowState === 'prime';
   if (points.length === 0) return null;
@@ -59,6 +90,11 @@ export function SnowClockChart({ clock, snowState, firstTurn, leaveAt, now }: Sn
   const hourMarks: MinuteOfDay[] = [];
   for (let minute = Math.ceil(start / 60) * 60; minute <= end; minute += 120) hourMarks.push(minute);
 
+  const markers: MarkerSpec[] = [{ x: x(clock.open), label: 'LIFTS OPEN' }];
+  if (firstTurn != null && Math.abs(firstTurn - clock.open) > 25) markers.push({ x: x(firstTurn), label: 'YOU ARRIVE', accent: true });
+  if (leaveAt != null && leaveAt <= end) markers.push({ x: x(leaveAt), label: 'YOU LEAVE', accent: true });
+  if (now != null && now >= start && now <= end) markers.push({ x: x(now), label: 'NOW', pulse: true });
+
   const summary = prime
     ? `Ski quality through the day. ${isPrime ? 'Prime' : 'Best'} window ${formatClock(prime.start)} to ${formatClock(prime.end)}, peaking around ${formatClock(prime.peakMinute)}.`
     : 'Ski quality through the day.';
@@ -66,6 +102,7 @@ export function SnowClockChart({ clock, snowState, firstTurn, leaveAt, now }: Sn
   return (
     <figure className="snowclock">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="snowclock-svg"
         role="img"
@@ -126,19 +163,20 @@ export function SnowClockChart({ clock, snowState, firstTurn, leaveAt, now }: Sn
               clipPath={`url(#${primeId}-clip)`}
             />
             <g className="snowclock-primelabel">
-              <text x={(x(prime.start) + x(prime.end)) / 2} y={PAD.top - 14} textAnchor="middle">
+              <text
+                x={clamp((x(prime.start) + x(prime.end)) / 2, labelWidth('BEST WINDOW') / 2, WIDTH - labelWidth('BEST WINDOW') / 2)}
+                y={PAD.top - 30}
+                textAnchor="middle"
+              >
                 {isPrime ? 'PRIME SNOW' : 'BEST WINDOW'}
               </text>
             </g>
           </>
         )}
 
-        <Marker x={x(clock.open)} label="LIFTS OPEN" />
-        {firstTurn != null && Math.abs(firstTurn - clock.open) > 25 && (
-          <Marker x={x(firstTurn)} label="YOU ARRIVE" accent />
-        )}
-        {leaveAt != null && leaveAt <= end && <Marker x={x(leaveAt)} label="YOU LEAVE" accent />}
-        {now != null && now >= start && now <= end && <Marker x={x(now)} label="NOW" pulse />}
+        {placeLabels(markers, WIDTH).map((marker) => (
+          <Marker key={marker.label} {...marker} />
+        ))}
 
         {hourMarks.map((minute) => (
           <text key={minute} x={x(minute)} y={HEIGHT - 8} className="snowclock-tick" textAnchor="middle">
@@ -168,28 +206,14 @@ export function SnowClockChart({ clock, snowState, firstTurn, leaveAt, now }: Sn
   );
 }
 
-/** Labels are nudged inboard near the edges so they never clip off the chart. */
-function Marker({
-  x,
-  label,
-  accent,
-  pulse,
-}: {
-  x: number;
-  label: string;
-  accent?: boolean;
-  pulse?: boolean;
-}) {
+function Marker({ x, label, accent, pulse, textX, textY }: MarkerSpec & { textX: number; textY: number }) {
   const className = ['snowclock-marker', accent && 'is-accent', pulse && 'is-now']
     .filter(Boolean)
     .join(' ');
-  const margin = 46;
-  const anchor = x < margin ? 'start' : x > WIDTH - margin ? 'end' : 'middle';
-  const textX = anchor === 'start' ? x + 4 : anchor === 'end' ? x - 4 : x;
   return (
     <g className={className}>
-      <line x1={x} x2={x} y1={PAD.top - 4} y2={HEIGHT - PAD.bottom} />
-      <text x={textX} y={PAD.top - 2} textAnchor={anchor}>
+      <line x1={x} x2={x} y1={textY + 4} y2={HEIGHT - PAD.bottom} />
+      <text x={textX} y={textY} textAnchor="middle">
         {label}
       </text>
     </g>

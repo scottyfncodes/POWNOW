@@ -89,7 +89,7 @@ export function MountainScreen({
     return (
       <div className="screen">
         {header}
-        <div className="screen-body shell stack mountainscreen-out">
+        <div role="main" className="screen-body shell stack mountainscreen-out">
           <section className="panel">
             <h1 className="mountainscreen-name">{mountain.name}</h1>
             <p className="mountainscreen-outnote">
@@ -109,7 +109,7 @@ export function MountainScreen({
   return (
     <div className="screen">
       {header}
-      <div className="screen-body shell">
+      <div role="main" className="screen-body shell">
         <PlanView
           recommendation={recommendation}
           now={isToday ? clock.now : null}
