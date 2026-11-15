@@ -51,7 +51,7 @@ export function PicksScreen({ state, clock, date, settings, onBack, onEdit, onOp
     return (
       <div className="screen">
         {header}
-        <div className="screen-body shell">
+        <div role="main" className="screen-body shell">
           {summary}
           <LoadingScreen label="Checking the mountain, the snow and the roads" />
         </div>
@@ -69,7 +69,7 @@ export function PicksScreen({ state, clock, date, settings, onBack, onEdit, onOp
   return (
     <div className="screen">
       {header}
-      <div className="screen-body shell stack picks-body">
+      <div role="main" className="screen-body shell stack picks-body">
         {summary}
 
         <p className="picks-lead">

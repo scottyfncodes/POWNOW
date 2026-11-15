@@ -108,7 +108,8 @@ function originDivIcon(isGps: boolean): L.DivIcon {
 function clusterDivIcon(cluster: L.MarkerCluster): L.DivIcon {
   return L.divIcon({
     className: 'mm-cluster',
-    html: `<span class="mm-cluster-count" aria-hidden="true">${cluster.getChildCount()}</span>`,
+    // The count is the bubble's name: Leaflet makes a cluster a button, and a button needs one.
+    html: `<span class="mm-cluster-count">${cluster.getChildCount()}<span class="visually-hidden"> mountains here, zoom in</span></span>`,
     iconSize: [40, 40],
   });
 }

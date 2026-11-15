@@ -125,7 +125,7 @@ export function LaterScreen({ registry, clock, origin, preferences, onBack }: La
     return (
       <div className="screen">
         {header}
-        <div className="screen-body shell">
+        <div role="main" className="screen-body shell">
           {picker}
           <LoadingScreen label="Projecting the ski day" />
         </div>
@@ -148,7 +148,7 @@ export function LaterScreen({ registry, clock, origin, preferences, onBack }: La
   return (
     <div className="screen">
       {header}
-      <div className="screen-body shell stack">
+      <div role="main" className="screen-body shell stack">
         {picker}
 
         {projection.days.length > 1 && (

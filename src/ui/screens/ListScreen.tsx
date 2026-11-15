@@ -110,10 +110,10 @@ export function ListScreen({ date, today, onDateChange, usingDemoData = false, s
           </button>
         }
       />
-      <div className="screen-body shell">
+      <div role="main" className="screen-body shell">
         <BrowseBar view="list" onShowMap={onShowMap} onShowList={() => {}} onRank={onRank} />
 
-        <header className="listscreen-head">
+        <div className="listscreen-head">
           <h1 className="listscreen-title">
             <span className="numeral">{MOUNTAINS.length}</span> mountains
           </h1>
@@ -130,7 +130,7 @@ export function ListScreen({ date, today, onDateChange, usingDemoData = false, s
               </button>
             </p>
           )}
-        </header>
+        </div>
 
         <div className="listscreen-filters">
           {snow && (

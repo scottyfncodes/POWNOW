@@ -69,7 +69,7 @@ export function SetupScreen({
   return (
     <div className="screen">
       <ScreenHeader onBack={onBack} title="YOUR RIDE" />
-      <div className="screen-body shell setup">
+      <div role="main" className="screen-body shell setup">
         <p className="setup-intro">
           Where you're starting, which day, and how you ride. Every mountain gets ranked around these. Change
           any of them and the ranking changes with you.
