@@ -10,11 +10,12 @@
  *      devtools. The keys live here and never appear in any response.
  *   2. Reach hosts that don't serve CORS. The NRCS SNOTEL API (measured
  *      snowpack) and CDOT's feed are server-to-server APIs.
- *   3. Share a cache. Every (corridor, direction, date) travel curve is built
- *      once and served to every visitor for the next 15 minutes; the same
- *      statewide road feed answers every corridor question for 5 minutes.
+ *   3. Share a cache. Every Google Routes departure sample is bought once,
+ *      under one global daily budget, and served to every visitor while it is
+ *      fresh (see "the Google budget"); the same statewide road feed answers
+ *      every corridor question for 5 minutes.
  *
- * Deliberately framework-free (no Express; one dependency, an HTML parser for resort pages): a plain `node:http` router is
+ * Deliberately framework-free (no Express; two dependencies, an HTML parser for resort pages and the Neon driver for the shared Google budget): a plain `node:http` router is
  * easier to audit for "does this leak a key anywhere" than a framework.
  *
  * It runs two ways from the same file:
@@ -35,6 +36,8 @@
  */
 import { createServer } from 'node:http';
 import { parse as parseHtml } from 'node-html-parser';
+import { createMemoryStore, createNeonStore } from './routesStore.mjs';
+import { SUPPORTED_CITIES, SUPPORTED_DESTINATIONS } from './supported.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const API_KEY = process.env.GOOGLE_ROUTES_API_KEY ?? '';
@@ -310,7 +313,16 @@ const ROUTES_FAILURE_TEXT = {
   network: 'Google Routes could not be reached.',
   unreadable: 'Google Routes answered with something this proxy could not read.',
   no_route: 'Google Routes found no drivable route for this request.',
+  daily_budget_reached: "Today's Google Routes budget is spent; drive times come back when it resets at midnight Pacific.",
+  budget_unverifiable: 'The Google Routes budget could not be checked, so no call was made.',
+  incomplete: 'Google Routes was too slow to finish in time; what it answered is kept, so trying again costs only the rest.',
 };
+
+/** Kinds that are this proxy's own spending limits, not Google refusing: answered 503, not 502. */
+const OWN_LIMIT_KINDS = new Set(['daily_budget_reached', 'budget_unverifiable', 'incomplete']);
+
+/** The HTTP status for a Routes failure: our own limit is 503 (try later), Google's refusal is 502. */
+export const routesFailureStatus = (failure) => (OWN_LIMIT_KINDS.has(failure.kind) ? 503 : 502);
 
 const enumLike = (value) => (typeof value === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(value) ? value : null);
 
@@ -345,6 +357,11 @@ export function publicRoutesFailure(failure) {
       status: failure.upstreamStatus ?? null,
       googleStatus: failure.googleStatus ?? null,
       reason: failure.reason ?? null,
+      // True when no call was made: an earlier failure of the same kind tripped the circuit breaker.
+      circuitOpen: failure.circuitOpen === true,
+      // For our own limits: which daily pool ("ranking" or "detail") ran out, and which count.
+      ...(failure.pool ? { pool: failure.pool } : {}),
+      ...(failure.exhausted ? { exhausted: failure.exhausted } : {}),
     },
   };
 }
@@ -355,6 +372,16 @@ export function redactForLog(text, secrets = []) {
   let out = text;
   for (const secret of secrets) if (secret) out = out.split(secret).join('[redacted]');
   return out.replace(/AIza[0-9A-Za-z_-]{10,}/g, '[redacted]').replace(/([?&]key=)[^&\s]+/gi, '$1[redacted]').slice(0, 400);
+}
+
+/** Answer a Routes failure: 503 with Retry-After for our own limit, 502 for Google's refusal (breaker or not). */
+function sendRoutesFailure(req, res, failure) {
+  const headers = failure.kind === 'daily_budget_reached' || failure.kind === 'quota_exceeded'
+    ? { 'Retry-After': String(Math.max(60, Math.ceil((nextQuotaResetMs() - Date.now()) / 1000))) }
+    : failure.kind === 'incomplete'
+      ? { 'Retry-After': '5' }
+      : {};
+  sendJson(req, res, routesFailureStatus(failure), publicRoutesFailure(failure), headers);
 }
 
 /** Thrown when no sampled departure produced a route; carries the commonest reason why. */
@@ -379,6 +406,8 @@ export function dominantFailure(failures) {
 
 /** One line per failed curve or preview, so the function log says what Google actually answered. */
 function logRoutesFailure(where, failure, sampled) {
+  // Our own budget and a breaker already logged are not news on every request.
+  if (OWN_LIMIT_KINDS.has(failure.kind) || failure.circuitOpen) return;
   console.warn(
     `[google-routes] ${where} failed: ` +
       JSON.stringify({
@@ -397,7 +426,7 @@ function logRoutesFailure(where, failure, sampled) {
  * which Google reads as "now". Resolves to `{ sample }` or `{ failure }` and
  * never throws: callers skip a failed point and keep its reason.
  */
-async function requestRoute(origin, destination, departureIso, { withPolyline = false } = {}) {
+async function requestRoute(origin, destination, departureIso, { withPolyline = false, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
   let response;
   try {
     response = await fetchWithTimeout(
@@ -421,7 +450,7 @@ async function requestRoute(origin, destination, departureIso, { withPolyline = 
           ...(departureIso ? { departureTime: departureIso } : {}),
         }),
       },
-      REQUEST_TIMEOUT_MS,
+      timeoutMs,
     );
   } catch (error) {
     const kind = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'network';
@@ -448,6 +477,477 @@ async function requestRoute(origin, destination, departureIso, { withPolyline = 
       distanceMiles: Number.isFinite(distanceMeters) ? distanceMeters / 1609.344 : null,
       polyline: typeof route.polyline?.encodedPolyline === 'string' ? route.polyline.encodedPolyline : null,
     },
+  };
+}
+
+/* ------------------------------------------------------- the Google budget */
+
+/*
+ * Google Routes is billed per call and the project runs on a fixed daily
+ * ceiling, split into two pools so one kind of use cannot starve the other:
+ *
+ *   ranking  one drive each way per mountain, for the list and Today's pick
+ *            (ROUTES_RANKING_BUDGET, 130). A city's ranking for a day is
+ *            bought whole or not at all: never a ranking with holes.
+ *   detail   the full departure curve, when someone opens a mountain
+ *            (ROUTES_DETAIL_BUDGET, 60).
+ *
+ * Every call goes through one gate:
+ *   1. Each departure sample is cached on its own, shared by every instance
+ *      (routesStore.mjs), and reused by both pools. The ranking reads any
+ *      unexpired sample; a full curve only one younger than half the time left
+ *      until that departure, so a curve read near the departure is near-live.
+ *   2. Concurrent requests for the same sample in one instance share one call.
+ *   3. The calls a request needs are reserved at once, atomically, in its pool
+ *      (Pacific day, when Google resets quotas): all of them or none. Each pool
+ *      keeps two counts. `attempts` is every call sent to Google and is never
+ *      given back once sent, so retries have a hard daily stop. `used` (spent)
+ *      is calls that may be billed: it is given back for a call never sent, and
+ *      for a response category listed in ROUTES_NONBILLABLE_KINDS, which is
+ *      empty until Google's billing report confirms a category is not billed.
+ *   4. At most ROUTES_CONCURRENCY calls are in flight per instance.
+ *   5. A quota, billing, key or permission refusal opens a circuit breaker
+ *      shared by every instance: no call is made until Google's quotas reset at
+ *      midnight Pacific, and every answer meanwhile still names Google's
+ *      refusal, so the failure stays visible. A key, billing or permission
+ *      refusal does not fix itself at midnight, so after one the next day starts
+ *      with a single recovery probe: one call, from one instance, and only if it
+ *      gets a route does normal traffic resume. A probe that fails waits for the
+ *      next midnight (a refusal) or half an hour (anything else).
+ *
+ * Nothing here invents a drive time: a sample is Google's, cached, or absent.
+ */
+/**
+ * A pool's daily number from the environment, or its default. Preview spends the same Google
+ * project's quota as Production, so a Preview deployment gets no Google calls at all unless its
+ * own allocation is set explicitly (Vercel's Preview environment variables).
+ */
+const allocation = (name, fallback) => {
+  const raw = process.env[name];
+  if (raw !== undefined && raw !== '') return Math.max(0, Number(raw));
+  return process.env.VERCEL_ENV === 'preview' ? 0 : fallback;
+};
+const BUDGET = {
+  ranking: allocation('ROUTES_RANKING_BUDGET', 130),
+  detail: allocation('ROUTES_DETAIL_BUDGET', 60),
+};
+/** Calls sent per pool per day, billed or not. Above the spend budget, so a refused call cannot crowd out a real one. */
+const ATTEMPTS = {
+  ranking: Math.max(BUDGET.ranking, allocation('ROUTES_RANKING_ATTEMPTS', 150)),
+  detail: Math.max(BUDGET.detail, allocation('ROUTES_DETAIL_ATTEMPTS', 70)),
+};
+
+/**
+ * Response categories whose calls are given back to the spend budget. Only Google's own refusals
+ * can be listed (a 400 is billed per Google's reporting docs; a 5xx, a timeout, a dropped connection
+ * or an empty route may have been processed), and the default is none: a category is added once
+ * Google's billing report shows it is not billed. A bare PERMISSION_DENIED is `permission_denied`.
+ */
+const REFUSAL_KINDS = new Set([
+  'quota_exceeded', 'key_invalid', 'key_restricted', 'api_not_enabled', 'billing_disabled', 'project_suspended', 'project_invalid', 'permission_denied',
+]);
+export const parseNonbillableKinds = (raw) =>
+  new Set(String(raw ?? '').split(',').map((kind) => kind.trim()).filter((kind) => REFUSAL_KINDS.has(kind)));
+const NONBILLABLE_KINDS = parseNonbillableKinds(process.env.ROUTES_NONBILLABLE_KINDS);
+const ROUTES_CONCURRENCY = Math.max(1, Number(process.env.ROUTES_CONCURRENCY ?? 8));
+const QUOTA_TIME_ZONE = 'America/Los_Angeles';
+// POWNOW_DATABASE_URL names the pownow database explicitly. It wins over a DATABASE_URL that a
+// storage integration may have bound for something else; DATABASE_URL remains the plain fallback.
+const DATABASE_URL = process.env.POWNOW_DATABASE_URL || process.env.DATABASE_URL || '';
+/** On a serverless host each instance has its own memory: a budget kept there is no ceiling. */
+const SERVERLESS = Boolean(process.env.VERCEL);
+/**
+ * Whose counters, cache and breaker these are. Production, Preview and local development each keep
+ * their own rows (`<scope>:<pool>`, `<scope>|<key>`), so a preview build never spends or resets
+ * Production's budget. On Vercel the scope is VERCEL_ENV; a Vercel host that does not say which
+ * environment it is gets no scope, and spends nothing.
+ */
+const RUNTIME_ENV = process.env.VERCEL_ENV || (SERVERLESS ? null : 'development');
+const routesStore = DATABASE_URL && RUNTIME_ENV ? createNeonStore(DATABASE_URL, { scope: RUNTIME_ENV }) : createMemoryStore();
+/** No call may start later than this into a request, so a slow Google cannot run past the function's 30 s limit. */
+const ROUTES_DEADLINE_MS = Math.max(1000, Number(process.env.ROUTES_DEADLINE_MS ?? 20_000));
+/** A call is sent only with at least this long left before the deadline. */
+const MIN_CALL_MS = 2_500;
+
+/** The ranking's two departures: a standard ski day, leave at 6:00, head home at 3:00 (both on the full grids). */
+export const RANKING_MINUTES = { outbound: 360, return: 900 };
+
+const MINUTE = 60_000;
+const MIN_FRESH_MS = 15 * MINUTE;
+const MAX_KEEP_MS = 24 * 60 * MINUTE;
+const clampMs = (ms) => Math.min(MAX_KEEP_MS, Math.max(MIN_FRESH_MS, Math.round(ms)));
+
+/** How old a sample a full curve accepts: half its lead time, between 15 minutes and a day. "Now" is 15 minutes. */
+export function sampleTtlMs(departureIso, nowMs = Date.now()) {
+  return clampMs(departureIso ? (Date.parse(departureIso) - nowMs) / 2 : 0);
+}
+
+/** How long a departure sample is kept at all: until that departure, at most a day. */
+const keepUntilDepartureMs = (departureIso, nowMs = Date.now()) => clampMs(Date.parse(departureIso) - nowMs);
+
+/** A starting point to about a kilometre, so neighbours share samples (a drive changes by a minute at most). */
+export const roundOrigin = (point) => ({ lat: Math.round(point.lat * 100) / 100, lon: Math.round(point.lon * 100) / 100 });
+
+const sampleKey = (origin, destination, departureIso, withPolyline) =>
+  ['s', origin.lat.toFixed(2), origin.lon.toFixed(2), destination.lat.toFixed(4), destination.lon.toFixed(4), departureIso ?? 'now', withPolyline ? 'p' : '']
+    .join(':');
+
+/** The ranking's stand-in for a departure already behind us today: one drive sampled at first request, kept for the day. */
+const rankingNowKey = (origin, destination, date, direction) =>
+  ['r', origin.lat.toFixed(2), origin.lon.toFixed(2), destination.lat.toFixed(4), destination.lon.toFixed(4), date, direction].join(':');
+
+/** The instant Google's per-day quotas next reset: midnight Pacific. */
+export function nextQuotaResetMs(nowMs = Date.now()) {
+  const [year, month, day] = localParts(nowMs, QUOTA_TIME_ZONE).dateKey.split('-').map(Number);
+  const tomorrow = new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+  return localToUtcMs(tomorrow, 0, QUOTA_TIME_ZONE);
+}
+
+/** Refusals that will repeat on every call until something changes: worth stopping for. */
+const BREAKER_KINDS = new Set([
+  'quota_exceeded', 'key_invalid', 'key_restricted', 'api_not_enabled', 'billing_disabled', 'project_suspended', 'project_invalid', 'permission_denied',
+]);
+/** Of those, the ones midnight does not cure: someone has to change the key, the API, billing or the project. */
+const STANDING_REFUSALS = new Set([...BREAKER_KINDS].filter((kind) => kind !== 'quota_exceeded'));
+/** How long one recovery probe holds the right to call before another may try (if it neither recovered nor was refused). */
+const PROBE_LEASE_MS = 30 * MINUTE;
+/** A standing refusal is remembered this long; any probe that gets a route forgets it at once. */
+const PROBATION_MS = 7 * 24 * 60 * MINUTE;
+const PROBATION_FLAG = '__probation';
+const PROBE_FLAG = '__probe';
+
+/** Until when a refusal stops every call: midnight Pacific, when Google resets quotas (a few minutes after, for quota). */
+export function breakerUntilMs(kind, nowMs = Date.now()) {
+  return kind === 'quota_exceeded' ? nextQuotaResetMs(nowMs) + 5 * MINUTE : nextQuotaResetMs(nowMs);
+}
+
+const ownFailure = (kind, pool) => ({ kind, pool, upstreamStatus: null, googleStatus: null, reason: null, message: null });
+const warnStore = (what, error) =>
+  console.warn(`[google-routes] shared store ${what} failed: ${redactForLog(error instanceof Error ? error.message : String(error), [DATABASE_URL])}`);
+
+/** Tier 1 in front of the shared store: this instance's copy of samples it has seen, with when Google gave them. */
+const sampleMemo = new Map();
+const pendingSamples = new Map();
+let localBreaker = null;
+
+let googleActive = 0;
+const googleQueue = [];
+async function withGoogleSlot(run) {
+  // A finished call hands its slot straight to the next one waiting, so no newcomer can slip in between.
+  if (googleActive >= ROUTES_CONCURRENCY) await new Promise((resolve) => googleQueue.push(resolve));
+  else googleActive += 1;
+  try {
+    return await run();
+  } finally {
+    const next = googleQueue.shift();
+    if (next) next();
+    else googleActive -= 1;
+  }
+}
+
+async function openBreaker() {
+  if (localBreaker && localBreaker.until > Date.now()) return localBreaker.failure;
+  try {
+    const shared = await routesStore.getBreaker();
+    if (shared) {
+      localBreaker = { until: shared.until, failure: shared.failure };
+      return shared.failure;
+    }
+  } catch (error) {
+    warnStore('breaker read', error);
+  }
+  return null;
+}
+
+async function tripBreaker(failure) {
+  // Calls already in flight when the breaker opens come back with the same refusal: one trip is enough.
+  if (localBreaker && localBreaker.until > Date.now() && localBreaker.failure.kind === failure.kind) return;
+  const until = breakerUntilMs(failure.kind);
+  localBreaker = { until, failure };
+  console.warn(`[google-routes] circuit breaker open until ${new Date(until).toISOString()}: ${failure.kind}`);
+  try {
+    await routesStore.setBreaker(until, failure);
+    // After a refusal midnight does not cure, the next day starts with one probe, not with traffic.
+    if (STANDING_REFUSALS.has(failure.kind)) await routesStore.setFlag(PROBATION_FLAG, { failure }, Date.now() + PROBATION_MS);
+  } catch (error) {
+    warnStore('breaker write', error);
+  }
+}
+
+/**
+ * Buy the samples nobody has. While the breaker is open, nothing. After a standing refusal, one
+ * recovery probe at a time across every instance: its first item is bought alone, and only if
+ * Google gives a route is the refusal forgotten and the rest bought. Otherwise, everything at once.
+ */
+async function spendOnGoogle(origin, items, pool, withPolyline, deadline) {
+  const blocked = await openBreaker();
+  if (blocked) return items.map(() => ({ failure: { ...blocked, circuitOpen: true } }));
+  if (SERVERLESS && !routesStore.shared) return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
+
+  let probation;
+  try {
+    probation = await routesStore.getFlag(PROBATION_FLAG);
+  } catch (error) {
+    warnStore('probation read', error);
+    return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
+  }
+  if (!probation) return buyFromGoogle(origin, items, pool, withPolyline, deadline);
+
+  const held = () => ({ failure: { ...probation.failure, circuitOpen: true } });
+  let probing;
+  try {
+    probing = await routesStore.acquireLease(PROBE_FLAG, PROBE_LEASE_MS);
+  } catch (error) {
+    warnStore('probe lease', error);
+    return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
+  }
+  if (!probing) return items.map(held);
+
+  console.warn(`[google-routes] recovery probe: one call after ${probation.failure.kind}`);
+  const [first] = await buyFromGoogle(origin, items.slice(0, 1), pool, withPolyline, deadline);
+  if (!first.sample) {
+    // No call went out (our own limit): let the next request probe instead.
+    if (OWN_LIMIT_KINDS.has(first.failure.kind)) await routesStore.clearFlag(PROBE_FLAG).catch((error) => warnStore('probe release', error));
+    return [first, ...items.slice(1).map(held)];
+  }
+  console.info('[google-routes] recovery probe got a route: normal traffic resumes');
+  try {
+    await routesStore.clearFlag(PROBATION_FLAG);
+    await routesStore.clearFlag(PROBE_FLAG);
+  } catch (error) {
+    warnStore('probation clear', error);
+  }
+  const rest = items.length > 1 ? await buyFromGoogle(origin, items.slice(1), pool, withPolyline, deadline) : [];
+  return [first, ...rest];
+}
+
+/** One reservation in the pool for all of `items`, then at most ROUTES_CONCURRENCY calls at a time. */
+async function buyFromGoogle(origin, items, pool, withPolyline, deadline) {
+  const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
+  const limits = { spent: BUDGET[pool], attempts: ATTEMPTS[pool] };
+  const n = items.length;
+  let reservation;
+  try {
+    reservation = n <= limits.spent && n <= limits.attempts ? await routesStore.reserve(day, pool, n, limits) : { ok: false, used: 0, attempts: 0 };
+  } catch (error) {
+    warnStore('budget', error);
+    return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
+  }
+  if (!reservation.ok) {
+    // Which count ran out: the hard stop on calls sent, or the spend budget.
+    const exhausted = (reservation.attempts ?? 0) + n > limits.attempts ? 'attempts' : 'spent';
+    return items.map(() => ({ failure: { ...ownFailure('daily_budget_reached', pool), exhausted } }));
+  }
+  console.info(
+    `[google-routes] ${pool}: calls ${n}, spent ${reservation.used}/${limits.spent}, attempts ${reservation.attempts}/${limits.attempts} for ${day} (Pacific)`,
+  );
+
+  let unspent = 0;
+  let refunded = 0;
+  let late = 0;
+  const results = await Promise.all(
+    items.map((item) =>
+      withGoogleSlot(async () => {
+        // The breaker may have opened while this call waited for a slot.
+        if (localBreaker && localBreaker.until > Date.now()) {
+          unspent += 1;
+          return { failure: { ...localBreaker.failure, circuitOpen: true } };
+        }
+        // Too close to the deadline to finish: not sent, so it costs nothing.
+        const left = deadline - Date.now();
+        if (left < MIN_CALL_MS) {
+          unspent += 1;
+          late += 1;
+          return { failure: ownFailure('incomplete', pool) };
+        }
+        const result = await requestRoute(origin, item.destination, item.departureIso, {
+          withPolyline,
+          timeoutMs: Math.min(REQUEST_TIMEOUT_MS, left),
+        });
+        if (result.sample) {
+          const sample = { ...result.sample, sampledAt: Date.now() };
+          sampleMemo.set(item.key, { value: sample, expiresAt: Date.now() + item.keepMs });
+          try {
+            await routesStore.putSample(item.key, sample, item.keepMs);
+          } catch (error) {
+            warnStore('write', error);
+          }
+          return { sample };
+        }
+        if (NONBILLABLE_KINDS.has(result.failure.kind)) refunded += 1;
+        if (BREAKER_KINDS.has(result.failure.kind)) await tripBreaker(result.failure);
+        return result;
+      }),
+    ),
+  );
+  if (unspent > 0 || refunded > 0) {
+    await routesStore.settle(day, pool, { unsent: unspent, refund: refunded }).catch((error) => warnStore('budget settle', error));
+  }
+  if (late > 0) console.warn(`[google-routes] ${pool}: deadline reached, ${late} of ${n} calls not sent (given back)`);
+  return results;
+}
+
+/**
+ * Google samples for these items, in order, each `{ sample }` or `{ failure }`. An item is
+ * `{ destination, departureIso (null = now), key, keepMs, maxAgeMs }`. From this instance, then the
+ * shared store (if young enough for this reader), then a call shared with an identical one in flight,
+ * and only then new calls, all reserved together in `pool`.
+ */
+async function getRouteSamples(origin, items, { pool, withPolyline = false }) {
+  const now = Date.now();
+  const deadline = now + ROUTES_DEADLINE_MS;
+  const fresh = (value, item) => value && now - (value.sampledAt ?? 0) <= item.maxAgeMs;
+  const out = new Array(items.length);
+  let missing = [];
+  items.forEach((item, i) => {
+    const hit = sampleMemo.get(item.key);
+    if (hit && hit.expiresAt > now && fresh(hit.value, item)) out[i] = { sample: hit.value };
+    else missing.push(i);
+  });
+
+  if (missing.length > 0) {
+    let stored = new Map();
+    try {
+      stored = await routesStore.getSamples(missing.map((i) => items[i].key));
+    } catch (error) {
+      warnStore('read', error);
+    }
+    missing = missing.filter((i) => {
+      const value = stored.get(items[i].key);
+      if (!fresh(value, items[i])) return true;
+      out[i] = { sample: value };
+      // This instance keeps it briefly; the shared store stays the authority on expiry.
+      sampleMemo.set(items[i].key, { value, expiresAt: now + Math.min(5 * MINUTE, items[i].keepMs) });
+      return false;
+    });
+  }
+
+  const waits = [];
+  const toBuy = [];
+  for (const i of missing) {
+    const pending = pendingSamples.get(items[i].key);
+    if (pending) waits.push(pending.then((result) => (out[i] = result)));
+    else toBuy.push(i);
+  }
+
+  if (toBuy.length > 0) {
+    const settle = new Map();
+    for (const i of toBuy) pendingSamples.set(items[i].key, new Promise((resolve) => settle.set(i, resolve)));
+    try {
+      const results = await spendOnGoogle(origin, toBuy.map((i) => items[i]), pool, withPolyline, deadline);
+      toBuy.forEach((i, n) => {
+        out[i] = results[n];
+        settle.get(i)(results[n]);
+      });
+    } finally {
+      for (const i of toBuy) {
+        if (out[i] === undefined) settle.get(i)({ failure: ownFailure('budget_unverifiable', pool) });
+        pendingSamples.delete(items[i].key);
+      }
+    }
+  }
+  await Promise.all(waits);
+  return out;
+}
+
+/**
+ * A ranking or curve missing points only because the deadline came first is not answered with holes:
+ * it is a retryable 503, and the samples that did come back are already cached for the retry.
+ */
+function throwIfIncomplete(results) {
+  const late = results.find((result) => result.failure?.kind === 'incomplete');
+  if (late) throw new RoutesUnavailableError(late.failure);
+}
+
+/** A full curve's item: shared key, kept until departure, read only while young enough for a curve. */
+const detailItem = (origin, destination, departureIso, withPolyline = false) => ({
+  destination,
+  departureIso,
+  key: sampleKey(origin, destination, departureIso, withPolyline),
+  keepMs: departureIso ? keepUntilDepartureMs(departureIso) : MIN_FRESH_MS,
+  maxAgeMs: sampleTtlMs(departureIso),
+});
+
+/**
+ * One city's ranking for a day: a drive out at 6:00 and back at 3:00 for every mountain, bought
+ * together from the ranking pool or not at all. A departure already behind us today is replaced by one
+ * drive sampled now and kept for the rest of that day, and reported at the minute it was sampled.
+ */
+async function buildRankingDrives(origin, date, destinations, nowMs = Date.now()) {
+  const items = [];
+  for (const destination of destinations) {
+    const timeZone = resolveTimeZone(destination.timeZone);
+    for (const direction of ['outbound', 'return']) {
+      const minute = RANKING_MINUTES[direction];
+      const departureMs = localToUtcMs(date, minute, timeZone);
+      if (departureMs > nowMs + 2 * MINUTE) {
+        const departureIso = new Date(departureMs).toISOString();
+        items.push({ destination, direction, timeZone, minute, departureIso, key: sampleKey(origin, destination, departureIso, false),
+          keepMs: keepUntilDepartureMs(departureIso, nowMs), maxAgeMs: Infinity });
+      } else {
+        const endOfDay = localToUtcMs(date, 24 * 60, timeZone);
+        items.push({ destination, direction, timeZone, minute: null, departureIso: null, key: rankingNowKey(origin, destination, date, direction),
+          keepMs: clampMs(endOfDay - nowMs), maxAgeMs: Infinity });
+      }
+    }
+  }
+  const results = await getRouteSamples(origin, items, { pool: 'ranking' });
+  throwIfIncomplete(results);
+  const drives = destinations.map(() => ({}));
+  const failures = [];
+  items.forEach((item, i) => {
+    const index = destinations.indexOf(item.destination);
+    const { sample, failure } = results[i];
+    if (!sample) {
+      failures.push(failure);
+      drives[index][item.direction] = null;
+      return;
+    }
+    drives[index][item.direction] = {
+      departure: item.minute ?? localParts(sample.sampledAt, item.timeZone).minuteOfDay,
+      durationMinutes: sample.durationMinutes,
+      sampledAt: new Date(sample.sampledAt).toISOString(),
+    };
+    if (sample.distanceMiles !== null && drives[index].distanceMiles == null) drives[index].distanceMiles = Math.round(sample.distanceMiles * 10) / 10;
+  });
+  if (failures.length === items.length) {
+    const failure = dominantFailure(failures);
+    logRoutesFailure(`ranking (${date}, ${destinations.length} mountains)`, failure, items.length);
+    throw new RoutesUnavailableError(failure);
+  }
+  return { date, origin, departures: RANKING_MINUTES, drives };
+}
+
+/** Today's budget, for /api/health: per pool, what was spent, and whether the breaker is open. Never a secret. */
+async function budgetStatus() {
+  const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
+  const pools = {};
+  for (const [pool, limit] of Object.entries(BUDGET)) {
+    let counts = null;
+    try {
+      counts = await routesStore.used(day, pool);
+    } catch {
+      // Reported as null: unknown, not zero.
+    }
+    pools[pool] = { limit, used: counts?.used ?? null, attemptLimit: ATTEMPTS[pool], attempts: counts?.attempts ?? null };
+  }
+  const breaker = await openBreaker();
+  let probation = null;
+  try {
+    probation = await routesStore.getFlag(PROBATION_FLAG);
+  } catch {
+    // Unknown: reported as null.
+  }
+  return {
+    day,
+    dailyBudget: BUDGET.ranking + BUDGET.detail,
+    pools,
+    nonbillableKinds: [...NONBILLABLE_KINDS],
+    scope: RUNTIME_ENV,
+    sharedStore: routesStore.shared,
+    breakerOpenUntil: breaker && localBreaker ? new Date(localBreaker.until).toISOString() : null,
+    // Set after a key, billing or permission refusal: the next call is a single recovery probe.
+    recoveryProbeAfter: probation?.failure?.kind ?? null,
   };
 }
 
@@ -496,9 +996,9 @@ export const resolveTimeZone = (requested) =>
 async function buildTravelCurve(origin, destination, direction, date, timeZone = TIME_ZONE) {
   const grid = direction === 'outbound' ? OUTBOUND_MINUTES : RETURN_MINUTES;
   const plan = planDepartureMinutes(grid, date, Date.now(), timeZone);
-  const samplesRaw = await Promise.all(
-    plan.map(async ({ minute, departureIso }) => ({ minute, ...(await requestRoute(origin, destination, departureIso)) })),
-  );
+  const results = await getRouteSamples(origin, plan.map((p) => detailItem(origin, destination, p.departureIso)), { pool: 'detail' });
+  throwIfIncomplete(results);
+  const samplesRaw = plan.map(({ minute }, i) => ({ minute, ...results[i] }));
 
   const resolved = samplesRaw.filter((d) => d.sample);
   if (resolved.length === 0) {
@@ -540,7 +1040,7 @@ async function buildTravelCurve(origin, destination, direction, date, timeZone =
  * the route's encoded polyline so the map can draw the real road.
  */
 async function fetchRoutePreview(origin, destination) {
-  const { sample, failure } = await requestRoute(origin, destination, null, { withPolyline: true });
+  const [{ sample, failure }] = await getRouteSamples(origin, [detailItem(origin, destination, null, true)], { pool: 'detail', withPolyline: true });
   if (!sample) {
     logRoutesFailure('route preview', failure, 1);
     throw new RoutesUnavailableError(failure);
@@ -1197,6 +1697,22 @@ function isPoint(value) {
   return value && typeof value.lat === 'number' && typeof value.lon === 'number';
 }
 
+/*
+ * Where Google calls may go. A ranking starts at one of the app's cities and asks only for the
+ * mountains that city ranks; an opened mountain (or its map preview) may start anywhere, a GPS fix,
+ * but ends at a mountain. Anything else is refused before the budget or Google is touched, so no
+ * request can spend the day's calls on places the app never asks about. (server/supported.mjs is
+ * generated from the app's data; see src/server/supported.test.ts.)
+ */
+const pointKey = (point) => `${point.lat.toFixed(4)},${point.lon.toFixed(4)}`;
+const SUPPORTED_DESTINATION_KEYS = new Set(SUPPORTED_DESTINATIONS);
+const SUPPORTED_RANKINGS = new Map(
+  Object.values(SUPPORTED_CITIES).map((city) => [city.origin, new Set(city.destinations)]),
+);
+export const isSupportedDestination = (point) => isPoint(point) && SUPPORTED_DESTINATION_KEYS.has(pointKey(point));
+/** The city's set of mountains if `origin` is one of the app's cities, otherwise null. */
+const rankingDestinationsFor = (origin) => (isPoint(origin) ? (SUPPORTED_RANKINGS.get(pointKey(origin)) ?? null) : null);
+
 /**
  * The router. Exported so a serverless adapter (see `api/[...path].mjs`)
  * can serve exactly the same endpoints as the standalone process.
@@ -1237,6 +1753,7 @@ async function handle(req, res) {
       hasCotripKey: COTRIP_API_KEY.length > 0,
       sharedCache: Boolean(KV_URL && KV_TOKEN),
       cacheSize: cache.size,
+      googleRoutes: await budgetStatus(),
     });
     return;
   }
@@ -1248,15 +1765,21 @@ async function handle(req, res) {
 
   /*
    * Browser-friendly GET version of /api/travel-curve, for manually
-   * eyeballing that a real deploy is actually returning live Google Routes
-   * data. Defaults to Denver -> Copper Mountain outbound for tomorrow.
+   * eyeballing that a preview or local server is actually returning live
+   * Google Routes data. Defaults to Denver -> Copper Mountain outbound for
+   * tomorrow. Off in Production: it takes any coordinates.
    */
   if (req.method === 'GET' && url.pathname === '/api/test-drive') {
+    // A debugging route that spends the detail budget on any coordinates: never in Production.
+    if (RUNTIME_ENV === 'production') {
+      sendJson(req, res, 404, { error: 'Not found.' });
+      return;
+    }
     const params = url.searchParams;
-    const origin = {
+    const origin = roundOrigin({
       lat: Number(params.get('originLat') ?? 39.7392),
       lon: Number(params.get('originLon') ?? -104.9903),
-    };
+    });
     const destination = {
       lat: Number(params.get('destLat') ?? 39.4817),
       lon: Number(params.get('destLon') ?? -106.1614),
@@ -1273,7 +1796,7 @@ async function handle(req, res) {
       curve = await buildTravelCurve(origin, destination, direction, date);
     } catch (error) {
       if (!(error instanceof RoutesUnavailableError)) throw error;
-      sendJson(req, res, 502, publicRoutesFailure(error.failure));
+      sendRoutesFailure(req, res, error.failure);
       return;
     }
     sendJson(req, res, 200, { origin, destination, direction, date, ...curve });
@@ -1297,16 +1820,69 @@ async function handle(req, res) {
       sendJson(req, res, 400, { error: 'origin and destination must each be { lat, lon }.' });
       return;
     }
-    const cacheKey = ['preview', origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3)].join(':');
+    if (!isSupportedDestination(destination)) {
+      sendJson(req, res, 400, { error: 'destination must be one of the mountains POW NOW covers.' });
+      return;
+    }
     let preview;
     try {
-      preview = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => fetchRoutePreview(origin, destination));
+      preview = await fetchRoutePreview(roundOrigin(origin), destination);
     } catch (error) {
       if (!(error instanceof RoutesUnavailableError)) throw error;
-      sendJson(req, res, 502, publicRoutesFailure(error.failure));
+      sendRoutesFailure(req, res, error.failure);
       return;
     }
     sendJson(req, res, 200, preview);
+    return;
+  }
+
+  /*
+   * One city's ranking for a day: one drive out (6:00) and one back (3:00) per
+   * mountain, bought from the ranking pool as one batch or not at all. The
+   * client labels every score built on it an estimate; a full curve comes from
+   * /api/travel-curve when a mountain is opened.
+   */
+  if (req.method === 'POST' && url.pathname === '/api/ranking-drives') {
+    if (!API_KEY) {
+      sendJson(req, res, 503, { error: 'GOOGLE_ROUTES_API_KEY is not configured on this server. Set it and restart.' });
+      return;
+    }
+    let body;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      sendJson(req, res, 400, { error: 'Malformed JSON body.' });
+      return;
+    }
+    const { origin, date, destinations } = body ?? {};
+    const allowed = rankingDestinationsFor(origin);
+    if (!allowed) {
+      sendJson(req, res, 400, { error: 'origin must be one of the cities POW NOW ranks from.' });
+      return;
+    }
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      sendJson(req, res, 400, { error: 'date must be "YYYY-MM-DD".' });
+      return;
+    }
+    if (
+      !Array.isArray(destinations) ||
+      destinations.length === 0 ||
+      destinations.length > allowed.size ||
+      !destinations.every((point) => isPoint(point) && allowed.has(pointKey(point))) ||
+      new Set(destinations.map(pointKey)).size !== destinations.length
+    ) {
+      sendJson(req, res, 400, { error: "destinations must be distinct mountains this city's ranking covers, each { lat, lon, timeZone? }." });
+      return;
+    }
+    let ranking;
+    try {
+      ranking = await buildRankingDrives(roundOrigin(origin), date, destinations);
+    } catch (error) {
+      if (!(error instanceof RoutesUnavailableError)) throw error;
+      sendRoutesFailure(req, res, error.failure);
+      return;
+    }
+    sendJson(req, res, 200, ranking);
     return;
   }
 
@@ -1328,6 +1904,10 @@ async function handle(req, res) {
       sendJson(req, res, 400, { error: 'origin and destination must each be { lat, lon }.' });
       return;
     }
+    if (!isSupportedDestination(destination)) {
+      sendJson(req, res, 400, { error: 'destination must be one of the mountains POW NOW covers.' });
+      return;
+    }
     if (direction !== 'outbound' && direction !== 'return') {
       sendJson(req, res, 400, { error: 'direction must be "outbound" or "return".' });
       return;
@@ -1337,19 +1917,14 @@ async function handle(req, res) {
       return;
     }
 
-    // Today's curve is anchored to "now", so its cache key includes the
-    // quarter-hour: a curve built at 6:03 shouldn't be served at 9:40 as if
-    // 6:03 were still an option.
-    const local = localParts(Date.now(), timeZone);
-    const slot = date === local.dateKey ? `:${Math.floor(local.minuteOfDay / 15)}` : '';
-    const cacheKey = [origin.lat.toFixed(3), origin.lon.toFixed(3), destination.lat.toFixed(3), destination.lon.toFixed(3), direction, date, timeZone].join(':') + slot;
-
+    // Each departure sample is cached on its own (see "the Google budget"), so
+    // today's curve reuses every future point and only re-asks "leave now".
     let curve;
     try {
-      curve = await cachedOrCompute(cacheKey, CACHE_TTL_MS, () => buildTravelCurve(origin, destination, direction, date, timeZone));
+      curve = await buildTravelCurve(roundOrigin(origin), destination, direction, date, timeZone);
     } catch (error) {
       if (!(error instanceof RoutesUnavailableError)) throw error;
-      sendJson(req, res, 502, publicRoutesFailure(error.failure));
+      sendRoutesFailure(req, res, error.failure);
       return;
     }
     sendJson(req, res, 200, curve);

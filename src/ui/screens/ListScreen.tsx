@@ -1,3 +1,5 @@
+import type { Origin } from '@/domain/mountain';
+import { EstimateNote } from '@/ui/components/EstimateNote';
 import { useMemo, useState } from 'react';
 import { MOUNTAINS } from '@/data/mountains';
 import { ORIGIN_STATE_LABELS } from '@/data/origins';
@@ -10,6 +12,10 @@ import { addDays, daysBetween, type DateKey, formatDateLabel, weekdayLong } from
 import { Byline } from '@/ui/components/Byline';
 
 export interface ListScreenProps {
+  /** True when the scores were timed from one sampled drive each way: they are estimates. */
+  estimated?: boolean;
+  /** The named city a GPS user's ranking comes from (live mode), so the screen can say so. */
+  rankedFrom?: Origin | null;
   /** The day the scores are for, and today, so the picker can say Today and Tomorrow. */
   date: DateKey;
   today: DateKey;
@@ -75,7 +81,7 @@ const STATES_SENTENCE = ((names: string[]) =>
  * point, but the list stays alphabetical. A search box, state chips and pass chips narrow it; a row opens that
  * mountain's profile, separate from any ranking.
  */
-export function ListScreen({ date, today, onDateChange, usingDemoData = false, scores, snow, onToday, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
+export function ListScreen({ date, today, onDateChange, usingDemoData = false, estimated = false, rankedFrom = null, scores, snow, onToday, onOpenMountain, onShowMap, onRank }: ListScreenProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const days = useMemo(() => {
     const options = Array.from({ length: DAY_PICKER_DAYS }, (_, i) => addDays(today, i));
@@ -122,6 +128,7 @@ export function ListScreen({ date, today, onDateChange, usingDemoData = false, s
             {scores?.status === 'ready' ? ` from ${scores.originName}` : ''} and the snow forecast for the next five days. A to Z unless you
             sort by snow. Open any one for its full profile: the terrain, today's snow, the drive, parking and where to eat.
           </p>
+          <EstimateNote className="listscreen-estimate" estimated={estimated} rankedFrom={rankedFrom} />
           {onToday && (
             <p className="listscreen-today">
               Going {day}?{' '}

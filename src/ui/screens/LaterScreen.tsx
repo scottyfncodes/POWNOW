@@ -1,3 +1,4 @@
+import { EstimateNote } from '@/ui/components/EstimateNote';
 import { useMemo, useState } from 'react';
 import { MOUNTAINS } from '@/data/mountains';
 import type { RiderPreferences } from '@/config/weights';
@@ -28,6 +29,8 @@ export interface LaterScreenProps {
   registry: ProviderRegistry;
   clock: ClockState;
   origin: Origin;
+  /** The named city a GPS user's ranking comes from (live mode), so the screen can say so. */
+  rankedFrom?: Origin | null;
   preferences: RiderPreferences;
   onBack: () => void;
 }
@@ -53,7 +56,7 @@ function presetsFor(today: DateKey): Selection[] {
  * LATER always means a future date or range. Same engine, same question, with
  * forecast uncertainty carried all the way to the surface.
  */
-export function LaterScreen({ registry, clock, origin, preferences, onBack }: LaterScreenProps) {
+export function LaterScreen({ registry, clock, origin, rankedFrom = null, preferences, onBack }: LaterScreenProps) {
   const presets = useMemo(() => presetsFor(clock.today), [clock.today]);
   const [selection, setSelection] = useState<Selection>(presets[1] as Selection);
   const [openDate, setOpenDate] = useState<DateKey | null>(null);
@@ -150,6 +153,12 @@ export function LaterScreen({ registry, clock, origin, preferences, onBack }: La
       {header}
       <div role="main" className="screen-body shell stack">
         {picker}
+        {state.status === 'ready' && (
+          <EstimateNote
+            estimated={state.data.days.some((day) => day.recommendation.estimated === true)}
+            rankedFrom={rankedFrom}
+          />
+        )}
 
         {projection.days.length > 1 && (
           <section className="panel" aria-labelledby="range-heading">

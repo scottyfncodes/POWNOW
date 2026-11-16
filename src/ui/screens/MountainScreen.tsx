@@ -1,3 +1,4 @@
+import type { Origin } from '@/domain/mountain';
 import { findMountain } from '@/data/mountains';
 import { mountainProfileFor } from '@/data/mountainProfiles';
 import { type DateKey, formatDateLabel, relativeDateLabel } from '@/domain/dates';
@@ -14,6 +15,14 @@ import { PlanView } from './PlanView';
 
 export interface MountainScreenProps {
   mountainId: string;
+  /**
+   * Live mode: this mountain's full traffic curve, fetched on opening.
+   * 'full' once it replaced the ranking's estimate, 'loading' until then,
+   * 'unavailable' (with why) when the day stays an estimate. Null in demo.
+   */
+  detail?: { status: 'full' } | { status: 'loading' } | { status: 'unavailable'; reason: string } | null;
+  /** The named city a GPS user's other mountains were ranked from. */
+  rankedFrom?: Origin | null;
   state: AsyncState<Recommendation> & { reload: () => void };
   clock: ClockState;
   date: DateKey;
@@ -36,6 +45,8 @@ export interface MountainScreenProps {
 export function MountainScreen({
   mountainId,
   state,
+  detail = null,
+  rankedFrom = null,
   clock,
   date,
   settings,
@@ -110,6 +121,27 @@ export function MountainScreen({
     <div className="screen">
       {header}
       <div role="main" className="screen-body shell">
+        {detail && (
+          <p className="estimatenote mountainscreen-precision" role="status">
+            {detail.status === 'full' ? (
+              <>
+                Full traffic curve for {mountain.shortName}.
+                {recommendation.estimated ? ' The other mountains are estimates from one sampled drive each way.' : ''}
+              </>
+            ) : detail.status === 'loading' ? (
+              <>
+                <span className="chip chip-estimate">ESTIMATE</span> Getting the full traffic curve. Until it arrives, this day
+                uses one sampled drive each way.
+              </>
+            ) : (
+              <>
+                <span className="chip chip-estimate">ESTIMATE</span> The full traffic curve is unavailable: {detail.reason} This
+                day uses one sampled drive each way.
+              </>
+            )}
+            {rankedFrom && ` The other mountains were ranked from ${rankedFrom.name}, not your exact location.`}
+          </p>
+        )}
         <PlanView
           recommendation={recommendation}
           now={isToday ? clock.now : null}

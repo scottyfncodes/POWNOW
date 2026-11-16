@@ -196,6 +196,12 @@ export interface TravelCurve {
    * "leave right now". Absent/false for a curve covering the whole grid.
    */
   truncatedToNow?: boolean;
+  /**
+   * 'estimate': one sampled drive (the ranking's), evaluated at exactly that
+   * departure. Absent: a full departure curve. Never shown with the precision
+   * of a full curve.
+   */
+  sampling?: 'estimate';
 }
 
 export interface CrowdCurve {

@@ -90,6 +90,7 @@ export function buildPlan(inputs: DayInputs, options: PlanOptions = {}): SkiDayP
   const shownClock = snowState === 'unavailable' ? { ...snowClock, prime: null } : snowClock;
 
   return {
+    trafficSampling: inputs.outbound.status === 'ok' ? (inputs.outbound.data.sampling === 'estimate' ? 'estimate' : 'full') : null,
     mountain: inputs.mountain,
     origin: inputs.origin,
     date: inputs.date,
@@ -353,6 +354,7 @@ export async function recommend(
   const rival = alternatives.find((plan) => !isNotSkiable(plan) && plan.noCall === null);
 
   return {
+    estimated: plans.some((plan) => plan.trafficSampling === 'estimate'),
     date: options.date,
     origin: options.origin,
     best,

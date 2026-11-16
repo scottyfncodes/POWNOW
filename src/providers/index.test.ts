@@ -148,7 +148,7 @@ describe('createLiveRegistry — a same-origin proxy', () => {
   it('treats an empty base URL as a configured proxy at /api, not as "no proxy"', async () => {
     const registry = createLiveRegistry({ trafficApiBaseUrl: '' });
     expect(registry.label).toBe('Live data');
-    // The traffic slot is a real live provider that will call `/api/travel-curve` on this origin.
+    // The traffic slot is a real live provider that will call `/api/ranking-drives` on this origin (and `/api/travel-curve` for an opened mountain).
     expect(registry.traffic.id).toBe('google-routes');
     expect(registry.snowpack.id).toBe('snotel');
     expect(registry.roads.id).toBe('cotrip');

@@ -26,6 +26,12 @@ export function publicRoutesFailure(failure: RoutesFailure): {
   upstream: { service: 'google-routes'; kind: string; status: number | null; googleStatus: string | null; reason: string | null };
 };
 export function redactForLog(text: unknown, secrets?: string[]): string | null;
+export function routesFailureStatus(failure: RoutesFailure): 502 | 503;
+export function parseNonbillableKinds(raw: unknown): Set<string>;
+export function sampleTtlMs(departureIso: string | null, nowMs?: number): number;
+export function roundOrigin(point: { lat: number; lon: number }): { lat: number; lon: number };
+export function nextQuotaResetMs(nowMs?: number): number;
+export function breakerUntilMs(kind: string, nowMs?: number): number;
 export function dominantFailure(failures: RoutesFailure[]): RoutesFailure;
 export class RoutesUnavailableError extends Error {
   failure: RoutesFailure;

@@ -203,6 +203,11 @@ export type TimingIssue = 'no-route' | 'too-late' | 'too-far' | 'no-timing';
 /** ---- The plan ---------------------------------------------------------- */
 
 export interface SkiDayPlan {
+  /**
+   * How the drive was timed: 'estimate' from one sampled drive each way (the
+   * ranking's), 'full' from a whole departure curve, null without traffic.
+   */
+  trafficSampling?: 'estimate' | 'full' | null;
   mountain: Mountain;
   origin: Origin;
   date: DateKey;
@@ -277,6 +282,8 @@ export interface SkiDayPlan {
 }
 
 export interface Recommendation {
+  /** True when any plan here was timed from one sampled drive each way: its scores are estimates. */
+  estimated?: boolean;
   date: DateKey;
   origin: Origin;
   best: SkiDayPlan;

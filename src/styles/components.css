@@ -5302,3 +5302,32 @@
 .mapscreen-peek-verdict {
   word-spacing: 0.16em;
 }
+
+/* ------------------------------------------------------------ estimates */
+
+/* A ranking timed from one sampled drive each way says so wherever it is shown.
+   Not a verdict and not a warning, so it takes no verdict colour: a plain tag. */
+.chip-estimate {
+  color: var(--ink-dim);
+  border-color: var(--line-strong);
+}
+
+.estimatenote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.estimatenote .chip {
+  margin-right: 4px;
+  vertical-align: 1px;
+}
+
+.listscreen-estimate {
+  margin-top: 10px;
+}
+
+.mountainscreen-precision {
+  margin: 16px 0 4px;
+}

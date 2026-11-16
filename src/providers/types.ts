@@ -173,6 +173,12 @@ export interface PlacesProvider {
 export interface ProviderRegistry {
   weather: WeatherProvider;
   traffic: TrafficProvider;
+  /**
+   * Full departure curves, for a mountain someone opened. Absent where
+   * `traffic` already returns full curves (demo, no proxy). In live mode
+   * `traffic` is the ranking's one-sample-each-way estimate.
+   */
+  trafficDetail?: TrafficProvider;
   mountain: MountainProvider;
   pricing: PricingProvider;
   places: PlacesProvider;
