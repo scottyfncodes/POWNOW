@@ -27,6 +27,7 @@ export function publicRoutesFailure(failure: RoutesFailure): {
 };
 export function redactForLog(text: unknown, secrets?: string[]): string | null;
 export function routesFailureStatus(failure: RoutesFailure): 502 | 503;
+export function parseNonbillableKinds(raw: unknown): Set<string>;
 export function sampleTtlMs(departureIso: string | null, nowMs?: number): number;
 export function roundOrigin(point: { lat: number; lon: number }): { lat: number; lon: number };
 export function nextQuotaResetMs(nowMs?: number): number;

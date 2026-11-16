@@ -357,8 +357,9 @@ export function publicRoutesFailure(failure) {
       reason: failure.reason ?? null,
       // True when no call was made: an earlier failure of the same kind tripped the circuit breaker.
       circuitOpen: failure.circuitOpen === true,
-      // For our own limits: which daily pool ("ranking" or "detail") ran out.
+      // For our own limits: which daily pool ("ranking" or "detail") ran out, and which count.
       ...(failure.pool ? { pool: failure.pool } : {}),
+      ...(failure.exhausted ? { exhausted: failure.exhausted } : {}),
     },
   };
 }
@@ -494,7 +495,12 @@ async function requestRoute(origin, destination, departureIso, { withPolyline = 
  *      until that departure, so a curve read near the departure is near-live.
  *   2. Concurrent requests for the same sample in one instance share one call.
  *   3. The calls a request needs are reserved at once, atomically, in its pool
- *      (Pacific day, when Google resets quotas): all of them or none.
+ *      (Pacific day, when Google resets quotas): all of them or none. Each pool
+ *      keeps two counts. `attempts` is every call sent to Google and is never
+ *      given back once sent, so retries have a hard daily stop. `used` (spent)
+ *      is calls that may be billed: it is given back for a call never sent, and
+ *      for a response category listed in ROUTES_NONBILLABLE_KINDS, which is
+ *      empty until Google's billing report confirms a category is not billed.
  *   4. At most ROUTES_CONCURRENCY calls are in flight per instance.
  *   5. A quota, billing or key refusal opens a circuit breaker shared by every
  *      instance: no call is made until Google's quota resets (quota) or for 30
@@ -507,6 +513,24 @@ const BUDGET = {
   ranking: Math.max(0, Number(process.env.ROUTES_RANKING_BUDGET ?? 130)),
   detail: Math.max(0, Number(process.env.ROUTES_DETAIL_BUDGET ?? 60)),
 };
+/** Calls sent per pool per day, billed or not. Above the spend budget, so a refused call cannot crowd out a real one. */
+const ATTEMPTS = {
+  ranking: Math.max(BUDGET.ranking, Number(process.env.ROUTES_RANKING_ATTEMPTS ?? 150)),
+  detail: Math.max(BUDGET.detail, Number(process.env.ROUTES_DETAIL_ATTEMPTS ?? 70)),
+};
+
+/**
+ * Response categories whose calls are given back to the spend budget. Only Google's own refusals
+ * can be listed (a 400 is billed per Google's reporting docs; a 5xx, a timeout, a dropped connection
+ * or an empty route may have been processed), and the default is none: a category is added once
+ * Google's billing report shows it is not billed. A bare PERMISSION_DENIED is `permission_denied`.
+ */
+const REFUSAL_KINDS = new Set([
+  'quota_exceeded', 'key_invalid', 'key_restricted', 'api_not_enabled', 'billing_disabled', 'project_suspended', 'project_invalid', 'permission_denied',
+]);
+export const parseNonbillableKinds = (raw) =>
+  new Set(String(raw ?? '').split(',').map((kind) => kind.trim()).filter((kind) => REFUSAL_KINDS.has(kind)));
+const NONBILLABLE_KINDS = parseNonbillableKinds(process.env.ROUTES_NONBILLABLE_KINDS);
 const ROUTES_CONCURRENCY = Math.max(1, Number(process.env.ROUTES_CONCURRENCY ?? 8));
 const QUOTA_TIME_ZONE = 'America/Los_Angeles';
 // POWNOW_DATABASE_URL names the pownow database explicitly. It wins over a DATABASE_URL that a
@@ -614,18 +638,26 @@ async function spendOnGoogle(origin, items, pool, withPolyline) {
   if (SERVERLESS && !routesStore.shared) return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
 
   const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
-  const limit = BUDGET[pool];
+  const limits = { spent: BUDGET[pool], attempts: ATTEMPTS[pool] };
+  const n = items.length;
   let reservation;
   try {
-    reservation = items.length <= limit ? await routesStore.reserve(day, pool, items.length, limit) : { ok: false };
+    reservation = n <= limits.spent && n <= limits.attempts ? await routesStore.reserve(day, pool, n, limits) : { ok: false, used: 0, attempts: 0 };
   } catch (error) {
     warnStore('budget', error);
     return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
   }
-  if (!reservation.ok) return items.map(() => ({ failure: ownFailure('daily_budget_reached', pool) }));
-  console.info(`[google-routes] ${pool}: calls ${items.length}, budget ${reservation.used}/${limit} for ${day} (Pacific)`);
+  if (!reservation.ok) {
+    // Which count ran out: the hard stop on calls sent, or the spend budget.
+    const exhausted = (reservation.attempts ?? 0) + n > limits.attempts ? 'attempts' : 'spent';
+    return items.map(() => ({ failure: { ...ownFailure('daily_budget_reached', pool), exhausted } }));
+  }
+  console.info(
+    `[google-routes] ${pool}: calls ${n}, spent ${reservation.used}/${limits.spent}, attempts ${reservation.attempts}/${limits.attempts} for ${day} (Pacific)`,
+  );
 
   let unspent = 0;
+  let refunded = 0;
   const results = await Promise.all(
     items.map((item) =>
       withGoogleSlot(async () => {
@@ -645,12 +677,15 @@ async function spendOnGoogle(origin, items, pool, withPolyline) {
           }
           return { sample };
         }
+        if (NONBILLABLE_KINDS.has(result.failure.kind)) refunded += 1;
         if (BREAKER_KINDS.has(result.failure.kind)) await tripBreaker(result.failure);
         return result;
       }),
     ),
   );
-  if (unspent > 0) await routesStore.release(day, pool, unspent).catch((error) => warnStore('budget release', error));
+  if (unspent > 0 || refunded > 0) {
+    await routesStore.settle(day, pool, { unsent: unspent, refund: refunded }).catch((error) => warnStore('budget settle', error));
+  }
   return results;
 }
 
@@ -779,19 +814,20 @@ async function budgetStatus() {
   const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
   const pools = {};
   for (const [pool, limit] of Object.entries(BUDGET)) {
-    let used = null;
+    let counts = null;
     try {
-      used = await routesStore.used(day, pool);
+      counts = await routesStore.used(day, pool);
     } catch {
       // Reported as null: unknown, not zero.
     }
-    pools[pool] = { limit, used };
+    pools[pool] = { limit, used: counts?.used ?? null, attemptLimit: ATTEMPTS[pool], attempts: counts?.attempts ?? null };
   }
   const breaker = await openBreaker();
   return {
     day,
     dailyBudget: BUDGET.ranking + BUDGET.detail,
     pools,
+    nonbillableKinds: [...NONBILLABLE_KINDS],
     sharedStore: routesStore.shared,
     breakerOpenUntil: breaker && localBreaker ? new Date(localBreaker.until).toISOString() : null,
   };

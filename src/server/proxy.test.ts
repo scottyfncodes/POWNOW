@@ -541,27 +541,236 @@ describe('sample lifetimes and quota resets', () => {
 });
 
 describe('the shared Neon store', () => {
-  it('creates its tables once, reserves atomically and reports a refused reservation', async () => {
-    const { createNeonStore } = await import('../../server/routesStore.mjs');
+  /** A stand-in for Neon's SQL function that keeps one budget row and records every statement. */
+  function fakeSql(start = { used: 0, attempts: 0 }) {
+    const row = { ...start };
     const queries: string[] = [];
-    let used = 95;
     const sql = {
       query: vi.fn(async (text: string, params: unknown[] = []) => {
         queries.push(text);
         if (text.startsWith('INSERT INTO routes_budget')) {
-          const [, , n, limit] = params as [string, string, number, number];
-          if (used + n > limit) return [];
-          used += n;
-          return [{ used }];
+          const [, , n, spent, attempts] = params as [string, string, number, number, number];
+          if (row.used + n > spent || row.attempts + n > attempts) return [];
+          row.used += n;
+          row.attempts += n;
+          return [{ ...row }];
         }
-        if (text.startsWith('SELECT used')) return [{ used }];
+        if (text.startsWith('UPDATE routes_budget')) {
+          const [, , unsent, refund] = params as [string, string, number, number];
+          row.used = Math.max(0, row.used - unsent - refund);
+          row.attempts = Math.max(0, row.attempts - unsent);
+          return [];
+        }
+        if (text.startsWith('SELECT used')) return [{ ...row }];
         return [];
       }),
     };
+    return { sql, row, queries };
+  }
+
+  it('creates its tables once (adding the attempts column to an older table) and reserves both counts in one statement', async () => {
+    const { createNeonStore } = await import('../../server/routesStore.mjs');
+    const { sql, queries } = fakeSql({ used: 95, attempts: 95 });
     const store = createNeonStore('postgres://unused', { sql: sql as never });
-    expect(await store.reserve('2026-11-16', 'ranking', 4, 100)).toEqual({ ok: true, used: 99 });
-    expect(await store.reserve('2026-11-16', 'ranking', 4, 100)).toEqual({ ok: false, used: 99 });
+    expect(await store.reserve('2026-11-16', 'ranking', 4, { spent: 100, attempts: 120 })).toEqual({ ok: true, used: 99, attempts: 99 });
+    expect(await store.reserve('2026-11-16', 'ranking', 4, { spent: 100, attempts: 120 })).toEqual({ ok: false, used: 99, attempts: 99 });
     expect(queries.filter((q) => q.startsWith('CREATE TABLE'))).toHaveLength(2);
-    expect(queries.find((q) => q.startsWith('INSERT INTO routes_budget'))).toMatch(/ON CONFLICT \(day, pool\)[\s\S]*WHERE routes_budget\.used \+ EXCLUDED\.used <= \$4/);
+    expect(queries.filter((q) => q.startsWith('ALTER TABLE routes_budget ADD COLUMN IF NOT EXISTS attempts'))).toHaveLength(1);
+    expect(queries.find((q) => q.startsWith('INSERT INTO routes_budget'))).toMatch(
+      /ON CONFLICT \(day, pool\)[\s\S]*WHERE routes_budget\.used \+ EXCLUDED\.used <= \$4 AND routes_budget\.attempts \+ EXCLUDED\.attempts <= \$5/,
+    );
+  });
+
+  it('a call never sent gives back both counts; a refunded call gives back only the spend', async () => {
+    const { createNeonStore } = await import('../../server/routesStore.mjs');
+    const { sql, row } = fakeSql({ used: 10, attempts: 10 });
+    const store = createNeonStore('postgres://unused', { sql: sql as never });
+    await store.settle('2026-11-16', 'detail', { unsent: 2, refund: 3 });
+    expect(row).toEqual({ used: 5, attempts: 8 });
+  });
+});
+
+
+describe('attempts and spend: what each Google response costs', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  const curve = (date = '2099-01-20') => ({
+    origin: { lat: 39.7392, lon: -104.9903 },
+    destination: { lat: 39.4817, lon: -106.1614 },
+    direction: 'outbound',
+    date,
+  });
+
+  /** Google answers every call with `respond()`; a thrown error stands for a timeout or a dropped connection. */
+  async function router(env: Record<string, string>, respond: () => Response | Promise<Response>) {
+    vi.resetModules();
+    vi.stubEnv('GOOGLE_ROUTES_API_KEY', 'test-key-not-a-real-one');
+    vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('POWNOW_DATABASE_URL', '');
+    vi.stubEnv('VERCEL', '');
+    for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+    const google = { calls: 0 };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        google.calls += 1;
+        return respond();
+      }),
+    );
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('../../server/index.mjs');
+    return { ...mod, google };
+  }
+
+  async function request(handleRequest: (req: never, res: never) => Promise<void>, method: string, path: string, body?: unknown) {
+    const req = Object.assign(Readable.from([]), {
+      method,
+      url: path,
+      headers: { host: 'localhost', 'content-type': 'application/json' },
+      body,
+      socket: { remoteAddress: '127.0.0.1' },
+    }) as unknown as IncomingMessage;
+    let status = 0;
+    let text = '';
+    const res = {
+      headersSent: false,
+      writeHead(code: number) {
+        status = code;
+        return res;
+      },
+      setHeader() {},
+      end(chunk?: string) {
+        text = chunk ?? '';
+      },
+    } as unknown as ServerResponse;
+    await handleRequest(req as never, res as never);
+    return { status, json: JSON.parse(text) };
+  }
+
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  const googleError = (code: number, status: string, reason: string | null) =>
+    json(code, { error: { code, status, message: 'x', details: reason ? [{ reason }] : [] } });
+  const abort = () => {
+    throw Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' });
+  };
+  const drop = () => {
+    throw new TypeError('fetch failed');
+  };
+
+  const detailPool = async (handleRequest: (req: never, res: never) => Promise<void>) =>
+    (await request(handleRequest, 'GET', '/api/health')).json.googleRoutes.pools.detail;
+
+  it.each([
+    ['a route', () => json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] })],
+    ['an empty route (200, no route)', () => json(200, {})],
+    ['a malformed request (400)', () => googleError(400, 'INVALID_ARGUMENT', null)],
+    ['a bare permission denial (403)', () => googleError(403, 'PERMISSION_DENIED', null)],
+    ['a key restriction (403)', () => googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED')],
+    ['billing switched off (403)', () => googleError(403, 'PERMISSION_DENIED', 'BILLING_DISABLED')],
+    ['the quota (429)', () => googleError(429, 'RESOURCE_EXHAUSTED', 'RATE_LIMIT_EXCEEDED')],
+    ['a Google server error (500)', () => googleError(500, 'INTERNAL', null)],
+    ['a timeout', abort],
+    ['a dropped connection', drop],
+  ])('by default, %s costs one attempt and one unit of spend per call sent', async (_name, respond) => {
+    const { handleRequest, google } = await router({}, respond);
+    await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const pool = await detailPool(handleRequest);
+    expect(google.calls).toBeGreaterThan(0);
+    // Calls held back by an opening breaker were never sent, so they cost nothing.
+    expect(pool.attempts).toBe(google.calls);
+    expect(pool.used).toBe(google.calls);
+  });
+
+  it('gives spend back only for Google refusals listed as nonbillable; never for 400s, 5xx, timeouts or empty routes', async () => {
+    const { parseNonbillableKinds } = await import('../../server/index.mjs');
+    expect([...parseNonbillableKinds('quota_exceeded, permission_denied,bad_request,upstream_error,timeout,network,no_route,nonsense')]).toEqual([
+      'quota_exceeded',
+      'permission_denied',
+    ]);
+    expect(parseNonbillableKinds(undefined).size).toBe(0);
+  });
+
+  it('a listed refusal returns its spend but keeps its attempts', async () => {
+    const { handleRequest, google } = await router({ ROUTES_NONBILLABLE_KINDS: 'key_restricted' }, () =>
+      googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED'),
+    );
+    await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const pool = await detailPool(handleRequest);
+    expect(pool).toMatchObject({ used: 0, attempts: google.calls });
+    expect(google.calls).toBeGreaterThan(0);
+  });
+
+  it('an unlisted refusal is not refunded: a bare 403 stays spent until its billing is confirmed', async () => {
+    const { handleRequest, google } = await router({ ROUTES_NONBILLABLE_KINDS: 'key_restricted' }, () =>
+      googleError(403, 'PERMISSION_DENIED', null),
+    );
+    await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    expect(await detailPool(handleRequest)).toMatchObject({ used: google.calls, attempts: google.calls });
+  });
+
+  it('stops at the attempts ceiling even while every refusal is refunded and the breaker keeps reopening', async () => {
+    const clock = vi.spyOn(Date, 'now');
+    let now = Date.parse('2099-01-17T15:00:00Z'); // 7:00 Pacific: the day does not roll over below
+    clock.mockImplementation(() => now);
+    const { handleRequest, google } = await router(
+      { ROUTES_NONBILLABLE_KINDS: 'key_restricted', ROUTES_DETAIL_BUDGET: '60', ROUTES_DETAIL_ATTEMPTS: '70' },
+      () => googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED'),
+    );
+    let last = { status: 0, json: {} as Record<string, any> };
+    for (let window = 0; window < 12; window += 1) {
+      last = await request(handleRequest, 'POST', '/api/travel-curve', curve());
+      now += 31 * 60_000; // past the 30-minute breaker
+    }
+    const pool = await detailPool(handleRequest);
+    expect(pool.used).toBe(0);
+    expect(pool.attempts).toBeLessThanOrEqual(70);
+    expect(google.calls).toBe(pool.attempts);
+    expect(last.status).toBe(503);
+    expect(last.json.upstream).toMatchObject({ kind: 'daily_budget_reached', pool: 'detail', exhausted: 'attempts' });
+  });
+
+  it('concurrent requests never dispatch past the ceiling', async () => {
+    const { handleRequest, google } = await router({ ROUTES_DETAIL_BUDGET: '18', ROUTES_DETAIL_ATTEMPTS: '18' }, () =>
+      json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] }),
+    );
+    const answers = await Promise.all(
+      ['2099-01-20', '2099-01-21', '2099-01-22', '2099-01-23'].map((date) => request(handleRequest, 'POST', '/api/travel-curve', curve(date))),
+    );
+    expect(answers.filter((a) => a.status === 200)).toHaveLength(2);
+    expect(answers.filter((a) => a.status === 503)).toHaveLength(2);
+    expect(google.calls).toBe(18);
+    expect(await detailPool(handleRequest)).toMatchObject({ used: 18, attempts: 18 });
+  });
+
+  it('both counts start again at midnight Pacific', async () => {
+    const clock = vi.spyOn(Date, 'now');
+    let now = Date.parse('2099-01-18T07:50:00Z'); // 23:50 Pacific on the 17th
+    clock.mockImplementation(() => now);
+    const { handleRequest, google } = await router({ ROUTES_DETAIL_BUDGET: '9', ROUTES_DETAIL_ATTEMPTS: '9' }, () =>
+      json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] }),
+    );
+    expect((await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-20'))).status).toBe(200);
+    expect((await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'))).status).toBe(503);
+    now = Date.parse('2099-01-18T08:10:00Z'); // 00:10 Pacific on the 18th
+    expect((await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'))).status).toBe(200);
+    expect(google.calls).toBe(18);
+    expect(await detailPool(handleRequest)).toMatchObject({ used: 9, attempts: 9 });
+  });
+
+  it('calls held back by the breaker cost nothing; only calls sent are counted', async () => {
+    const { handleRequest, google } = await router({}, () => googleError(429, 'RESOURCE_EXHAUSTED', 'RATE_LIMIT_EXCEEDED'));
+    await request(handleRequest, 'POST', '/api/travel-curve', curve());
+    const afterFirst = google.calls;
+    const second = await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'));
+    expect(afterFirst).toBeLessThan(9);
+    expect(google.calls).toBe(afterFirst);
+    expect(second.json.upstream).toMatchObject({ kind: 'quota_exceeded', circuitOpen: true });
+    expect(await detailPool(handleRequest)).toMatchObject({ used: afterFirst, attempts: afterFirst });
   });
 });

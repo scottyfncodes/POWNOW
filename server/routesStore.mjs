@@ -35,19 +35,21 @@ export function createMemoryStore() {
     async putSample(key, value, ttlMs) {
       samples.set(key, { value, expiresAt: Date.now() + ttlMs });
     },
-    async reserve(day, pool, n, limit) {
+    async reserve(day, pool, n, limits) {
       const key = `${day}:${pool}`;
-      const used = budget.get(key) ?? 0;
-      if (used + n > limit) return { ok: false, used };
-      budget.set(key, used + n);
-      return { ok: true, used: used + n };
+      const now = budget.get(key) ?? { used: 0, attempts: 0 };
+      if (now.used + n > limits.spent || now.attempts + n > limits.attempts) return { ok: false, ...now };
+      const next = { used: now.used + n, attempts: now.attempts + n };
+      budget.set(key, next);
+      return { ok: true, ...next };
     },
-    async release(day, pool, n) {
+    async settle(day, pool, { unsent = 0, refund = 0 }) {
       const key = `${day}:${pool}`;
-      budget.set(key, Math.max(0, (budget.get(key) ?? 0) - n));
+      const now = budget.get(key) ?? { used: 0, attempts: 0 };
+      budget.set(key, { used: Math.max(0, now.used - unsent - refund), attempts: Math.max(0, now.attempts - unsent) });
     },
     async used(day, pool) {
-      return budget.get(`${day}:${pool}`) ?? 0;
+      return budget.get(`${day}:${pool}`) ?? { used: 0, attempts: 0 };
     },
     async getBreaker() {
       const entry = samples.get(BREAKER_KEY);
@@ -62,11 +64,16 @@ export function createMemoryStore() {
 /**
  * The shared store. Two tables, created on first use:
  *   routes_cache   key -> one Google sample (or the circuit breaker), with its expiry
- *   routes_budget  (day, pool) -> calls made that day from that pool. The day is
+ *   routes_budget  (day, pool) -> two counts for that day and pool. The day is
  *                  Pacific, when Google resets quotas; the pools are "ranking"
- *                  and "detail", each with its own ceiling.
- * A reservation is one atomic statement, so instances racing for the last few
- * calls cannot overrun a pool's ceiling.
+ *                  and "detail", each with its own ceilings.
+ *                    attempts  every call sent to Google. Never given back once
+ *                              sent: the hard stop on retries.
+ *                    used      calls that may be billed. Given back only for a call
+ *                              never sent, or for a response category confirmed
+ *                              not to be billed.
+ * A reservation takes both at once in one atomic statement, so instances racing
+ * for the last few calls cannot overrun either ceiling.
  */
 export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
   let ready = null;
@@ -76,8 +83,10 @@ export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
         'CREATE TABLE IF NOT EXISTS routes_cache (key text PRIMARY KEY, value jsonb NOT NULL, expires_at timestamptz NOT NULL)',
       );
       await sql.query(
-        'CREATE TABLE IF NOT EXISTS routes_budget (day date NOT NULL, pool text NOT NULL, used integer NOT NULL, PRIMARY KEY (day, pool))',
+        'CREATE TABLE IF NOT EXISTS routes_budget (day date NOT NULL, pool text NOT NULL, used integer NOT NULL, attempts integer NOT NULL DEFAULT 0, PRIMARY KEY (day, pool))',
       );
+      // Tables made before attempts were counted get the column; existing rows start at 0.
+      await sql.query('ALTER TABLE routes_budget ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0');
     })().catch((error) => {
       ready = null;
       throw error;
@@ -100,27 +109,32 @@ export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
       // Expired rows are harmless (every read filters them) but need not pile up.
       if (Math.random() < 0.02) await sql.query("DELETE FROM routes_cache WHERE expires_at < now() - interval '1 day'");
     },
-    async reserve(day, pool, n, limit) {
+    async reserve(day, pool, n, limits) {
       await schema();
-      // n is never above the limit (the caller checks), so a first insert cannot overrun it either.
+      // n is never above either limit (the caller checks), so a first insert cannot overrun them either.
       const rows = await sql.query(
-        `INSERT INTO routes_budget (day, pool, used) VALUES ($1, $2, $3)
-         ON CONFLICT (day, pool) DO UPDATE SET used = routes_budget.used + EXCLUDED.used
-         WHERE routes_budget.used + EXCLUDED.used <= $4
-         RETURNING used`,
-        [day, pool, n, limit],
+        `INSERT INTO routes_budget (day, pool, used, attempts) VALUES ($1, $2, $3, $3)
+         ON CONFLICT (day, pool) DO UPDATE
+           SET used = routes_budget.used + EXCLUDED.used, attempts = routes_budget.attempts + EXCLUDED.attempts
+         WHERE routes_budget.used + EXCLUDED.used <= $4 AND routes_budget.attempts + EXCLUDED.attempts <= $5
+         RETURNING used, attempts`,
+        [day, pool, n, limits.spent, limits.attempts],
       );
-      if (rows.length > 0) return { ok: true, used: rows[0].used };
-      return { ok: false, used: await this.used(day, pool) };
+      if (rows.length > 0) return { ok: true, used: rows[0].used, attempts: rows[0].attempts };
+      return { ok: false, ...(await this.used(day, pool)) };
     },
-    async release(day, pool, n) {
+    async settle(day, pool, { unsent = 0, refund = 0 }) {
       await schema();
-      await sql.query('UPDATE routes_budget SET used = GREATEST(0, used - $3) WHERE day = $1 AND pool = $2', [day, pool, n]);
+      // A call never sent gives back both counts; a refunded call (sent, confirmed not billed) only `used`.
+      await sql.query(
+        'UPDATE routes_budget SET used = GREATEST(0, used - $3 - $4), attempts = GREATEST(0, attempts - $3) WHERE day = $1 AND pool = $2',
+        [day, pool, unsent, refund],
+      );
     },
     async used(day, pool) {
       await schema();
-      const rows = await sql.query('SELECT used FROM routes_budget WHERE day = $1 AND pool = $2', [day, pool]);
-      return rows[0]?.used ?? 0;
+      const rows = await sql.query('SELECT used, attempts FROM routes_budget WHERE day = $1 AND pool = $2', [day, pool]);
+      return { used: rows[0]?.used ?? 0, attempts: rows[0]?.attempts ?? 0 };
     },
     async getBreaker() {
       await schema();
