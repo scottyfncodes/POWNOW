@@ -109,15 +109,26 @@ export class RankingTrafficProvider implements TrafficProvider {
       const result = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(async () => {
         this.batches.delete(key);
         const body = JSON.stringify({ origin: route.originPoint, date: context.date, destinations });
-        const { value, fetchedAt } = await cachedJson<RankingResponse>(`${this.options.apiBaseUrl}/api/ranking-drives`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-          // A cold ranking is up to about sixty Google calls on the server.
-          timeoutMs: 30000,
-          ttlMs: 5 * 60 * 1000,
-        });
-        return { drives: value.drives, fetchedAt };
+        const ask = () =>
+          cachedJson<RankingResponse>(`${this.options.apiBaseUrl}/api/ranking-drives`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+            // A cold ranking is up to about sixty Google calls on the server, which stops sending at 20 s.
+            timeoutMs: 30000,
+            ttlMs: 5 * 60 * 1000,
+          });
+        let answer;
+        try {
+          answer = await ask();
+        } catch (error) {
+          // A short Retry-After means Google was slow and the server ran out of time; what it bought is
+          // cached there, so one retry costs only the rest. A long one is the daily budget: not worth waiting.
+          if (!isQuickRetry(error)) throw error;
+          await new Promise((resolve) => setTimeout(resolve, (error as ProviderHttpError).retryAfterSeconds! * 1000));
+          answer = await ask();
+        }
+        return { drives: answer.value.drives, fetchedAt: answer.fetchedAt };
       });
       batch = { destinations, index, result };
       this.batches.set(key, batch);
@@ -131,7 +142,17 @@ export class RankingTrafficProvider implements TrafficProvider {
   }
 }
 
+const isQuickRetry = (error: unknown): boolean =>
+  error instanceof ProviderHttpError &&
+  error.status === 503 &&
+  error.retryAfterSeconds !== null &&
+  error.retryAfterSeconds > 0 &&
+  error.retryAfterSeconds <= 10;
+
 function describeError(error: unknown): string {
+  if (isQuickRetry(error)) {
+    return 'Google Routes was too slow to answer in time. Try again in a moment.';
+  }
   if (error instanceof ProviderHttpError && error.status === 503) {
     return "Drive times are paused: today's Google Routes budget for rankings is spent, or could not be checked.";
   }

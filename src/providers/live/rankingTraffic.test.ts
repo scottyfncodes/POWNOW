@@ -61,4 +61,36 @@ describe('RankingTrafficProvider', () => {
     expect(result.status).toBe('unavailable');
     expect(result.status === 'unavailable' && result.reason).toMatch(/budget/i);
   });
+
+  it('retries once, after a short Retry-After, when the server ran out of time mid-ranking', async () => {
+    const answers = [
+      new Response(JSON.stringify({ error: 'slow' }), { status: 503, headers: { 'Retry-After': '0.01' } }),
+      new Response(
+        JSON.stringify({ drives: [{ outbound: { departure: 360, durationMinutes: 95, sampledAt: '2099-01-16T20:00:00Z' }, return: null }] }),
+        { status: 200 },
+      ),
+    ];
+    const fetchSpy = vi.fn(async () => answers.shift()!);
+    vi.stubGlobal('fetch', fetchSpy);
+    const provider = new RankingTrafficProvider({ apiBaseUrl: '' });
+    const result = await provider.getTravelCurve(route('vail', 39.6403, -106.3742), 'outbound', context);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(result.status === 'ok' && result.data.samples[0]?.durationMinutes).toBe(95);
+  });
+
+  it('does not wait out a spent daily budget: a long Retry-After is answered at once', async () => {
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ error: 'spent' }), { status: 503, headers: { 'Retry-After': '36000' } }));
+    vi.stubGlobal('fetch', fetchSpy);
+    const provider = new RankingTrafficProvider({ apiBaseUrl: '' });
+    const result = await provider.getTravelCurve(route('vail', 39.6403, -106.3742), 'outbound', context);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(result.status === 'unavailable' && result.reason).toMatch(/budget/i);
+  });
+
+  it('says so plainly when the retry is cut short too', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 503, headers: { 'Retry-After': '0.01' } })));
+    const provider = new RankingTrafficProvider({ apiBaseUrl: '' });
+    const result = await provider.getTravelCurve(route('vail', 39.6403, -106.3742), 'outbound', context);
+    expect(result.status === 'unavailable' && result.reason).toBe('Google Routes was too slow to answer in time. Try again in a moment.');
+  });
 });

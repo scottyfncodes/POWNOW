@@ -12,6 +12,10 @@
  * in memory: one process, one budget. The handler refuses to spend on a
  * serverless deployment without the shared store, because a per-instance
  * budget there would not be a ceiling at all.
+ *
+ * The tables are made by `npm run db:migrate` (server/schema.mjs), never at
+ * runtime: a request only reads and writes rows. Missing tables make every
+ * budget check fail, and a failed check spends nothing.
  */
 import { neon } from '@neondatabase/serverless';
 
@@ -62,7 +66,7 @@ export function createMemoryStore() {
 }
 
 /**
- * The shared store. Two tables, created on first use:
+ * The shared store. Two tables (server/schema.mjs):
  *   routes_cache   key -> one Google sample (or the circuit breaker), with its expiry
  *   routes_budget  (day, pool) -> two counts for that day and pool. The day is
  *                  Pacific, when Google resets quotas; the pools are "ranking"
@@ -74,43 +78,38 @@ export function createMemoryStore() {
  *                              not to be billed.
  * A reservation takes both at once in one atomic statement, so instances racing
  * for the last few calls cannot overrun either ceiling.
+ *
+ * Every row belongs to one environment (`scope`: production, preview or
+ * development): pools are stored as `<scope>:<pool>` and cache keys as
+ * `<scope>|<key>`, so one environment never reads, spends, refunds or expires
+ * another's.
  */
-export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
-  let ready = null;
-  const schema = () =>
-    (ready ??= (async () => {
-      await sql.query(
-        'CREATE TABLE IF NOT EXISTS routes_cache (key text PRIMARY KEY, value jsonb NOT NULL, expires_at timestamptz NOT NULL)',
-      );
-      await sql.query(
-        'CREATE TABLE IF NOT EXISTS routes_budget (day date NOT NULL, pool text NOT NULL, used integer NOT NULL, attempts integer NOT NULL DEFAULT 0, PRIMARY KEY (day, pool))',
-      );
-      // Tables made before attempts were counted get the column; existing rows start at 0.
-      await sql.query('ALTER TABLE routes_budget ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0');
-    })().catch((error) => {
-      ready = null;
-      throw error;
-    }));
+export function createNeonStore(databaseUrl, { sql = neon(databaseUrl), scope } = {}) {
+  if (!scope) throw new Error('createNeonStore needs a scope (production, preview or development).');
+  const poolOf = (pool) => `${scope}:${pool}`;
+  const keyOf = (key) => `${scope}|${key}`;
+  const breakerKey = keyOf(BREAKER_KEY);
 
   return {
     shared: true,
+    scope,
     async getSamples(keys) {
-      await schema();
-      const rows = await sql.query('SELECT key, value FROM routes_cache WHERE key = ANY($1) AND expires_at > now()', [keys]);
-      return new Map(rows.map((row) => [row.key, row.value]));
+      const rows = await sql.query('SELECT key, value FROM routes_cache WHERE key = ANY($1) AND expires_at > now()', [keys.map(keyOf)]);
+      const prefix = keyOf('');
+      return new Map(rows.map((row) => [row.key.slice(prefix.length), row.value]));
     },
     async putSample(key, value, ttlMs) {
-      await schema();
       await sql.query(
         `INSERT INTO routes_cache (key, value, expires_at) VALUES ($1, $2, now() + make_interval(secs => $3))
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at`,
-        [key, JSON.stringify(value), ttlMs / 1000],
+        [keyOf(key), JSON.stringify(value), ttlMs / 1000],
       );
-      // Expired rows are harmless (every read filters them) but need not pile up.
-      if (Math.random() < 0.02) await sql.query("DELETE FROM routes_cache WHERE expires_at < now() - interval '1 day'");
+      // Expired rows are harmless (every read filters them) but need not pile up. Only this scope's.
+      if (Math.random() < 0.02) {
+        await sql.query("DELETE FROM routes_cache WHERE starts_with(key, $1) AND expires_at < now() - interval '1 day'", [keyOf('')]);
+      }
     },
     async reserve(day, pool, n, limits) {
-      await schema();
       // n is never above either limit (the caller checks), so a first insert cannot overrun them either.
       const rows = await sql.query(
         `INSERT INTO routes_budget (day, pool, used, attempts) VALUES ($1, $2, $3, $3)
@@ -118,38 +117,34 @@ export function createNeonStore(databaseUrl, { sql = neon(databaseUrl) } = {}) {
            SET used = routes_budget.used + EXCLUDED.used, attempts = routes_budget.attempts + EXCLUDED.attempts
          WHERE routes_budget.used + EXCLUDED.used <= $4 AND routes_budget.attempts + EXCLUDED.attempts <= $5
          RETURNING used, attempts`,
-        [day, pool, n, limits.spent, limits.attempts],
+        [day, poolOf(pool), n, limits.spent, limits.attempts],
       );
       if (rows.length > 0) return { ok: true, used: rows[0].used, attempts: rows[0].attempts };
       return { ok: false, ...(await this.used(day, pool)) };
     },
     async settle(day, pool, { unsent = 0, refund = 0 }) {
-      await schema();
       // A call never sent gives back both counts; a refunded call (sent, confirmed not billed) only `used`.
       await sql.query(
         'UPDATE routes_budget SET used = GREATEST(0, used - $3 - $4), attempts = GREATEST(0, attempts - $3) WHERE day = $1 AND pool = $2',
-        [day, pool, unsent, refund],
+        [day, poolOf(pool), unsent, refund],
       );
     },
     async used(day, pool) {
-      await schema();
-      const rows = await sql.query('SELECT used, attempts FROM routes_budget WHERE day = $1 AND pool = $2', [day, pool]);
+      const rows = await sql.query('SELECT used, attempts FROM routes_budget WHERE day = $1 AND pool = $2', [day, poolOf(pool)]);
       return { used: rows[0]?.used ?? 0, attempts: rows[0]?.attempts ?? 0 };
     },
     async getBreaker() {
-      await schema();
       const rows = await sql.query(
         'SELECT value, expires_at FROM routes_cache WHERE key = $1 AND expires_at > now()',
-        [BREAKER_KEY],
+        [breakerKey],
       );
       return rows[0] ? { ...rows[0].value, until: new Date(rows[0].expires_at).getTime() } : null;
     },
     async setBreaker(untilMs, failure) {
-      await schema();
       await sql.query(
         `INSERT INTO routes_cache (key, value, expires_at) VALUES ($1, $2, $3)
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at`,
-        [BREAKER_KEY, JSON.stringify({ failure }), new Date(untilMs).toISOString()],
+        [breakerKey, JSON.stringify({ failure }), new Date(untilMs).toISOString()],
       );
     },
   };
