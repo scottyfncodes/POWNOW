@@ -8,6 +8,8 @@ export class ProviderHttpError extends Error {
     message: string,
     readonly status: number,
     readonly url: string,
+    /** Seconds from the server's Retry-After header, when it sent a number. */
+    readonly retryAfterSeconds: number | null = null,
   ) {
     super(message);
     this.name = 'ProviderHttpError';
@@ -50,7 +52,13 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
   }
 
   if (!response.ok) {
-    throw new ProviderHttpError(`${response.status} ${response.statusText}`, response.status, url);
+    const retryAfter = Number(response.headers.get('Retry-After'));
+    throw new ProviderHttpError(
+      `${response.status} ${response.statusText}`,
+      response.status,
+      url,
+      response.headers.has('Retry-After') && Number.isFinite(retryAfter) ? retryAfter : null,
+    );
   }
 
   const text = await response.text();

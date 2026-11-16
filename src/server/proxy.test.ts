@@ -233,7 +233,7 @@ describe('the traffic routes, end to end with Google stubbed', () => {
 
   const curveBody = {
     origin: { lat: 39.7392, lon: -104.9903 },
-    destination: { lat: 39.4817, lon: -106.1614 },
+    destination: { lat: 39.4817, lon: -106.0384 },
     direction: 'outbound',
     date: '2099-01-17',
   };
@@ -296,7 +296,7 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
 
   const curve = (overrides: Record<string, unknown> = {}) => ({
     origin: { lat: 39.7392, lon: -104.9903 },
-    destination: { lat: 39.4817, lon: -106.1614 },
+    destination: { lat: 39.4817, lon: -106.0384 },
     direction: 'outbound',
     date: '2099-01-17',
     ...overrides,
@@ -307,7 +307,9 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
     vi.resetModules();
     vi.stubEnv('GOOGLE_ROUTES_API_KEY', 'test-key-not-a-real-one');
     vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('POWNOW_DATABASE_URL', '');
     vi.stubEnv('VERCEL', '');
+    vi.stubEnv('VERCEL_ENV', '');
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
     const google = { calls: 0, active: 0, mostAtOnce: 0 };
     vi.stubGlobal(
@@ -439,7 +441,7 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
     origin: { lat: 39.7392, lon: -104.9903 },
     date: '2099-01-17',
     destinations: [
-      { lat: 39.4817, lon: -106.1614, timeZone: 'America/Denver' },
+      { lat: 39.4817, lon: -106.0384, timeZone: 'America/Denver' },
       { lat: 39.6403, lon: -106.3742, timeZone: 'America/Denver' },
       { lat: 39.9375, lon: -105.5828, timeZone: 'America/Denver' },
     ],
@@ -520,6 +522,149 @@ describe('the Google budget: cache, de-duplication, ceiling, breaker, concurrenc
   });
 });
 
+describe('what the budget will spend on, and how long it waits', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  const DENVER = { lat: 39.7392, lon: -104.9903 };
+  const BRECK = { lat: 39.4817, lon: -106.0384, timeZone: 'America/Denver' };
+  const VAIL = { lat: 39.6403, lon: -106.3742, timeZone: 'America/Denver' };
+  const ELDORA = { lat: 39.9375, lon: -105.5828, timeZone: 'America/Denver' };
+
+  async function router(env: Record<string, string>, delayMs = 0) {
+    vi.resetModules();
+    vi.stubEnv('GOOGLE_ROUTES_API_KEY', 'test-key-not-a-real-one');
+    vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('POWNOW_DATABASE_URL', '');
+    vi.stubEnv('VERCEL', '');
+    vi.stubEnv('VERCEL_ENV', '');
+    for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+    const google = { calls: 0 };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        google.calls += 1;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return new Response(JSON.stringify({ routes: [{ duration: '5400s', distanceMeters: 120_000 }] }), { status: 200 });
+      }),
+    );
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('../../server/index.mjs');
+    return { ...mod, google };
+  }
+
+  async function request(handleRequest: (req: never, res: never) => Promise<void>, method: string, path: string, body?: unknown) {
+    const req = Object.assign(Readable.from([]), {
+      method,
+      url: path,
+      headers: { host: 'localhost', 'content-type': 'application/json' },
+      body,
+      socket: { remoteAddress: '127.0.0.1' },
+    }) as unknown as IncomingMessage;
+    let status = 0;
+    let headers: Record<string, string> = {};
+    let text = '';
+    const res = {
+      headersSent: false,
+      writeHead(code: number, h?: Record<string, string>) {
+        status = code;
+        headers = h ?? {};
+        return res;
+      },
+      setHeader() {},
+      end(chunk?: string) {
+        text = chunk ?? '';
+      },
+    } as unknown as ServerResponse;
+    await handleRequest(req as never, res as never);
+    return { status, headers, json: JSON.parse(text) };
+  }
+
+  const spent = async (handleRequest: (req: never, res: never) => Promise<void>) =>
+    (await request(handleRequest, 'GET', '/api/health')).json.googleRoutes.pools;
+
+  it.each([
+    ['a starting point that is not one of the cities', { origin: { lat: 39.74, lon: -104.99 }, destinations: [BRECK] }],
+    ['a mountain the city does not rank', { origin: DENVER, destinations: [BRECK, { lat: 37.6508, lon: -119.0369 }] }],
+    ['a made-up point', { origin: DENVER, destinations: [{ lat: 39.5, lon: -106.1 }] }],
+    ['the same mountain twice', { origin: DENVER, destinations: [BRECK, BRECK] }],
+    ['no mountains', { origin: DENVER, destinations: [] }],
+  ])('refuses a ranking with %s before any budget or Google call', async (_name, body) => {
+    const { handleRequest, google } = await router({});
+    const res = await request(handleRequest, 'POST', '/api/ranking-drives', { date: '2099-01-17', ...body });
+    expect(res.status).toBe(400);
+    expect(google.calls).toBe(0);
+    expect(await spent(handleRequest)).toMatchObject({ ranking: { used: 0, attempts: 0 }, detail: { used: 0, attempts: 0 } });
+  });
+
+  it("accepts a city's own mountains", async () => {
+    const { handleRequest, google } = await router({});
+    const res = await request(handleRequest, 'POST', '/api/ranking-drives', { origin: DENVER, date: '2099-01-17', destinations: [BRECK, VAIL, ELDORA] });
+    expect(res.status).toBe(200);
+    expect(google.calls).toBe(6);
+  });
+
+  it('refuses an opened mountain or map preview that ends anywhere but a mountain', async () => {
+    const { handleRequest, google } = await router({});
+    const gps = { lat: 39.7011, lon: -105.0123 };
+    const curve = await request(handleRequest, 'POST', '/api/travel-curve', {
+      origin: gps, destination: { lat: 39.5, lon: -106.1 }, direction: 'outbound', date: '2099-01-17',
+    });
+    const preview = await request(handleRequest, 'POST', '/api/route-preview', { origin: gps, destination: { lat: 39.5, lon: -106.1 } });
+    expect([curve.status, preview.status]).toEqual([400, 400]);
+    expect(google.calls).toBe(0);
+    // From a GPS fix to a real mountain is fine.
+    const ok = await request(handleRequest, 'POST', '/api/travel-curve', { origin: gps, destination: VAIL, direction: 'outbound', date: '2099-01-17' });
+    expect(ok.status).toBe(200);
+  });
+
+  it('turns /api/test-drive off in Production and leaves it on elsewhere', async () => {
+    const production = await router({ VERCEL_ENV: 'production' });
+    const res = await request(production.handleRequest, 'GET', '/api/test-drive?date=2099-01-17');
+    expect(res.status).toBe(404);
+    expect(production.google.calls).toBe(0);
+    const local = await router({});
+    expect((await request(local.handleRequest, 'GET', '/api/test-drive?date=2099-01-17')).status).toBe(200);
+  });
+
+  it('a Vercel host that does not say which environment it is spends nothing', async () => {
+    const { handleRequest, google } = await router({ VERCEL: '1', POWNOW_DATABASE_URL: 'postgres://user:pw@db.invalid/neondb' });
+    const res = await request(handleRequest, 'POST', '/api/travel-curve', { origin: DENVER, destination: VAIL, direction: 'outbound', date: '2099-01-17' });
+    expect(res.status).toBe(503);
+    expect(res.json.upstream.kind).toBe('budget_unverifiable');
+    expect(google.calls).toBe(0);
+  });
+
+  it('stops sending calls near the deadline, gives them back, and answers a retryable 503 the retry finishes cheaply', async () => {
+    // One call at a time, 200 ms each, 2.6 s deadline: only the first call has the 2.5 s a call needs.
+    const { handleRequest, google } = await router({ ROUTES_CONCURRENCY: '1', ROUTES_DEADLINE_MS: '2600' }, 200);
+    const body = { origin: DENVER, date: '2099-01-17', destinations: [BRECK, VAIL, ELDORA] };
+    const first = await request(handleRequest, 'POST', '/api/ranking-drives', body);
+    expect(first.status).toBe(503);
+    expect(first.headers['Retry-After']).toBe('5');
+    expect(first.json.upstream).toMatchObject({ kind: 'incomplete', pool: 'ranking' });
+    expect(google.calls).toBe(1);
+    // Only the call that was sent stays counted.
+    expect(await spent(handleRequest)).toMatchObject({ ranking: { used: 1, attempts: 1 } });
+    // The retry reuses what was bought and sends the next call.
+    await request(handleRequest, 'POST', '/api/ranking-drives', body);
+    expect(google.calls).toBe(2);
+    expect(await spent(handleRequest)).toMatchObject({ ranking: { used: 2, attempts: 2 } });
+  });
+
+  it('with time to spare, the whole ranking goes out within the concurrency limit', async () => {
+    const { handleRequest, google } = await router({ ROUTES_CONCURRENCY: '2' }, 5);
+    const res = await request(handleRequest, 'POST', '/api/ranking-drives', { origin: DENVER, date: '2099-01-17', destinations: [BRECK, VAIL, ELDORA] });
+    expect(res.status).toBe(200);
+    expect(google.calls).toBe(6);
+  });
+});
+
 describe('sample lifetimes and quota resets', () => {
   it('keeps a sample for half its lead time, between 15 minutes and a day', async () => {
     const { sampleTtlMs } = await import('../../server/index.mjs');
@@ -542,51 +687,106 @@ describe('sample lifetimes and quota resets', () => {
 
 describe('the shared Neon store', () => {
   /** A stand-in for Neon's SQL function that keeps one budget row and records every statement. */
-  function fakeSql(start = { used: 0, attempts: 0 }) {
-    const row = { ...start };
-    const queries: string[] = [];
+  /** A stand-in for Neon's SQL function: budget rows by (day, pool), cache rows by key, every statement recorded. */
+  function fakeSql() {
+    const budget = new Map<string, { used: number; attempts: number }>();
+    const cache = new Map<string, unknown>();
+    const queries: { text: string; params: unknown[] }[] = [];
     const sql = {
       query: vi.fn(async (text: string, params: unknown[] = []) => {
-        queries.push(text);
+        queries.push({ text, params });
         if (text.startsWith('INSERT INTO routes_budget')) {
-          const [, , n, spent, attempts] = params as [string, string, number, number, number];
-          if (row.used + n > spent || row.attempts + n > attempts) return [];
-          row.used += n;
-          row.attempts += n;
-          return [{ ...row }];
+          const [day, pool, n, spent, attempts] = params as [string, string, number, number, number];
+          const row = budget.get(`${day}|${pool}`) ?? { used: 0, attempts: 0 };
+          if (budget.has(`${day}|${pool}`) && (row.used + n > spent || row.attempts + n > attempts)) return [];
+          const next = { used: row.used + n, attempts: row.attempts + n };
+          budget.set(`${day}|${pool}`, next);
+          return [{ ...next }];
         }
         if (text.startsWith('UPDATE routes_budget')) {
-          const [, , unsent, refund] = params as [string, string, number, number];
-          row.used = Math.max(0, row.used - unsent - refund);
-          row.attempts = Math.max(0, row.attempts - unsent);
+          const [day, pool, unsent, refund] = params as [string, string, number, number];
+          const row = budget.get(`${day}|${pool}`);
+          if (row) budget.set(`${day}|${pool}`, { used: Math.max(0, row.used - unsent - refund), attempts: Math.max(0, row.attempts - unsent) });
           return [];
         }
-        if (text.startsWith('SELECT used')) return [{ ...row }];
+        if (text.startsWith('SELECT used')) {
+          const [day, pool] = params as [string, string];
+          const row = budget.get(`${day}|${pool}`);
+          return row ? [{ ...row }] : [];
+        }
+        if (text.startsWith('INSERT INTO routes_cache')) {
+          cache.set(params[0] as string, typeof params[1] === 'string' ? JSON.parse(params[1]) : params[1]);
+          return [];
+        }
+        if (text.startsWith('SELECT key, value')) {
+          const keys = params[0] as string[];
+          return keys.filter((key) => cache.has(key)).map((key) => ({ key, value: cache.get(key) }));
+        }
         return [];
       }),
     };
-    return { sql, row, queries };
+    return { sql, budget, cache, queries };
   }
 
-  it('creates its tables once (adding the attempts column to an older table) and reserves both counts in one statement', async () => {
+  it('changes no schema at runtime and reserves both counts in one statement', async () => {
     const { createNeonStore } = await import('../../server/routesStore.mjs');
-    const { sql, queries } = fakeSql({ used: 95, attempts: 95 });
-    const store = createNeonStore('postgres://unused', { sql: sql as never });
+    const { sql, budget, queries } = fakeSql();
+    budget.set('2026-11-16|production:ranking', { used: 95, attempts: 95 });
+    const store = createNeonStore('postgres://unused', { sql: sql as never, scope: 'production' });
     expect(await store.reserve('2026-11-16', 'ranking', 4, { spent: 100, attempts: 120 })).toEqual({ ok: true, used: 99, attempts: 99 });
     expect(await store.reserve('2026-11-16', 'ranking', 4, { spent: 100, attempts: 120 })).toEqual({ ok: false, used: 99, attempts: 99 });
-    expect(queries.filter((q) => q.startsWith('CREATE TABLE'))).toHaveLength(2);
-    expect(queries.filter((q) => q.startsWith('ALTER TABLE routes_budget ADD COLUMN IF NOT EXISTS attempts'))).toHaveLength(1);
-    expect(queries.find((q) => q.startsWith('INSERT INTO routes_budget'))).toMatch(
+    await store.getSamples(['a']);
+    await store.putSample('a', { durationMinutes: 1 }, 60_000);
+    await store.getBreaker();
+    await store.settle('2026-11-16', 'ranking', { unsent: 1 });
+    expect(queries.filter((q) => /^\s*(CREATE|ALTER|DROP|DO)/i.test(q.text))).toEqual([]);
+    expect(queries.find((q) => q.text.startsWith('INSERT INTO routes_budget'))!.text).toMatch(
       /ON CONFLICT \(day, pool\)[\s\S]*WHERE routes_budget\.used \+ EXCLUDED\.used <= \$4 AND routes_budget\.attempts \+ EXCLUDED\.attempts <= \$5/,
     );
   });
 
   it('a call never sent gives back both counts; a refunded call gives back only the spend', async () => {
     const { createNeonStore } = await import('../../server/routesStore.mjs');
-    const { sql, row } = fakeSql({ used: 10, attempts: 10 });
-    const store = createNeonStore('postgres://unused', { sql: sql as never });
+    const { sql, budget } = fakeSql();
+    budget.set('2026-11-16|production:detail', { used: 10, attempts: 10 });
+    const store = createNeonStore('postgres://unused', { sql: sql as never, scope: 'production' });
     await store.settle('2026-11-16', 'detail', { unsent: 2, refund: 3 });
-    expect(row).toEqual({ used: 5, attempts: 8 });
+    expect(budget.get('2026-11-16|production:detail')).toEqual({ used: 5, attempts: 8 });
+  });
+
+  it('Production and Preview never see, spend or reset each other\'s counters, samples or breaker', async () => {
+    const { createNeonStore } = await import('../../server/routesStore.mjs');
+    const { sql, budget, cache } = fakeSql();
+    const production = createNeonStore('postgres://unused', { sql: sql as never, scope: 'production' });
+    const preview = createNeonStore('postgres://unused', { sql: sql as never, scope: 'preview' });
+    await production.reserve('2026-11-16', 'ranking', 56, { spent: 130, attempts: 150 });
+    await preview.reserve('2026-11-16', 'ranking', 10, { spent: 130, attempts: 150 });
+    await preview.settle('2026-11-16', 'ranking', { unsent: 10 });
+    expect(await production.used('2026-11-16', 'ranking')).toEqual({ used: 56, attempts: 56 });
+    expect(await preview.used('2026-11-16', 'ranking')).toEqual({ used: 0, attempts: 0 });
+    expect([...budget.keys()].sort()).toEqual(['2026-11-16|preview:ranking', '2026-11-16|production:ranking']);
+
+    await production.putSample('s:1', { durationMinutes: 90 }, 60_000);
+    expect((await production.getSamples(['s:1'])).get('s:1')).toEqual({ durationMinutes: 90 });
+    expect((await preview.getSamples(['s:1'])).size).toBe(0);
+    expect([...cache.keys()]).toEqual(['production|s:1']);
+  });
+
+  it('refuses to build a shared store with no environment to file its rows under', async () => {
+    const { createNeonStore } = await import('../../server/routesStore.mjs');
+    const { sql } = fakeSql();
+    expect(() => createNeonStore('postgres://unused', { sql: sql as never } as never)).toThrow(/scope/);
+  });
+
+  it('the migration is idempotent and only alters a table whose column is actually missing', async () => {
+    const { SCHEMA_STATEMENTS, migrate } = await import('../../server/schema.mjs');
+    const ran: string[] = [];
+    await migrate({ query: async (text: string) => void ran.push(text) });
+    expect(ran).toEqual(SCHEMA_STATEMENTS);
+    expect(ran.filter((text) => text.startsWith('CREATE TABLE')).every((text) => text.startsWith('CREATE TABLE IF NOT EXISTS'))).toBe(true);
+    const alters = ran.filter((text) => /ALTER TABLE/.test(text));
+    expect(alters).toHaveLength(1);
+    expect(alters[0]).toMatch(/IF NOT EXISTS \(\s*SELECT 1 FROM information_schema\.columns[\s\S]*\) THEN\s*ALTER TABLE routes_budget ADD COLUMN attempts/);
   });
 });
 
@@ -601,7 +801,7 @@ describe('attempts and spend: what each Google response costs', () => {
 
   const curve = (date = '2099-01-20') => ({
     origin: { lat: 39.7392, lon: -104.9903 },
-    destination: { lat: 39.4817, lon: -106.1614 },
+    destination: { lat: 39.4817, lon: -106.0384 },
     direction: 'outbound',
     date,
   });
@@ -613,6 +813,7 @@ describe('attempts and spend: what each Google response costs', () => {
     vi.stubEnv('DATABASE_URL', '');
     vi.stubEnv('POWNOW_DATABASE_URL', '');
     vi.stubEnv('VERCEL', '');
+    vi.stubEnv('VERCEL_ENV', '');
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
     const google = { calls: 0 };
     vi.stubGlobal(

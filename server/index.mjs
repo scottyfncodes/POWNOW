@@ -37,6 +37,7 @@
 import { createServer } from 'node:http';
 import { parse as parseHtml } from 'node-html-parser';
 import { createMemoryStore, createNeonStore } from './routesStore.mjs';
+import { SUPPORTED_CITIES, SUPPORTED_DESTINATIONS } from './supported.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const API_KEY = process.env.GOOGLE_ROUTES_API_KEY ?? '';
@@ -314,10 +315,11 @@ const ROUTES_FAILURE_TEXT = {
   no_route: 'Google Routes found no drivable route for this request.',
   daily_budget_reached: "Today's Google Routes budget is spent; drive times come back when it resets at midnight Pacific.",
   budget_unverifiable: 'The Google Routes budget could not be checked, so no call was made.',
+  incomplete: 'Google Routes was too slow to finish in time; what it answered is kept, so trying again costs only the rest.',
 };
 
 /** Kinds that are this proxy's own spending limits, not Google refusing: answered 503, not 502. */
-const OWN_LIMIT_KINDS = new Set(['daily_budget_reached', 'budget_unverifiable']);
+const OWN_LIMIT_KINDS = new Set(['daily_budget_reached', 'budget_unverifiable', 'incomplete']);
 
 /** The HTTP status for a Routes failure: our own limit is 503 (try later), Google's refusal is 502. */
 export const routesFailureStatus = (failure) => (OWN_LIMIT_KINDS.has(failure.kind) ? 503 : 502);
@@ -376,7 +378,9 @@ export function redactForLog(text, secrets = []) {
 function sendRoutesFailure(req, res, failure) {
   const headers = failure.kind === 'daily_budget_reached' || failure.kind === 'quota_exceeded'
     ? { 'Retry-After': String(Math.max(60, Math.ceil((nextQuotaResetMs() - Date.now()) / 1000))) }
-    : {};
+    : failure.kind === 'incomplete'
+      ? { 'Retry-After': '5' }
+      : {};
   sendJson(req, res, routesFailureStatus(failure), publicRoutesFailure(failure), headers);
 }
 
@@ -422,7 +426,7 @@ function logRoutesFailure(where, failure, sampled) {
  * which Google reads as "now". Resolves to `{ sample }` or `{ failure }` and
  * never throws: callers skip a failed point and keep its reason.
  */
-async function requestRoute(origin, destination, departureIso, { withPolyline = false } = {}) {
+async function requestRoute(origin, destination, departureIso, { withPolyline = false, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
   let response;
   try {
     response = await fetchWithTimeout(
@@ -446,7 +450,7 @@ async function requestRoute(origin, destination, departureIso, { withPolyline = 
           ...(departureIso ? { departureTime: departureIso } : {}),
         }),
       },
-      REQUEST_TIMEOUT_MS,
+      timeoutMs,
     );
   } catch (error) {
     const kind = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'network';
@@ -538,7 +542,18 @@ const QUOTA_TIME_ZONE = 'America/Los_Angeles';
 const DATABASE_URL = process.env.POWNOW_DATABASE_URL || process.env.DATABASE_URL || '';
 /** On a serverless host each instance has its own memory: a budget kept there is no ceiling. */
 const SERVERLESS = Boolean(process.env.VERCEL);
-const routesStore = DATABASE_URL ? createNeonStore(DATABASE_URL) : createMemoryStore();
+/**
+ * Whose counters, cache and breaker these are. Production, Preview and local development each keep
+ * their own rows (`<scope>:<pool>`, `<scope>|<key>`), so a preview build never spends or resets
+ * Production's budget. On Vercel the scope is VERCEL_ENV; a Vercel host that does not say which
+ * environment it is gets no scope, and spends nothing.
+ */
+const RUNTIME_ENV = process.env.VERCEL_ENV || (SERVERLESS ? null : 'development');
+const routesStore = DATABASE_URL && RUNTIME_ENV ? createNeonStore(DATABASE_URL, { scope: RUNTIME_ENV }) : createMemoryStore();
+/** No call may start later than this into a request, so a slow Google cannot run past the function's 30 s limit. */
+const ROUTES_DEADLINE_MS = Math.max(1000, Number(process.env.ROUTES_DEADLINE_MS ?? 20_000));
+/** A call is sent only with at least this long left before the deadline. */
+const MIN_CALL_MS = 2_500;
 
 /** The ranking's two departures: a standard ski day, leave at 6:00, head home at 3:00 (both on the full grids). */
 export const RANKING_MINUTES = { outbound: 360, return: 900 };
@@ -594,13 +609,15 @@ let localBreaker = null;
 let googleActive = 0;
 const googleQueue = [];
 async function withGoogleSlot(run) {
+  // A finished call hands its slot straight to the next one waiting, so no newcomer can slip in between.
   if (googleActive >= ROUTES_CONCURRENCY) await new Promise((resolve) => googleQueue.push(resolve));
-  googleActive += 1;
+  else googleActive += 1;
   try {
     return await run();
   } finally {
-    googleActive -= 1;
-    googleQueue.shift()?.();
+    const next = googleQueue.shift();
+    if (next) next();
+    else googleActive -= 1;
   }
 }
 
@@ -632,7 +649,7 @@ async function tripBreaker(failure) {
 }
 
 /** Buy the samples nobody has: one reservation in the pool for all of them, then at most ROUTES_CONCURRENCY calls at a time. */
-async function spendOnGoogle(origin, items, pool, withPolyline) {
+async function spendOnGoogle(origin, items, pool, withPolyline, deadline) {
   const blocked = await openBreaker();
   if (blocked) return items.map(() => ({ failure: { ...blocked, circuitOpen: true } }));
   if (SERVERLESS && !routesStore.shared) return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
@@ -658,6 +675,7 @@ async function spendOnGoogle(origin, items, pool, withPolyline) {
 
   let unspent = 0;
   let refunded = 0;
+  let late = 0;
   const results = await Promise.all(
     items.map((item) =>
       withGoogleSlot(async () => {
@@ -666,7 +684,17 @@ async function spendOnGoogle(origin, items, pool, withPolyline) {
           unspent += 1;
           return { failure: { ...localBreaker.failure, circuitOpen: true } };
         }
-        const result = await requestRoute(origin, item.destination, item.departureIso, { withPolyline });
+        // Too close to the deadline to finish: not sent, so it costs nothing.
+        const left = deadline - Date.now();
+        if (left < MIN_CALL_MS) {
+          unspent += 1;
+          late += 1;
+          return { failure: ownFailure('incomplete', pool) };
+        }
+        const result = await requestRoute(origin, item.destination, item.departureIso, {
+          withPolyline,
+          timeoutMs: Math.min(REQUEST_TIMEOUT_MS, left),
+        });
         if (result.sample) {
           const sample = { ...result.sample, sampledAt: Date.now() };
           sampleMemo.set(item.key, { value: sample, expiresAt: Date.now() + item.keepMs });
@@ -686,6 +714,7 @@ async function spendOnGoogle(origin, items, pool, withPolyline) {
   if (unspent > 0 || refunded > 0) {
     await routesStore.settle(day, pool, { unsent: unspent, refund: refunded }).catch((error) => warnStore('budget settle', error));
   }
+  if (late > 0) console.warn(`[google-routes] ${pool}: deadline reached, ${late} of ${n} calls not sent (given back)`);
   return results;
 }
 
@@ -697,6 +726,7 @@ async function spendOnGoogle(origin, items, pool, withPolyline) {
  */
 async function getRouteSamples(origin, items, { pool, withPolyline = false }) {
   const now = Date.now();
+  const deadline = now + ROUTES_DEADLINE_MS;
   const fresh = (value, item) => value && now - (value.sampledAt ?? 0) <= item.maxAgeMs;
   const out = new Array(items.length);
   let missing = [];
@@ -735,7 +765,7 @@ async function getRouteSamples(origin, items, { pool, withPolyline = false }) {
     const settle = new Map();
     for (const i of toBuy) pendingSamples.set(items[i].key, new Promise((resolve) => settle.set(i, resolve)));
     try {
-      const results = await spendOnGoogle(origin, toBuy.map((i) => items[i]), pool, withPolyline);
+      const results = await spendOnGoogle(origin, toBuy.map((i) => items[i]), pool, withPolyline, deadline);
       toBuy.forEach((i, n) => {
         out[i] = results[n];
         settle.get(i)(results[n]);
@@ -749,6 +779,15 @@ async function getRouteSamples(origin, items, { pool, withPolyline = false }) {
   }
   await Promise.all(waits);
   return out;
+}
+
+/**
+ * A ranking or curve missing points only because the deadline came first is not answered with holes:
+ * it is a retryable 503, and the samples that did come back are already cached for the retry.
+ */
+function throwIfIncomplete(results) {
+  const late = results.find((result) => result.failure?.kind === 'incomplete');
+  if (late) throw new RoutesUnavailableError(late.failure);
 }
 
 /** A full curve's item: shared key, kept until departure, read only while young enough for a curve. */
@@ -784,6 +823,7 @@ async function buildRankingDrives(origin, date, destinations, nowMs = Date.now()
     }
   }
   const results = await getRouteSamples(origin, items, { pool: 'ranking' });
+  throwIfIncomplete(results);
   const drives = destinations.map(() => ({}));
   const failures = [];
   items.forEach((item, i) => {
@@ -828,6 +868,7 @@ async function budgetStatus() {
     dailyBudget: BUDGET.ranking + BUDGET.detail,
     pools,
     nonbillableKinds: [...NONBILLABLE_KINDS],
+    scope: RUNTIME_ENV,
     sharedStore: routesStore.shared,
     breakerOpenUntil: breaker && localBreaker ? new Date(localBreaker.until).toISOString() : null,
   };
@@ -879,6 +920,7 @@ async function buildTravelCurve(origin, destination, direction, date, timeZone =
   const grid = direction === 'outbound' ? OUTBOUND_MINUTES : RETURN_MINUTES;
   const plan = planDepartureMinutes(grid, date, Date.now(), timeZone);
   const results = await getRouteSamples(origin, plan.map((p) => detailItem(origin, destination, p.departureIso)), { pool: 'detail' });
+  throwIfIncomplete(results);
   const samplesRaw = plan.map(({ minute }, i) => ({ minute, ...results[i] }));
 
   const resolved = samplesRaw.filter((d) => d.sample);
@@ -1578,6 +1620,22 @@ function isPoint(value) {
   return value && typeof value.lat === 'number' && typeof value.lon === 'number';
 }
 
+/*
+ * Where Google calls may go. A ranking starts at one of the app's cities and asks only for the
+ * mountains that city ranks; an opened mountain (or its map preview) may start anywhere, a GPS fix,
+ * but ends at a mountain. Anything else is refused before the budget or Google is touched, so no
+ * request can spend the day's calls on places the app never asks about. (server/supported.mjs is
+ * generated from the app's data; see src/server/supported.test.ts.)
+ */
+const pointKey = (point) => `${point.lat.toFixed(4)},${point.lon.toFixed(4)}`;
+const SUPPORTED_DESTINATION_KEYS = new Set(SUPPORTED_DESTINATIONS);
+const SUPPORTED_RANKINGS = new Map(
+  Object.values(SUPPORTED_CITIES).map((city) => [city.origin, new Set(city.destinations)]),
+);
+export const isSupportedDestination = (point) => isPoint(point) && SUPPORTED_DESTINATION_KEYS.has(pointKey(point));
+/** The city's set of mountains if `origin` is one of the app's cities, otherwise null. */
+const rankingDestinationsFor = (origin) => (isPoint(origin) ? (SUPPORTED_RANKINGS.get(pointKey(origin)) ?? null) : null);
+
 /**
  * The router. Exported so a serverless adapter (see `api/[...path].mjs`)
  * can serve exactly the same endpoints as the standalone process.
@@ -1630,10 +1688,16 @@ async function handle(req, res) {
 
   /*
    * Browser-friendly GET version of /api/travel-curve, for manually
-   * eyeballing that a real deploy is actually returning live Google Routes
-   * data. Defaults to Denver -> Copper Mountain outbound for tomorrow.
+   * eyeballing that a preview or local server is actually returning live
+   * Google Routes data. Defaults to Denver -> Copper Mountain outbound for
+   * tomorrow. Off in Production: it takes any coordinates.
    */
   if (req.method === 'GET' && url.pathname === '/api/test-drive') {
+    // A debugging route that spends the detail budget on any coordinates: never in Production.
+    if (RUNTIME_ENV === 'production') {
+      sendJson(req, res, 404, { error: 'Not found.' });
+      return;
+    }
     const params = url.searchParams;
     const origin = roundOrigin({
       lat: Number(params.get('originLat') ?? 39.7392),
@@ -1679,6 +1743,10 @@ async function handle(req, res) {
       sendJson(req, res, 400, { error: 'origin and destination must each be { lat, lon }.' });
       return;
     }
+    if (!isSupportedDestination(destination)) {
+      sendJson(req, res, 400, { error: 'destination must be one of the mountains POW NOW covers.' });
+      return;
+    }
     let preview;
     try {
       preview = await fetchRoutePreview(roundOrigin(origin), destination);
@@ -1710,16 +1778,23 @@ async function handle(req, res) {
       return;
     }
     const { origin, date, destinations } = body ?? {};
-    if (!isPoint(origin)) {
-      sendJson(req, res, 400, { error: 'origin must be { lat, lon }.' });
+    const allowed = rankingDestinationsFor(origin);
+    if (!allowed) {
+      sendJson(req, res, 400, { error: 'origin must be one of the cities POW NOW ranks from.' });
       return;
     }
     if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       sendJson(req, res, 400, { error: 'date must be "YYYY-MM-DD".' });
       return;
     }
-    if (!Array.isArray(destinations) || destinations.length === 0 || destinations.length > 100 || !destinations.every(isPoint)) {
-      sendJson(req, res, 400, { error: 'destinations must be 1 to 100 points, each { lat, lon, timeZone? }.' });
+    if (
+      !Array.isArray(destinations) ||
+      destinations.length === 0 ||
+      destinations.length > allowed.size ||
+      !destinations.every((point) => isPoint(point) && allowed.has(pointKey(point))) ||
+      new Set(destinations.map(pointKey)).size !== destinations.length
+    ) {
+      sendJson(req, res, 400, { error: "destinations must be distinct mountains this city's ranking covers, each { lat, lon, timeZone? }." });
       return;
     }
     let ranking;
@@ -1750,6 +1825,10 @@ async function handle(req, res) {
     const timeZone = resolveTimeZone(body?.timeZone);
     if (!isPoint(origin) || !isPoint(destination)) {
       sendJson(req, res, 400, { error: 'origin and destination must each be { lat, lon }.' });
+      return;
+    }
+    if (!isSupportedDestination(destination)) {
+      sendJson(req, res, 400, { error: 'destination must be one of the mountains POW NOW covers.' });
       return;
     }
     if (direction !== 'outbound' && direction !== 'return') {
