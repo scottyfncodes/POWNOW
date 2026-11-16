@@ -676,12 +676,17 @@ describe('sample lifetimes and quota resets', () => {
     expect(sampleTtlMs(at(24 * 7), now)).toBe(24 * 3_600_000);
   });
 
-  it('opens a quota breaker until just after midnight Pacific, a key or billing one for 30 minutes', async () => {
+  it('stops every call until midnight Pacific after any refusal (a few minutes past it for quota), across daylight saving', async () => {
     const { breakerUntilMs, nextQuotaResetMs } = await import('../../server/index.mjs');
     const now = Date.parse('2026-11-15T18:00:00Z');
     expect(new Date(nextQuotaResetMs(now)).toISOString()).toBe('2026-11-16T08:00:00.000Z');
     expect(breakerUntilMs('quota_exceeded', now)).toBe(Date.parse('2026-11-16T08:05:00Z'));
-    expect(breakerUntilMs('billing_disabled', now)).toBe(now + 30 * 60_000);
+    expect(breakerUntilMs('permission_denied', now)).toBe(Date.parse('2026-11-16T08:00:00Z'));
+    // The autumn change (Nov 1): at 23:30 PDT on Oct 31 the next midnight is 07:00Z; after the change, midnight PST is 08:00Z.
+    expect(breakerUntilMs('billing_disabled', Date.parse('2026-11-01T06:30:00Z'))).toBe(Date.parse('2026-11-01T07:00:00Z'));
+    expect(breakerUntilMs('key_restricted', Date.parse('2026-11-01T10:00:00Z'))).toBe(Date.parse('2026-11-02T08:00:00Z'));
+    // The spring change: 04:00 PST on Mar 8 waits for PDT midnight on Mar 9 (07:00Z).
+    expect(breakerUntilMs('permission_denied', Date.parse('2026-03-08T12:00:00Z'))).toBe(Date.parse('2026-03-09T07:00:00Z'));
   });
 });
 
@@ -714,8 +719,20 @@ describe('the shared Neon store', () => {
           const row = budget.get(`${day}|${pool}`);
           return row ? [{ ...row }] : [];
         }
+        if (text.startsWith('INSERT INTO routes_cache') && text.includes('WHERE routes_cache.expires_at <= now()')) {
+          if (cache.has(params[0] as string)) return [];
+          cache.set(params[0] as string, { lease: true });
+          return [{ key: params[0] }];
+        }
         if (text.startsWith('INSERT INTO routes_cache')) {
           cache.set(params[0] as string, typeof params[1] === 'string' ? JSON.parse(params[1]) : params[1]);
+          return [];
+        }
+        if (text.startsWith('SELECT value FROM routes_cache')) {
+          return cache.has(params[0] as string) ? [{ value: cache.get(params[0] as string) }] : [];
+        }
+        if (text.startsWith('DELETE FROM routes_cache WHERE key = $1')) {
+          cache.delete(params[0] as string);
           return [];
         }
         if (text.startsWith('SELECT key, value')) {
@@ -770,6 +787,24 @@ describe('the shared Neon store', () => {
     expect((await production.getSamples(['s:1'])).get('s:1')).toEqual({ durationMinutes: 90 });
     expect((await preview.getSamples(['s:1'])).size).toBe(0);
     expect([...cache.keys()]).toEqual(['production|s:1']);
+  });
+
+  it('gives a recovery-probe lease to exactly one caller per environment, in one atomic statement', async () => {
+    const { createNeonStore } = await import('../../server/routesStore.mjs');
+    const { sql, queries } = fakeSql();
+    const production = createNeonStore('postgres://unused', { sql: sql as never, scope: 'production' });
+    const preview = createNeonStore('postgres://unused', { sql: sql as never, scope: 'preview' });
+    expect(await production.acquireLease('__probe', 60_000)).toBe(true);
+    expect(await production.acquireLease('__probe', 60_000)).toBe(false);
+    expect(await preview.acquireLease('__probe', 60_000)).toBe(true);
+    await production.setFlag('__probation', { failure: { kind: 'permission_denied' } }, Date.now() + 60_000);
+    expect(await production.getFlag('__probation')).toEqual({ failure: { kind: 'permission_denied' } });
+    expect(await preview.getFlag('__probation')).toBeNull();
+    await production.clearFlag('__probe');
+    expect(await production.acquireLease('__probe', 60_000)).toBe(true);
+    expect(queries.find((q) => q.text.includes('WHERE routes_cache.expires_at <= now()'))!.text).toMatch(
+      /^INSERT INTO routes_cache[\s\S]*ON CONFLICT \(key\) DO UPDATE[\s\S]*WHERE routes_cache\.expires_at <= now\(\)[\s\S]*RETURNING key$/,
+    );
   });
 
   it('refuses to build a shared store with no environment to file its rows under', async () => {
@@ -915,25 +950,115 @@ describe('attempts and spend: what each Google response costs', () => {
     expect(await detailPool(handleRequest)).toMatchObject({ used: google.calls, attempts: google.calls });
   });
 
-  it('stops at the attempts ceiling even while every refusal is refunded and the breaker keeps reopening', async () => {
+  it('a standing 403 costs one burst, then one probe per day across concurrent requests, until a probe gets a route', async () => {
     const clock = vi.spyOn(Date, 'now');
-    let now = Date.parse('2099-01-17T15:00:00Z'); // 7:00 Pacific: the day does not roll over below
+    let now = Date.parse('2099-01-17T15:00:00Z'); // 07:00 Pacific
     clock.mockImplementation(() => now);
-    const { handleRequest, google } = await router(
-      { ROUTES_NONBILLABLE_KINDS: 'key_restricted', ROUTES_DETAIL_BUDGET: '60', ROUTES_DETAIL_ATTEMPTS: '70' },
-      () => googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED'),
-    );
-    let last = { status: 0, json: {} as Record<string, any> };
-    for (let window = 0; window < 12; window += 1) {
-      last = await request(handleRequest, 'POST', '/api/travel-curve', curve());
-      now += 31 * 60_000; // past the 30-minute breaker
+    let answer = () => googleError(403, 'PERMISSION_DENIED', null);
+    const { handleRequest, google } = await router({}, () => answer());
+
+    // Day 1: the first request's calls already in flight come back refused; the breaker stops the rest.
+    const first = await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-20'));
+    expect(first.status).toBe(502);
+    expect(first.json.upstream).toMatchObject({ kind: 'permission_denied', status: 403 });
+    const burst = google.calls;
+    expect(burst).toBeGreaterThan(0);
+    expect(burst).toBeLessThanOrEqual(8);
+    for (const hours of [1, 5, 16]) {
+      now = Date.parse('2099-01-17T15:00:00Z') + hours * 3_600_000; // up to 23:00 Pacific
+      const held = await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'));
+      expect(held.json.upstream).toMatchObject({ kind: 'permission_denied', circuitOpen: true });
     }
-    const pool = await detailPool(handleRequest);
-    expect(pool.used).toBe(0);
-    expect(pool.attempts).toBeLessThanOrEqual(70);
-    expect(google.calls).toBe(pool.attempts);
-    expect(last.status).toBe(503);
-    expect(last.json.upstream).toMatchObject({ kind: 'daily_budget_reached', pool: 'detail', exhausted: 'attempts' });
+    expect(google.calls).toBe(burst);
+    const health = (await request(handleRequest, 'GET', '/api/health')).json.googleRoutes;
+    expect(health).toMatchObject({ breakerOpenUntil: '2099-01-18T08:00:00.000Z', recoveryProbeAfter: 'permission_denied' });
+
+    // Day 2, just after midnight Pacific: four requests at once make exactly one call, and it is refused again.
+    now = Date.parse('2099-01-18T08:01:00Z');
+    const day2 = await Promise.all(['2099-01-20', '2099-01-21', '2099-01-22', '2099-01-23'].map((date) => request(handleRequest, 'POST', '/api/travel-curve', curve(date))));
+    expect(google.calls).toBe(burst + 1);
+    expect(day2.every((a) => a.status === 502)).toBe(true);
+    expect(await detailPool(handleRequest)).toMatchObject({ used: 1, attempts: 1 });
+    now = Date.parse('2099-01-18T20:00:00Z');
+    await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-24'));
+    expect(google.calls).toBe(burst + 1);
+
+    // Day 3: Google is fixed. One probe gets a route; the refusal is forgotten and the rest of the curve is bought.
+    now = Date.parse('2099-01-19T08:01:00Z');
+    answer = () => json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] });
+    const recovered = await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-25'));
+    expect(recovered.status).toBe(200);
+    expect(recovered.json.samples).toHaveLength(9);
+    expect(google.calls).toBe(burst + 1 + 9);
+    expect((await request(handleRequest, 'GET', '/api/health')).json.googleRoutes).toMatchObject({ breakerOpenUntil: null, recoveryProbeAfter: null });
+    // Normal traffic again: another curve buys its nine points at once.
+    expect((await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-26'))).status).toBe(200);
+    expect(google.calls).toBe(burst + 1 + 18);
+  });
+
+  it('a probe that fails without a refusal waits half an hour for the next one, not a day', async () => {
+    const clock = vi.spyOn(Date, 'now');
+    let now = Date.parse('2099-01-17T15:00:00Z');
+    clock.mockImplementation(() => now);
+    let answer = () => googleError(403, 'PERMISSION_DENIED', 'BILLING_DISABLED');
+    const { handleRequest, google } = await router({}, () => answer());
+    await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-20'));
+    const burst = google.calls;
+
+    now = Date.parse('2099-01-18T08:01:00Z');
+    answer = () => googleError(500, 'INTERNAL', null);
+    await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'));
+    expect(google.calls).toBe(burst + 1);
+    now += 10 * 60_000;
+    await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'));
+    expect(google.calls).toBe(burst + 1);
+    now += 21 * 60_000; // 31 minutes after the probe
+    answer = () => json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] });
+    expect((await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-21'))).status).toBe(200);
+    expect(google.calls).toBe(burst + 1 + 9);
+  });
+
+  it('a ranking during probation probes with one call, then buys the rest whole', async () => {
+    const clock = vi.spyOn(Date, 'now');
+    let now = Date.parse('2099-01-17T15:00:00Z');
+    clock.mockImplementation(() => now);
+    let answer = () => googleError(403, 'PERMISSION_DENIED', 'API_KEY_SERVICE_BLOCKED');
+    const { handleRequest, google } = await router({}, () => answer());
+    await request(handleRequest, 'POST', '/api/travel-curve', curve('2099-01-20'));
+    const burst = google.calls;
+    now = Date.parse('2099-01-18T08:01:00Z');
+    answer = () => json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] });
+    const ranking = await request(handleRequest, 'POST', '/api/ranking-drives', {
+      origin: { lat: 39.7392, lon: -104.9903 },
+      date: '2099-01-20',
+      destinations: [
+        { lat: 39.4817, lon: -106.0384, timeZone: 'America/Denver' },
+        { lat: 39.6403, lon: -106.3742, timeZone: 'America/Denver' },
+        { lat: 39.9375, lon: -105.5828, timeZone: 'America/Denver' },
+      ],
+    });
+    expect(ranking.status).toBe(200);
+    expect(ranking.json.drives.every((d: { outbound: unknown; return: unknown }) => d.outbound && d.return)).toBe(true);
+    expect(google.calls).toBe(burst + 6);
+  });
+
+  it('a Preview deployment gets no Google calls unless its own allocation is set', async () => {
+    const preview = await router({ VERCEL_ENV: 'preview' }, () => json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] }));
+    const refused = await request(preview.handleRequest, 'POST', '/api/travel-curve', curve());
+    expect(refused.status).toBe(503);
+    expect(refused.json.upstream).toMatchObject({ kind: 'daily_budget_reached', pool: 'detail' });
+    expect(preview.google.calls).toBe(0);
+    expect((await request(preview.handleRequest, 'GET', '/api/health')).json.googleRoutes).toMatchObject({
+      dailyBudget: 0,
+      pools: { ranking: { limit: 0, attemptLimit: 0 }, detail: { limit: 0, attemptLimit: 0 } },
+    });
+
+    const allotted = await router({ VERCEL_ENV: 'preview', ROUTES_DETAIL_BUDGET: '9', ROUTES_DETAIL_ATTEMPTS: '10' }, () =>
+      json(200, { routes: [{ duration: '5400s', distanceMeters: 1000 }] }),
+    );
+    expect((await request(allotted.handleRequest, 'POST', '/api/travel-curve', curve())).status).toBe(200);
+    expect(allotted.google.calls).toBe(9);
+    expect(await detailPool(allotted.handleRequest)).toMatchObject({ limit: 9, attemptLimit: 10 });
   });
 
   it('concurrent requests never dispatch past the ceiling', async () => {

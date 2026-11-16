@@ -506,21 +506,35 @@ async function requestRoute(origin, destination, departureIso, { withPolyline = 
  *      for a response category listed in ROUTES_NONBILLABLE_KINDS, which is
  *      empty until Google's billing report confirms a category is not billed.
  *   4. At most ROUTES_CONCURRENCY calls are in flight per instance.
- *   5. A quota, billing or key refusal opens a circuit breaker shared by every
- *      instance: no call is made until Google's quota resets (quota) or for 30
- *      minutes (key, billing), and every answer meanwhile still names Google's
- *      refusal, so the failure stays visible.
+ *   5. A quota, billing, key or permission refusal opens a circuit breaker
+ *      shared by every instance: no call is made until Google's quotas reset at
+ *      midnight Pacific, and every answer meanwhile still names Google's
+ *      refusal, so the failure stays visible. A key, billing or permission
+ *      refusal does not fix itself at midnight, so after one the next day starts
+ *      with a single recovery probe: one call, from one instance, and only if it
+ *      gets a route does normal traffic resume. A probe that fails waits for the
+ *      next midnight (a refusal) or half an hour (anything else).
  *
  * Nothing here invents a drive time: a sample is Google's, cached, or absent.
  */
+/**
+ * A pool's daily number from the environment, or its default. Preview spends the same Google
+ * project's quota as Production, so a Preview deployment gets no Google calls at all unless its
+ * own allocation is set explicitly (Vercel's Preview environment variables).
+ */
+const allocation = (name, fallback) => {
+  const raw = process.env[name];
+  if (raw !== undefined && raw !== '') return Math.max(0, Number(raw));
+  return process.env.VERCEL_ENV === 'preview' ? 0 : fallback;
+};
 const BUDGET = {
-  ranking: Math.max(0, Number(process.env.ROUTES_RANKING_BUDGET ?? 130)),
-  detail: Math.max(0, Number(process.env.ROUTES_DETAIL_BUDGET ?? 60)),
+  ranking: allocation('ROUTES_RANKING_BUDGET', 130),
+  detail: allocation('ROUTES_DETAIL_BUDGET', 60),
 };
 /** Calls sent per pool per day, billed or not. Above the spend budget, so a refused call cannot crowd out a real one. */
 const ATTEMPTS = {
-  ranking: Math.max(BUDGET.ranking, Number(process.env.ROUTES_RANKING_ATTEMPTS ?? 150)),
-  detail: Math.max(BUDGET.detail, Number(process.env.ROUTES_DETAIL_ATTEMPTS ?? 70)),
+  ranking: Math.max(BUDGET.ranking, allocation('ROUTES_RANKING_ATTEMPTS', 150)),
+  detail: Math.max(BUDGET.detail, allocation('ROUTES_DETAIL_ATTEMPTS', 70)),
 };
 
 /**
@@ -593,8 +607,18 @@ export function nextQuotaResetMs(nowMs = Date.now()) {
 const BREAKER_KINDS = new Set([
   'quota_exceeded', 'key_invalid', 'key_restricted', 'api_not_enabled', 'billing_disabled', 'project_suspended', 'project_invalid', 'permission_denied',
 ]);
+/** Of those, the ones midnight does not cure: someone has to change the key, the API, billing or the project. */
+const STANDING_REFUSALS = new Set([...BREAKER_KINDS].filter((kind) => kind !== 'quota_exceeded'));
+/** How long one recovery probe holds the right to call before another may try (if it neither recovered nor was refused). */
+const PROBE_LEASE_MS = 30 * MINUTE;
+/** A standing refusal is remembered this long; any probe that gets a route forgets it at once. */
+const PROBATION_MS = 7 * 24 * 60 * MINUTE;
+const PROBATION_FLAG = '__probation';
+const PROBE_FLAG = '__probe';
+
+/** Until when a refusal stops every call: midnight Pacific, when Google resets quotas (a few minutes after, for quota). */
 export function breakerUntilMs(kind, nowMs = Date.now()) {
-  return kind === 'quota_exceeded' ? nextQuotaResetMs(nowMs) + 5 * MINUTE : nowMs + 30 * MINUTE;
+  return kind === 'quota_exceeded' ? nextQuotaResetMs(nowMs) + 5 * MINUTE : nextQuotaResetMs(nowMs);
 }
 
 const ownFailure = (kind, pool) => ({ kind, pool, upstreamStatus: null, googleStatus: null, reason: null, message: null });
@@ -643,17 +667,62 @@ async function tripBreaker(failure) {
   console.warn(`[google-routes] circuit breaker open until ${new Date(until).toISOString()}: ${failure.kind}`);
   try {
     await routesStore.setBreaker(until, failure);
+    // After a refusal midnight does not cure, the next day starts with one probe, not with traffic.
+    if (STANDING_REFUSALS.has(failure.kind)) await routesStore.setFlag(PROBATION_FLAG, { failure }, Date.now() + PROBATION_MS);
   } catch (error) {
     warnStore('breaker write', error);
   }
 }
 
-/** Buy the samples nobody has: one reservation in the pool for all of them, then at most ROUTES_CONCURRENCY calls at a time. */
+/**
+ * Buy the samples nobody has. While the breaker is open, nothing. After a standing refusal, one
+ * recovery probe at a time across every instance: its first item is bought alone, and only if
+ * Google gives a route is the refusal forgotten and the rest bought. Otherwise, everything at once.
+ */
 async function spendOnGoogle(origin, items, pool, withPolyline, deadline) {
   const blocked = await openBreaker();
   if (blocked) return items.map(() => ({ failure: { ...blocked, circuitOpen: true } }));
   if (SERVERLESS && !routesStore.shared) return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
 
+  let probation;
+  try {
+    probation = await routesStore.getFlag(PROBATION_FLAG);
+  } catch (error) {
+    warnStore('probation read', error);
+    return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
+  }
+  if (!probation) return buyFromGoogle(origin, items, pool, withPolyline, deadline);
+
+  const held = () => ({ failure: { ...probation.failure, circuitOpen: true } });
+  let probing;
+  try {
+    probing = await routesStore.acquireLease(PROBE_FLAG, PROBE_LEASE_MS);
+  } catch (error) {
+    warnStore('probe lease', error);
+    return items.map(() => ({ failure: ownFailure('budget_unverifiable', pool) }));
+  }
+  if (!probing) return items.map(held);
+
+  console.warn(`[google-routes] recovery probe: one call after ${probation.failure.kind}`);
+  const [first] = await buyFromGoogle(origin, items.slice(0, 1), pool, withPolyline, deadline);
+  if (!first.sample) {
+    // No call went out (our own limit): let the next request probe instead.
+    if (OWN_LIMIT_KINDS.has(first.failure.kind)) await routesStore.clearFlag(PROBE_FLAG).catch((error) => warnStore('probe release', error));
+    return [first, ...items.slice(1).map(held)];
+  }
+  console.info('[google-routes] recovery probe got a route: normal traffic resumes');
+  try {
+    await routesStore.clearFlag(PROBATION_FLAG);
+    await routesStore.clearFlag(PROBE_FLAG);
+  } catch (error) {
+    warnStore('probation clear', error);
+  }
+  const rest = items.length > 1 ? await buyFromGoogle(origin, items.slice(1), pool, withPolyline, deadline) : [];
+  return [first, ...rest];
+}
+
+/** One reservation in the pool for all of `items`, then at most ROUTES_CONCURRENCY calls at a time. */
+async function buyFromGoogle(origin, items, pool, withPolyline, deadline) {
   const day = localParts(Date.now(), QUOTA_TIME_ZONE).dateKey;
   const limits = { spent: BUDGET[pool], attempts: ATTEMPTS[pool] };
   const n = items.length;
@@ -863,6 +932,12 @@ async function budgetStatus() {
     pools[pool] = { limit, used: counts?.used ?? null, attemptLimit: ATTEMPTS[pool], attempts: counts?.attempts ?? null };
   }
   const breaker = await openBreaker();
+  let probation = null;
+  try {
+    probation = await routesStore.getFlag(PROBATION_FLAG);
+  } catch {
+    // Unknown: reported as null.
+  }
   return {
     day,
     dailyBudget: BUDGET.ranking + BUDGET.detail,
@@ -871,6 +946,8 @@ async function budgetStatus() {
     scope: RUNTIME_ENV,
     sharedStore: routesStore.shared,
     breakerOpenUntil: breaker && localBreaker ? new Date(localBreaker.until).toISOString() : null,
+    // Set after a key, billing or permission refusal: the next call is a single recovery probe.
+    recoveryProbeAfter: probation?.failure?.kind ?? null,
   };
 }
 

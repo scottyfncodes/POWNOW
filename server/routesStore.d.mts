@@ -9,6 +9,10 @@ export interface RoutesStore {
   used(day: string, pool: string): Promise<{ used: number; attempts: number }>;
   getBreaker(): Promise<{ failure: unknown; until: number } | null>;
   setBreaker(untilMs: number, failure: unknown): Promise<void>;
+  getFlag(name: string): Promise<any>;
+  setFlag(name: string, value: unknown, untilMs: number): Promise<void>;
+  clearFlag(name: string): Promise<void>;
+  acquireLease(name: string, ttlMs: number): Promise<boolean>;
 }
 export function createMemoryStore(): RoutesStore;
 export function createNeonStore(

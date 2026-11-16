@@ -62,6 +62,21 @@ export function createMemoryStore() {
     async setBreaker(untilMs, failure) {
       samples.set(BREAKER_KEY, { value: { failure }, expiresAt: untilMs });
     },
+    async getFlag(name) {
+      const entry = samples.get(name);
+      return live(entry) ? entry.value : null;
+    },
+    async setFlag(name, value, untilMs) {
+      samples.set(name, { value, expiresAt: untilMs });
+    },
+    async clearFlag(name) {
+      samples.delete(name);
+    },
+    async acquireLease(name, ttlMs) {
+      if (live(samples.get(name))) return false;
+      samples.set(name, { value: { lease: true }, expiresAt: Date.now() + ttlMs });
+      return true;
+    },
   };
 }
 
@@ -146,6 +161,35 @@ export function createNeonStore(databaseUrl, { sql = neon(databaseUrl), scope } 
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at`,
         [breakerKey, JSON.stringify({ failure }), new Date(untilMs).toISOString()],
       );
+    },
+    /** A small named value for this scope (the recovery probation), or null once expired. */
+    async getFlag(name) {
+      const rows = await sql.query('SELECT value FROM routes_cache WHERE key = $1 AND expires_at > now()', [keyOf(name)]);
+      return rows[0]?.value ?? null;
+    },
+    async setFlag(name, value, untilMs) {
+      await sql.query(
+        `INSERT INTO routes_cache (key, value, expires_at) VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at`,
+        [keyOf(name), JSON.stringify(value), new Date(untilMs).toISOString()],
+      );
+    },
+    async clearFlag(name) {
+      await sql.query('DELETE FROM routes_cache WHERE key = $1', [keyOf(name)]);
+    },
+    /**
+     * Take a named lease for ttlMs if nobody holds a live one: one atomic statement, so of any
+     * number of instances asking at once exactly one gets it.
+     */
+    async acquireLease(name, ttlMs) {
+      const rows = await sql.query(
+        `INSERT INTO routes_cache (key, value, expires_at) VALUES ($1, '{"lease":true}', now() + make_interval(secs => $2))
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at
+         WHERE routes_cache.expires_at <= now()
+         RETURNING key`,
+        [keyOf(name), ttlMs / 1000],
+      );
+      return rows.length > 0;
     },
   };
 }
